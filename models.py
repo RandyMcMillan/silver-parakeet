@@ -15,22 +15,13 @@ class Stop(db.Model):
     def __repr__(self):
         return f'<Stop {self.id}: {self.post_type} at {self.address}>'
 
-class Employee(db.Model):
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    
-    def __repr__(self):
-        return f'<Employee {self.id}: {self.name}>'
-
 class Route(db.Model):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    employee_id: Mapped[int] = mapped_column(Integer, db.ForeignKey('employee.id'), nullable=False)
+    driver_number: Mapped[int] = mapped_column(Integer, nullable=False)
     stop_sequence: Mapped[str] = mapped_column(Text, nullable=False)  # JSON string of stop IDs in order
     total_time_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    start_time: Mapped[str] = mapped_column(String(10), nullable=False, default='07:00')
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
-    employee = db.relationship('Employee', backref='routes')
-    
     def __repr__(self):
-        return f'<Route {self.id}: Employee {self.employee_id}>'
+        return f'<Route {self.id}: Driver {self.driver_number}>'

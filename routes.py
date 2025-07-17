@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from datetime import datetime, date
-from models import Stop, Employee, Route, db
+from models import Stop, Route, db
 from tsp_solver import TSPSolver
 import json
 import logging
@@ -11,10 +11,9 @@ main = Blueprint('main', __name__)
 def index():
     """Main page with route optimization interface"""
     stops = Stop.query.all()
-    employees = Employee.query.all()
     routes = Route.query.all()
     
-    return render_template('index.html', stops=stops, employees=employees, routes=routes, datetime=datetime)
+    return render_template('index.html', stops=stops, routes=routes, datetime=datetime)
 
 @main.route('/add_stop', methods=['POST'])
 def add_stop():
@@ -90,48 +89,25 @@ def add_stop():
     
     return redirect(url_for('main.index'))
 
-@main.route('/add_employee', methods=['POST'])
-def add_employee():
-    """Add a new employee"""
-    try:
-        name = request.form.get('name')
-        
-        if not name:
-            flash('Employee name is required', 'error')
-            return redirect(url_for('main.index'))
-        
-        # Check if employee already exists
-        if Employee.query.filter_by(name=name).first():
-            flash('Employee with this name already exists', 'error')
-            return redirect(url_for('main.index'))
-        
-        employee = Employee(name=name)
-        db.session.add(employee)
-        db.session.commit()
-        
-        flash('Employee added successfully', 'success')
-        
-    except Exception as e:
-        logging.error(f"Error adding employee: {e}")
-        flash('Error adding employee', 'error')
-        db.session.rollback()
-    
-    return redirect(url_for('main.index'))
+
 
 @main.route('/generate_routes', methods=['POST'])
 def generate_routes():
-    """Generate optimized routes for all employees"""
+    """Generate optimized routes for specified number of drivers"""
     try:
-        # Get all stops and employees
+        # Get form data
+        num_drivers = int(request.form.get('num_drivers', 1))
+        start_time = request.form.get('start_time', '07:00')
+        
+        # Get all stops
         stops = Stop.query.all()
-        employees = Employee.query.all()
         
         if not stops:
             flash('No stops available to route', 'error')
             return redirect(url_for('main.index'))
         
-        if not employees:
-            flash('No employees available for routing', 'error')
+        if num_drivers < 1:
+            flash('Number of drivers must be at least 1', 'error')
             return redirect(url_for('main.index'))
         
         # Clear existing routes
@@ -144,30 +120,30 @@ def generate_routes():
         # Sort scheduled stops by required date
         scheduled_stops.sort(key=lambda x: x.required_date or datetime.max)
         
-        # Initialize TSP solver
+        # Initialize TSP solver with start time
         tsp_solver = TSPSolver()
         
-        # Initialize employee workloads
-        employee_routes = {emp.id: [] for emp in employees}
-        employee_times = {emp.id: 0 for emp in employees}
+        # Initialize driver workloads
+        driver_routes = {i: [] for i in range(1, num_drivers + 1)}
+        driver_times = {i: 0 for i in range(1, num_drivers + 1)}
         
         # First, assign scheduled stops (priority)
         for stop in scheduled_stops:
-            # Find employee with least current workload
-            min_time_employee = min(employee_times.keys(), key=lambda k: employee_times[k])
-            employee_routes[min_time_employee].append(stop)
-            employee_times[min_time_employee] += 10  # Base service time
+            # Find driver with least current workload
+            min_time_driver = min(driver_times.keys(), key=lambda k: driver_times[k])
+            driver_routes[min_time_driver].append(stop)
+            driver_times[min_time_driver] += 10  # Base service time
         
         # Then, assign ASAP stops to balance workloads
         for stop in asap_stops:
-            # Find employee with least current workload
-            min_time_employee = min(employee_times.keys(), key=lambda k: employee_times[k])
-            employee_routes[min_time_employee].append(stop)
-            employee_times[min_time_employee] += 10  # Base service time
+            # Find driver with least current workload
+            min_time_driver = min(driver_times.keys(), key=lambda k: driver_times[k])
+            driver_routes[min_time_driver].append(stop)
+            driver_times[min_time_driver] += 10  # Base service time
         
-        # Optimize each employee's route using TSP
-        for employee in employees:
-            route_stops = employee_routes[employee.id]
+        # Optimize each driver's route using TSP
+        for driver_num in range(1, num_drivers + 1):
+            route_stops = driver_routes[driver_num]
             
             if not route_stops:
                 continue
@@ -183,29 +159,30 @@ def generate_routes():
                     'is_asap': stop.is_asap
                 })
             
-            # Solve TSP for this employee's stops
+            # Solve TSP for this driver's stops with traffic consideration
             if len(stop_data) > 1:
-                optimal_order = tsp_solver.solve_tsp(stop_data)
+                optimal_order = tsp_solver.solve_tsp_with_traffic(stop_data, start_time)
                 # Reorder stops based on TSP solution
                 ordered_stops = [route_stops[i] for i in optimal_order]
             else:
                 ordered_stops = route_stops
             
-            # Calculate total time including travel
-            total_time = tsp_solver.calculate_total_time(stop_data, list(range(len(stop_data))))
+            # Calculate total time including travel with traffic
+            total_time = tsp_solver.calculate_total_time_with_traffic(stop_data, list(range(len(stop_data))), start_time)
             
             # Create route record
             stop_sequence = json.dumps([stop.id for stop in ordered_stops])
             route = Route(
-                employee_id=employee.id,
+                driver_number=driver_num,
                 stop_sequence=stop_sequence,
-                total_time_minutes=total_time
+                total_time_minutes=total_time,
+                start_time=start_time
             )
             
             db.session.add(route)
         
         db.session.commit()
-        flash('Routes generated successfully', 'success')
+        flash(f'Routes generated successfully for {num_drivers} drivers', 'success')
         
     except Exception as e:
         logging.error(f"Error generating routes: {e}")
@@ -229,22 +206,7 @@ def delete_stop(stop_id):
     
     return redirect(url_for('main.index'))
 
-@main.route('/delete_employee/<int:employee_id>')
-def delete_employee(employee_id):
-    """Delete an employee"""
-    try:
-        employee = Employee.query.get_or_404(employee_id)
-        # Delete associated routes
-        Route.query.filter_by(employee_id=employee_id).delete()
-        db.session.delete(employee)
-        db.session.commit()
-        flash('Employee deleted successfully', 'success')
-    except Exception as e:
-        logging.error(f"Error deleting employee: {e}")
-        flash('Error deleting employee', 'error')
-        db.session.rollback()
-    
-    return redirect(url_for('main.index'))
+
 
 @main.route('/clear_routes')
 def clear_routes():
