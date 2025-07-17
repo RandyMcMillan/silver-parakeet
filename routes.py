@@ -19,7 +19,20 @@ def index():
 def add_stop():
     """Add a new stop"""
     try:
-        address = request.form.get('address')
+        # Combine address fields into a single address string
+        street_address = request.form.get('street_address', '').strip()
+        apt_unit = request.form.get('apt_unit', '').strip()
+        city = request.form.get('city', '').strip()
+        state = request.form.get('state', '').strip()
+        zip_code = request.form.get('zip_code', '').strip()
+        
+        # Build full address
+        address_parts = [street_address]
+        if apt_unit:
+            address_parts.append(apt_unit)
+        address_parts.extend([city, state, zip_code])
+        address = ', '.join(part for part in address_parts if part)
+        
         service_type = request.form.get('service_type')
         is_asap = request.form.get('is_asap') == 'on'
         required_date_str = request.form.get('required_date')
@@ -47,8 +60,8 @@ def add_stop():
             post_type = "Removal"
         
         # Validate required fields
-        if not address or not service_type:
-            flash('Please fill in all required fields', 'error')
+        if not street_address or not city or not state or not zip_code or not service_type:
+            flash('Please fill in all required address fields and service type', 'error')
             return redirect(url_for('main.index'))
             
         if service_type == 'install' and not post_type:

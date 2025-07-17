@@ -162,16 +162,38 @@ function validateAddress(address) {
 
 // Form enhancement for better UX
 function enhanceFormInputs() {
-    const addressInput = document.getElementById('address');
-    if (addressInput) {
-        addressInput.addEventListener('blur', function() {
-            if (this.value && !validateAddress(this.value)) {
-                this.setCustomValidity('Please enter a valid address');
-            } else {
+    const addressFields = ['street_address', 'city', 'state', 'zip_code'];
+    
+    addressFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('blur', function() {
+                if (fieldId === 'zip_code' && this.value) {
+                    // Basic US ZIP code validation
+                    const zipPattern = /^\d{5}(-\d{4})?$/;
+                    if (!zipPattern.test(this.value)) {
+                        this.setCustomValidity('Please enter a valid ZIP code (e.g., 12345 or 12345-6789)');
+                    } else {
+                        this.setCustomValidity('');
+                    }
+                } else if (fieldId === 'state' && this.value) {
+                    // Basic state validation (2 letters)
+                    const statePattern = /^[A-Z]{2}$/i;
+                    if (!statePattern.test(this.value)) {
+                        this.setCustomValidity('Please enter a valid 2-letter state code (e.g., CA, NY)');
+                    } else {
+                        this.setCustomValidity('');
+                    }
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+            
+            field.addEventListener('input', function() {
                 this.setCustomValidity('');
-            }
-        });
-    }
+            });
+        }
+    });
 }
 
 // Call enhancement function
@@ -209,9 +231,18 @@ document.addEventListener('keydown', function(event) {
     // Alt + N: Focus on new stop form
     if (event.altKey && event.key === 'n') {
         event.preventDefault();
-        const postTypeInput = document.getElementById('post_type');
-        if (postTypeInput) {
-            postTypeInput.focus();
+        const serviceTypeInput = document.getElementById('service_type');
+        if (serviceTypeInput) {
+            serviceTypeInput.focus();
+        }
+    }
+    
+    // Alt + A: Focus on address form
+    if (event.altKey && event.key === 'a') {
+        event.preventDefault();
+        const streetAddressInput = document.getElementById('street_address');
+        if (streetAddressInput) {
+            streetAddressInput.focus();
         }
     }
     

@@ -62,9 +62,31 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="address" class="form-label">Address</label>
-                        <textarea class="form-control" id="address" name="address" rows="2" 
-                                  placeholder="Enter full address" required></textarea>
+                        <label class="form-label">Address</label>
+                        <div class="row">
+                            <div class="col-md-8 mb-2">
+                                <input type="text" class="form-control" id="street_address" name="street_address" 
+                                       placeholder="Street Address" required>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <input type="text" class="form-control" id="apt_unit" name="apt_unit" 
+                                       placeholder="Apt/Unit (optional)">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <input type="text" class="form-control" id="city" name="city" 
+                                       placeholder="City" required>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <input type="text" class="form-control" id="state" name="state" 
+                                       placeholder="State" required>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <input type="text" class="form-control" id="zip_code" name="zip_code" 
+                                       placeholder="ZIP Code" required>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
