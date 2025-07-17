@@ -10,6 +10,10 @@ class Stop(db.Model):
     service_type: Mapped[str] = mapped_column(String(50), nullable=False)  # 'install' or 'pickup'
     is_asap: Mapped[bool] = mapped_column(Boolean, default=False)
     required_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    agent_sign_description: Mapped[str] = mapped_column(Text, nullable=True)  # For installs
+    has_riders_toppers: Mapped[bool] = mapped_column(Boolean, default=False)
+    riders_toppers_description: Mapped[str] = mapped_column(Text, nullable=True)
+    has_shelter: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     def __repr__(self):
@@ -25,3 +29,13 @@ class Route(db.Model):
     
     def __repr__(self):
         return f'<Route {self.id}: Driver {self.driver_number}>'
+
+class AgentSignHistory(db.Model):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    address: Mapped[str] = mapped_column(Text, nullable=False)
+    sign_description: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<AgentSignHistory {self.id}: {self.address}>'

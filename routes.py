@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from datetime import datetime, date
-from models import Stop, Route, db
+from models import Stop, Route, AgentSignHistory, db
 from tsp_solver import TSPSolver
 import json
 import logging
@@ -12,8 +12,9 @@ def index():
     """Main page with route optimization interface"""
     stops = Stop.query.all()
     routes = Route.query.all()
+    agent_signs = AgentSignHistory.query.all()
     
-    return render_template('index.html', stops=stops, routes=routes, datetime=datetime)
+    return render_template('index.html', stops=stops, routes=routes, agent_signs=agent_signs, datetime=datetime)
 
 @main.route('/add_stop', methods=['POST'])
 def add_stop():
@@ -36,6 +37,10 @@ def add_stop():
         service_type = request.form.get('service_type')
         is_asap = request.form.get('is_asap') == 'on'
         required_date_str = request.form.get('required_date')
+        agent_sign_description = request.form.get('agent_sign_description', '').strip()
+        has_riders_toppers = request.form.get('has_riders_toppers') == 'on'
+        riders_toppers_description = request.form.get('riders_toppers_description', '').strip()
+        has_shelter = request.form.get('has_shelter') == 'on'
         
         # Handle post type and notes based on service type
         post_type = None
@@ -68,6 +73,10 @@ def add_stop():
             flash('Please select a post type for installation', 'error')
             return redirect(url_for('main.index'))
         
+        if has_riders_toppers and not riders_toppers_description:
+            flash('Please provide a description for riders/toppers', 'error')
+            return redirect(url_for('main.index'))
+        
         # Parse required date
         required_date = None
         if required_date_str and not is_asap:
@@ -87,10 +96,31 @@ def add_stop():
             address=address,
             service_type=service_type,
             is_asap=is_asap,
-            required_date=required_date
+            required_date=required_date,
+            agent_sign_description=agent_sign_description if service_type == 'install' else None,
+            has_riders_toppers=has_riders_toppers,
+            riders_toppers_description=riders_toppers_description if has_riders_toppers else None,
+            has_shelter=has_shelter
         )
         
         db.session.add(stop)
+        
+        # Save agent sign description to history if this is an install with a sign description
+        if service_type == 'install' and agent_sign_description:
+            # Check if there's already a sign history for this address
+            existing_sign = AgentSignHistory.query.filter_by(address=address).first()
+            if existing_sign:
+                # Update existing record
+                existing_sign.sign_description = agent_sign_description
+                existing_sign.updated_at = datetime.utcnow()
+            else:
+                # Create new record
+                agent_sign_history = AgentSignHistory(
+                    address=address,
+                    sign_description=agent_sign_description
+                )
+                db.session.add(agent_sign_history)
+        
         db.session.commit()
         
         flash('Stop added successfully', 'success')
@@ -234,3 +264,15 @@ def clear_routes():
         db.session.rollback()
     
     return redirect(url_for('main.index'))
+
+@main.route('/get_agent_sign/<path:address>')
+def get_agent_sign(address):
+    """Get agent sign description for a given address"""
+    agent_sign = AgentSignHistory.query.filter_by(address=address).first()
+    if agent_sign:
+        return jsonify({
+            'found': True,
+            'description': agent_sign.sign_description,
+            'updated_at': agent_sign.updated_at.strftime('%Y-%m-%d')
+        })
+    return jsonify({'found': False})

@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Auto-dismiss alerts
     autoDismissAlerts();
+    
+    // Set up address field listeners for agent sign lookup
+    setupAddressSignLookup();
 });
 
 function toggleDateInput() {
@@ -39,12 +42,14 @@ function handleServiceTypeChange() {
     const serviceTypeSelect = document.getElementById('service_type');
     const postTypeGroup = document.getElementById('post_type_group');
     const deliverNotesGroup = document.getElementById('deliver_notes_group');
+    const agentSignGroup = document.getElementById('agent_sign_group');
     const postTypeSelect = document.getElementById('post_type');
     const deliverNotesTextarea = document.getElementById('deliver_notes');
     
     // Hide all conditional fields first
     postTypeGroup.style.display = 'none';
     deliverNotesGroup.style.display = 'none';
+    agentSignGroup.style.display = 'none';
     
     // Reset required attributes
     postTypeSelect.required = false;
@@ -53,16 +58,101 @@ function handleServiceTypeChange() {
     // Show appropriate fields based on selection
     if (serviceTypeSelect.value === 'install') {
         postTypeGroup.style.display = 'block';
+        agentSignGroup.style.display = 'block';
         postTypeSelect.required = true;
     } else if (serviceTypeSelect.value === 'deliver') {
         deliverNotesGroup.style.display = 'block';
         deliverNotesTextarea.required = true;
+    } else if (serviceTypeSelect.value === 'remove') {
+        // For removes, check if there's a stored agent sign for this address
+        checkForStoredAgentSign();
     }
-    // For 'remove', no additional fields are shown
     
     // Trigger post type change handler in case it was already selected
     if (serviceTypeSelect.value === 'install') {
         handlePostTypeChange();
+    }
+}
+
+function toggleRidersToppers() {
+    const ridersCheckbox = document.getElementById('has_riders_toppers');
+    const ridersGroup = document.getElementById('riders_toppers_group');
+    const ridersTextarea = document.getElementById('riders_toppers_description');
+    
+    if (ridersCheckbox.checked) {
+        ridersGroup.style.display = 'block';
+        ridersTextarea.required = true;
+    } else {
+        ridersGroup.style.display = 'none';
+        ridersTextarea.required = false;
+        ridersTextarea.value = '';
+    }
+}
+
+function checkForStoredAgentSign() {
+    // This function will be called when "remove" is selected
+    // Look up agent sign for current address when all address fields are filled
+    const streetAddress = document.getElementById('street_address').value.trim();
+    const aptUnit = document.getElementById('apt_unit').value.trim();
+    const city = document.getElementById('city').value.trim();
+    const state = document.getElementById('state').value.trim();
+    const zipCode = document.getElementById('zip_code').value.trim();
+    
+    if (streetAddress && city && state && zipCode) {
+        // Build full address string
+        const addressParts = [streetAddress];
+        if (aptUnit) {
+            addressParts.push(aptUnit);
+        }
+        addressParts.push(city, state, zipCode);
+        const fullAddress = addressParts.join(', ');
+        
+        // Look up agent sign for this address
+        fetch(`/get_agent_sign/${encodeURIComponent(fullAddress)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.found) {
+                    // Show the agent sign info
+                    showAgentSignInfo(data.description, data.updated_at);
+                } else {
+                    hideAgentSignInfo();
+                }
+            })
+            .catch(error => {
+                console.error('Error looking up agent sign:', error);
+                hideAgentSignInfo();
+            });
+    } else {
+        hideAgentSignInfo();
+    }
+}
+
+function showAgentSignInfo(description, updatedAt) {
+    let infoDiv = document.getElementById('agent_sign_info');
+    if (!infoDiv) {
+        infoDiv = document.createElement('div');
+        infoDiv.id = 'agent_sign_info';
+        infoDiv.className = 'alert alert-info mt-2';
+        document.getElementById('agent_sign_group').parentNode.insertBefore(infoDiv, document.getElementById('agent_sign_group').nextSibling);
+    }
+    
+    infoDiv.innerHTML = `
+        <strong><i data-feather="info"></i> Previous Agent Sign Found:</strong><br>
+        <em>"${description}"</em><br>
+        <small class="text-muted">Last updated: ${updatedAt}</small>
+    `;
+    infoDiv.style.display = 'block';
+    
+    // Re-initialize feather icons
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+}
+
+function hideAgentSignInfo() {
+    const infoDiv = document.getElementById('agent_sign_info');
+    if (infoDiv) {
+        infoDiv.style.display = 'none';
     }
 }
 
@@ -264,3 +354,20 @@ document.addEventListener('keydown', function(event) {
         }
     }
 });
+
+function setupAddressSignLookup() {
+    // Add event listeners to address fields for agent sign lookup
+    const addressFields = ['street_address', 'apt_unit', 'city', 'state', 'zip_code'];
+    
+    addressFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('blur', function() {
+                const serviceType = document.getElementById('service_type').value;
+                if (serviceType === 'remove') {
+                    checkForStoredAgentSign();
+                }
+            });
+        }
+    });
+}

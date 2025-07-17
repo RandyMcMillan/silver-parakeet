@@ -61,6 +61,13 @@
                                   placeholder="Enter post type notes"></textarea>
                     </div>
                     
+                    <div class="mb-3" id="agent_sign_group" style="display: none;">
+                        <label for="agent_sign_description" class="form-label">Agent Sign Description</label>
+                        <textarea class="form-control" id="agent_sign_description" name="agent_sign_description" rows="2" 
+                                  placeholder="Enter agent sign description"></textarea>
+                        <div class="form-text">This will be saved and displayed for future removes at this address</div>
+                    </div>
+                    
                     <div class="mb-3">
                         <label class="form-label">Address</label>
                         <div class="row">
@@ -86,6 +93,31 @@
                                 <input type="text" class="form-control" id="zip_code" name="zip_code" 
                                        placeholder="ZIP Code" required>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="has_riders_toppers" name="has_riders_toppers" 
+                                   onchange="toggleRidersToppers()">
+                            <label class="form-check-label" for="has_riders_toppers">
+                                Riders/Toppers
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="riders_toppers_group" style="display: none;">
+                        <label for="riders_toppers_description" class="form-label">Riders/Toppers Description</label>
+                        <textarea class="form-control" id="riders_toppers_description" name="riders_toppers_description" rows="2" 
+                                  placeholder="Enter riders/toppers description"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="has_shelter" name="has_shelter">
+                            <label class="form-check-label" for="has_shelter">
+                                Shelter
+                            </label>
                         </div>
                     </div>
                     
@@ -309,6 +341,19 @@
                                                             <span class="badge bg-info">
                                                                 {{ stop.required_date.strftime('%m/%d') if stop.required_date else 'No date' }}
                                                             </span>
+                                                        {% endif %}
+                                                        {% if stop.has_shelter %}
+                                                            <br><small class="text-warning"><i data-feather="home"></i> Install Shelter Homes Directional</small>
+                                                        {% endif %}
+                                                        {% if stop.has_riders_toppers and stop.riders_toppers_description %}
+                                                            <br><small class="text-info"><i data-feather="layers"></i> Riders/Toppers: {{ stop.riders_toppers_description }}</small>
+                                                        {% endif %}
+                                                        {% if stop.service_type == 'remove' and stop.address %}
+                                                            {% for sign in agent_signs %}
+                                                                {% if sign.address == stop.address %}
+                                                                    <br><small class="text-success"><i data-feather="tag"></i> Previous Sign: {{ sign.sign_description }}</small>
+                                                                {% endif %}
+                                                            {% endfor %}
                                                         {% endif %}
                                                     </div>
                                                     <div class="text-end">
