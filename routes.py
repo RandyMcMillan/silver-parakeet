@@ -20,15 +20,40 @@ def index():
 def add_stop():
     """Add a new stop"""
     try:
-        post_type = request.form.get('post_type')
         address = request.form.get('address')
         service_type = request.form.get('service_type')
         is_asap = request.form.get('is_asap') == 'on'
         required_date_str = request.form.get('required_date')
         
+        # Handle post type and notes based on service type
+        post_type = None
+        post_type_notes = None
+        deliver_notes = None
+        
+        if service_type == 'install':
+            post_type = request.form.get('post_type')
+            if post_type == 'Other':
+                post_type_notes = request.form.get('post_type_notes')
+                if not post_type_notes:
+                    flash('Please provide notes for "Other" post type', 'error')
+                    return redirect(url_for('main.index'))
+                post_type = f"Other - {post_type_notes}"
+        elif service_type == 'deliver':
+            deliver_notes = request.form.get('deliver_notes')
+            if not deliver_notes:
+                flash('Please provide delivery notes', 'error')
+                return redirect(url_for('main.index'))
+            post_type = f"Delivery - {deliver_notes}"
+        elif service_type == 'remove':
+            post_type = "Removal"
+        
         # Validate required fields
-        if not post_type or not address or not service_type:
+        if not address or not service_type:
             flash('Please fill in all required fields', 'error')
+            return redirect(url_for('main.index'))
+            
+        if service_type == 'install' and not post_type:
+            flash('Please select a post type for installation', 'error')
             return redirect(url_for('main.index'))
         
         # Parse required date

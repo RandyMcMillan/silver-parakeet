@@ -24,24 +24,47 @@
             <div class="card-body">
                 <form method="POST" action="{{ url_for('main.add_stop') }}">
                     <div class="mb-3">
+                        <label for="service_type" class="form-label">Service Type</label>
+                        <select class="form-select" id="service_type" name="service_type" required onchange="handleServiceTypeChange()">
+                            <option value="">Select service type</option>
+                            <option value="install">Install</option>
+                            <option value="remove">Remove</option>
+                            <option value="deliver">Deliver - See Notes</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="deliver_notes_group" style="display: none;">
+                        <label for="deliver_notes" class="form-label">Delivery Notes</label>
+                        <textarea class="form-control" id="deliver_notes" name="deliver_notes" rows="2" 
+                                  placeholder="Enter delivery notes"></textarea>
+                    </div>
+                    
+                    <div class="mb-3" id="post_type_group" style="display: none;">
                         <label for="post_type" class="form-label">Post Type</label>
-                        <input type="text" class="form-control" id="post_type" name="post_type" 
-                               placeholder="e.g., Package, Equipment, Mail" required>
+                        <select class="form-select" id="post_type" name="post_type" onchange="handlePostTypeChange()">
+                            <option value="">Select post type</option>
+                            <option value="Regular">Regular</option>
+                            <option value="DA">DA</option>
+                            <option value="JL Stained">JL Stained</option>
+                            <option value="Grey">Grey</option>
+                            <option value="Black">Black</option>
+                            <option value="Hirsh">Hirsh</option>
+                            <option value="Stained">Stained</option>
+                            <option value="Plastic">Plastic</option>
+                            <option value="Other">Other - See Notes</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="post_type_notes_group" style="display: none;">
+                        <label for="post_type_notes" class="form-label">Post Type Notes</label>
+                        <textarea class="form-control" id="post_type_notes" name="post_type_notes" rows="2" 
+                                  placeholder="Enter post type notes"></textarea>
                     </div>
                     
                     <div class="mb-3">
                         <label for="address" class="form-label">Address</label>
                         <textarea class="form-control" id="address" name="address" rows="2" 
                                   placeholder="Enter full address" required></textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="service_type" class="form-label">Service Type</label>
-                        <select class="form-select" id="service_type" name="service_type" required>
-                            <option value="">Select service type</option>
-                            <option value="install">Install</option>
-                            <option value="pickup">Pickup</option>
-                        </select>
                     </div>
                     
                     <div class="mb-3">
@@ -141,7 +164,7 @@
                                     <td>{{ stop.post_type }}</td>
                                     <td>{{ stop.address[:30] }}{% if stop.address|length > 30 %}...{% endif %}</td>
                                     <td>
-                                        <span class="badge bg-{{ 'primary' if stop.service_type == 'install' else 'secondary' }}">
+                                        <span class="badge bg-{{ 'primary' if stop.service_type == 'install' else 'warning' if stop.service_type == 'deliver' else 'secondary' }}">
                                             {{ stop.service_type|title }}
                                         </span>
                                     </td>
@@ -250,7 +273,7 @@
                                                         <br>
                                                         <small class="text-muted">{{ stop.address }}</small>
                                                         <br>
-                                                        <span class="badge bg-{{ 'primary' if stop.service_type == 'install' else 'secondary' }}">
+                                                        <span class="badge bg-{{ 'primary' if stop.service_type == 'install' else 'warning' if stop.service_type == 'deliver' else 'secondary' }}">
                                                             {{ stop.service_type|title }}
                                                         </span>
                                                         {% if stop.is_asap %}

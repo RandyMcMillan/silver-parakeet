@@ -35,6 +35,52 @@ function toggleDateInput() {
     }
 }
 
+function handleServiceTypeChange() {
+    const serviceTypeSelect = document.getElementById('service_type');
+    const postTypeGroup = document.getElementById('post_type_group');
+    const deliverNotesGroup = document.getElementById('deliver_notes_group');
+    const postTypeSelect = document.getElementById('post_type');
+    const deliverNotesTextarea = document.getElementById('deliver_notes');
+    
+    // Hide all conditional fields first
+    postTypeGroup.style.display = 'none';
+    deliverNotesGroup.style.display = 'none';
+    
+    // Reset required attributes
+    postTypeSelect.required = false;
+    deliverNotesTextarea.required = false;
+    
+    // Show appropriate fields based on selection
+    if (serviceTypeSelect.value === 'install') {
+        postTypeGroup.style.display = 'block';
+        postTypeSelect.required = true;
+    } else if (serviceTypeSelect.value === 'deliver') {
+        deliverNotesGroup.style.display = 'block';
+        deliverNotesTextarea.required = true;
+    }
+    // For 'remove', no additional fields are shown
+    
+    // Trigger post type change handler in case it was already selected
+    if (serviceTypeSelect.value === 'install') {
+        handlePostTypeChange();
+    }
+}
+
+function handlePostTypeChange() {
+    const postTypeSelect = document.getElementById('post_type');
+    const postTypeNotesGroup = document.getElementById('post_type_notes_group');
+    const postTypeNotesTextarea = document.getElementById('post_type_notes');
+    
+    if (postTypeSelect.value === 'Other') {
+        postTypeNotesGroup.style.display = 'block';
+        postTypeNotesTextarea.required = true;
+    } else {
+        postTypeNotesGroup.style.display = 'none';
+        postTypeNotesTextarea.required = false;
+        postTypeNotesTextarea.value = '';
+    }
+}
+
 function initializeFormValidation() {
     // Add custom validation for forms
     const forms = document.querySelectorAll('form');
