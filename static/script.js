@@ -379,24 +379,42 @@ function resetFormAfterSuccess() {
     // Check if URL has reset_form parameter
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('reset_form') === 'true') {
+        console.log('Form reset triggered');
+        
         // Reset the form
         const form = document.querySelector('form[action*="add_stop"]');
         if (form) {
             form.reset();
             
             // Reset conditional field visibility
-            document.getElementById('deliver_notes_group').style.display = 'none';
-            document.getElementById('post_type_group').style.display = 'none';
-            document.getElementById('post_type_notes_group').style.display = 'none';
-            document.getElementById('agent_sign_group').style.display = 'none';
-            document.getElementById('riders_toppers_group').style.display = 'none';
-            document.getElementById('required_date_group').style.display = 'block';
+            const fieldsToHide = ['deliver_notes_group', 'post_type_group', 'post_type_notes_group', 'agent_sign_group', 'riders_toppers_group'];
+            fieldsToHide.forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element) {
+                    element.style.display = 'none';
+                }
+            });
+            
+            // Show required date group
+            const requiredDateGroup = document.getElementById('required_date_group');
+            if (requiredDateGroup) {
+                requiredDateGroup.style.display = 'block';
+            }
             
             // Reset required attributes
-            document.getElementById('post_type').required = false;
-            document.getElementById('deliver_notes').required = false;
-            document.getElementById('riders_toppers_description').required = false;
-            document.getElementById('required_date').required = true;
+            const fieldsToResetRequired = [
+                { id: 'post_type', required: false },
+                { id: 'deliver_notes', required: false },
+                { id: 'riders_toppers_description', required: false },
+                { id: 'required_date', required: true }
+            ];
+            
+            fieldsToResetRequired.forEach(field => {
+                const element = document.getElementById(field.id);
+                if (element) {
+                    element.required = field.required;
+                }
+            });
             
             // Hide agent sign info if visible
             hideAgentSignInfo();
@@ -406,8 +424,13 @@ function resetFormAfterSuccess() {
             
             // Focus on first field (ASAP checkbox) after a short delay
             setTimeout(() => {
-                document.getElementById('is_asap').focus();
+                const firstField = document.getElementById('is_asap');
+                if (firstField) {
+                    firstField.focus();
+                }
             }, 100);
+            
+            console.log('Form reset completed');
         }
     }
 }

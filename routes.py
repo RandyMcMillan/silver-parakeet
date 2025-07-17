@@ -124,13 +124,14 @@ def add_stop():
         db.session.commit()
         
         flash('Stop added successfully', 'success')
+        return redirect(url_for('main.index', reset_form='true'))
         
     except Exception as e:
         logging.error(f"Error adding stop: {e}")
         flash('Error adding stop', 'error')
         db.session.rollback()
     
-    return redirect(url_for('main.index', reset_form='true'))
+    return redirect(url_for('main.index'))
 
 
 
