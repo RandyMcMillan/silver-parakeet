@@ -1,0 +1,19 @@
+See new posts
+Write me prompt for replit to create an app that creates routes for a variable number of employees. Each stop should take about 10 minutes. It should have a ui that allows for entering info from various inputs such as post type, address, install/pickup, required date or ASAP (asap does not take priority over a scheduled install but instead be a filler)
+Below is a Replit prompt to create an app that generates routes for a variable number of employees, with each stop taking approximately 10 minutes. The app includes a UI for entering information such as post type, address, install/pickup, and required date or ASAP (with ASAP as a filler, not taking priority over scheduled installs). The prompt is designed to guide the creation of the app in Replit, assuming a Python-based backend with a simple HTML/CSS/JavaScript frontend for the UI.Replit Prompt: Employee Route Planner AppObjective: Create a web application in Replit that generates optimized routes for a variable number of employees based on user inputs for delivery/installation stops. Each stop takes approximately 10 minutes. The app should have a user-friendly UI to input details such as post type, address, install/pickup, and required date or ASAP (ASAP stops are fillers and do not take priority over scheduled stops).Requirements:Backend:Use Python with Flask to handle the server-side logic.
+Store stop data (post type, address, install/pickup, required date/ASAP) in a list or database (e.g., SQLite or in-memory list for simplicity).
+Implement a routing algorithm to assign stops to employees, ensuring:Each stop takes ~10 minutes.
+Scheduled stops (with a required date) are prioritized.
+ASAP stops are used as fillers without overriding scheduled stops.
+Routes are balanced across employees (minimize total time per employee).
+Use a simple distance/time estimation (e.g., assume linear distance or integrate an API like Google Maps for real distances, if feasible).
+Frontend:Create an HTML/CSS/JavaScript UI with:Input fields for:Number of employees.
+Stop details: post type (e.g., package, equipment), address, install/pickup (dropdown), required date (date picker) or ASAP (checkbox).
+A button to submit stops and generate routes.
+A display area to show generated routes for each employee.
+Use Bootstrap or a similar CSS framework for a clean, responsive design.
+Features:Allow users to add multiple stops dynamically.
+Validate inputs (e.g., valid address format, future date for scheduled stops).
+Generate routes that list stops in order for each employee, including estimated times.
+Handle ASAP stops by slotting them into routes after scheduled stops, ensuring balanced workloads
+
