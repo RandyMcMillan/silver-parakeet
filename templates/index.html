@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i data-feather="navigation"></i>
+            Route Optimization Dashboard
+        </h1>
+        <p class="lead">Optimize delivery routes using TSP algorithms with scheduling priorities</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Add Stop Form -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="plus-circle"></i>
+                    Add New Stop
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.add_stop') }}">
+                    <div class="mb-3">
+                        <label for="post_type" class="form-label">Post Type</label>
+                        <input type="text" class="form-control" id="post_type" name="post_type" 
+                               placeholder="e.g., Package, Equipment, Mail" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <textarea class="form-control" id="address" name="address" rows="2" 
+                                  placeholder="Enter full address" required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="service_type" class="form-label">Service Type</label>
+                        <select class="form-select" id="service_type" name="service_type" required>
+                            <option value="">Select service type</option>
+                            <option value="install">Install</option>
+                            <option value="pickup">Pickup</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_asap" name="is_asap" 
+                                   onchange="toggleDateInput()">
+                            <label class="form-check-label" for="is_asap">
+                                ASAP (As Soon As Possible)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="required_date_group">
+                        <label for="required_date" class="form-label">Required Date</label>
+                        <input type="date" class="form-control" id="required_date" name="required_date" 
+                               min="{{ datetime.now().strftime('%Y-%m-%d') }}">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i data-feather="plus"></i>
+                        Add Stop
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Employee Form -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="user-plus"></i>
+                    Add Employee
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.add_employee') }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Employee Name</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="Enter employee name" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i data-feather="user-plus"></i>
+                        Add Employee
+                    </button>
+                </form>
+                
+                <hr>
+                
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('main.generate_routes') }}" class="btn btn-success" 
+                       onclick="return confirm('Generate optimized routes for all employees?')">
+                        <i data-feather="navigation"></i>
+                        Generate Optimized Routes
+                    </a>
+                    
+                    <a href="{{ url_for('main.clear_routes') }}" class="btn btn-outline-secondary"
+                       onclick="return confirm('Clear all generated routes?')">
+                        <i data-feather="trash-2"></i>
+                        Clear All Routes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Current Stops -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="map-pin"></i>
+                    Current Stops ({{ stops|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if stops %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Address</th>
+                                    <th>Service</th>
+                                    <th>Priority</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stop in stops %}
+                                <tr>
+                                    <td>{{ stop.post_type }}</td>
+                                    <td>{{ stop.address[:30] }}{% if stop.address|length > 30 %}...{% endif %}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'primary' if stop.service_type == 'install' else 'secondary' }}">
+                                            {{ stop.service_type|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if stop.is_asap %}
+                                            <span class="badge bg-warning">ASAP</span>
+                                        {% else %}
+                                            <span class="badge bg-info">
+                                                {{ stop.required_date.strftime('%m/%d') if stop.required_date else 'No date' }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('main.delete_stop', stop_id=stop.id) }}" 
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('Delete this stop?')">
+                                            <i data-feather="trash-2"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i data-feather="map-pin" class="text-muted" style="width: 48px; height: 48px;"></i>
+                        <p class="text-muted mt-2">No stops added yet. Add your first stop above.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Employees -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="users"></i>
+                    Employees ({{ employees|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if employees %}
+                    <div class="list-group">
+                        {% for employee in employees %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i data-feather="user"></i>
+                                {{ employee.name }}
+                            </div>
+                            <a href="{{ url_for('main.delete_employee', employee_id=employee.id) }}" 
+                               class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('Delete {{ employee.name }}?')">
+                                <i data-feather="trash-2"></i>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i data-feather="users" class="text-muted" style="width: 48px; height: 48px;"></i>
+                        <p class="text-muted mt-2">No employees added yet. Add your first employee above.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Generated Routes -->
+{% if routes %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="route"></i>
+                    Optimized Routes (TSP Algorithm)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for route in routes %}
+                    <div class="col-lg-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i data-feather="user"></i>
+                                    {{ route.employee.name }}
+                                    <span class="badge bg-info ms-2">{{ route.total_time_minutes }} min</span>
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                {% set stop_ids = route.stop_sequence|from_json %}
+                                {% if stop_ids %}
+                                    <ol class="route-list">
+                                        {% for stop_id in stop_ids %}
+                                            {% set stop = stops|selectattr('id', 'equalto', stop_id)|first %}
+                                            {% if stop %}
+                                            <li class="mb-2">
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
+                                                        <strong>{{ stop.post_type }}</strong>
+                                                        <br>
+                                                        <small class="text-muted">{{ stop.address }}</small>
+                                                        <br>
+                                                        <span class="badge bg-{{ 'primary' if stop.service_type == 'install' else 'secondary' }}">
+                                                            {{ stop.service_type|title }}
+                                                        </span>
+                                                        {% if stop.is_asap %}
+                                                            <span class="badge bg-warning">ASAP</span>
+                                                        {% else %}
+                                                            <span class="badge bg-info">
+                                                                {{ stop.required_date.strftime('%m/%d') if stop.required_date else 'No date' }}
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <small class="text-muted">~10 min</small>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </ol>
+                                {% else %}
+                                    <p class="text-muted">No stops assigned</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

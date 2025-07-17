@@ -1,0 +1,189 @@
+// Route Optimizer JavaScript functionality
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Initialize form validation
+    initializeFormValidation();
+    
+    // Set up date input behavior
+    setupDateInput();
+    
+    // Add loading states to buttons
+    setupLoadingStates();
+    
+    // Auto-dismiss alerts
+    autoDismissAlerts();
+});
+
+function toggleDateInput() {
+    const asapCheckbox = document.getElementById('is_asap');
+    const dateGroup = document.getElementById('required_date_group');
+    const dateInput = document.getElementById('required_date');
+    
+    if (asapCheckbox.checked) {
+        dateGroup.style.display = 'none';
+        dateInput.required = false;
+        dateInput.value = '';
+    } else {
+        dateGroup.style.display = 'block';
+        dateInput.required = true;
+    }
+}
+
+function initializeFormValidation() {
+    // Add custom validation for forms
+    const forms = document.querySelectorAll('form');
+    
+    forms.forEach(form => {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+        });
+    });
+}
+
+function setupDateInput() {
+    const dateInput = document.getElementById('required_date');
+    if (dateInput) {
+        // Set minimum date to today
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.min = today;
+        
+        // Add validation message
+        dateInput.addEventListener('invalid', function() {
+            if (this.validity.rangeUnderflow) {
+                this.setCustomValidity('Please select a future date');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+        
+        dateInput.addEventListener('input', function() {
+            this.setCustomValidity('');
+        });
+    }
+}
+
+function setupLoadingStates() {
+    const submitButtons = document.querySelectorAll('button[type="submit"], .btn[href*="generate_routes"]');
+    
+    submitButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const originalText = this.innerHTML;
+            const loadingText = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Processing...';
+            
+            // Add loading state
+            this.innerHTML = loadingText;
+            this.disabled = true;
+            
+            // Remove loading state after form submission
+            setTimeout(() => {
+                this.innerHTML = originalText;
+                this.disabled = false;
+            }, 3000);
+        });
+    });
+}
+
+function autoDismissAlerts() {
+    const alerts = document.querySelectorAll('.alert');
+    
+    alerts.forEach(alert => {
+        if (alert.classList.contains('alert-success')) {
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 5000);
+        }
+    });
+}
+
+// Address validation helper
+function validateAddress(address) {
+    // Basic address validation
+    const addressPattern = /^[a-zA-Z0-9\s,.-]+$/;
+    return addressPattern.test(address) && address.length > 5;
+}
+
+// Form enhancement for better UX
+function enhanceFormInputs() {
+    const addressInput = document.getElementById('address');
+    if (addressInput) {
+        addressInput.addEventListener('blur', function() {
+            if (this.value && !validateAddress(this.value)) {
+                this.setCustomValidity('Please enter a valid address');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    }
+}
+
+// Call enhancement function
+enhanceFormInputs();
+
+// Export confirmation dialogs
+function confirmDelete(itemType, itemName) {
+    return confirm(`Are you sure you want to delete this ${itemType}${itemName ? `: ${itemName}` : ''}?`);
+}
+
+function confirmRouteGeneration() {
+    return confirm('This will generate optimized routes for all employees. Continue?');
+}
+
+function confirmClearRoutes() {
+    return confirm('This will clear all generated routes. Are you sure?');
+}
+
+// Smooth scrolling for navigation
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(event) {
+    // Alt + N: Focus on new stop form
+    if (event.altKey && event.key === 'n') {
+        event.preventDefault();
+        const postTypeInput = document.getElementById('post_type');
+        if (postTypeInput) {
+            postTypeInput.focus();
+        }
+    }
+    
+    // Alt + E: Focus on employee form
+    if (event.altKey && event.key === 'e') {
+        event.preventDefault();
+        const nameInput = document.getElementById('name');
+        if (nameInput) {
+            nameInput.focus();
+        }
+    }
+    
+    // Alt + R: Generate routes
+    if (event.altKey && event.key === 'r') {
+        event.preventDefault();
+        const generateButton = document.querySelector('a[href*="generate_routes"]');
+        if (generateButton && confirmRouteGeneration()) {
+            window.location.href = generateButton.href;
+        }
+    }
+});
