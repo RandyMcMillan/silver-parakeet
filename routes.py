@@ -130,7 +130,7 @@ def add_stop():
         flash('Error adding stop', 'error')
         db.session.rollback()
     
-    return redirect(url_for('main.index'))
+    return redirect(url_for('main.index', reset_form='true'))
 
 
 

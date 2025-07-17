@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up address field listeners for agent sign lookup
     setupAddressSignLookup();
+    
+    // Reset form after successful submission
+    resetFormAfterSuccess();
 });
 
 function toggleDateInput() {
@@ -370,4 +373,41 @@ function setupAddressSignLookup() {
             });
         }
     });
+}
+
+function resetFormAfterSuccess() {
+    // Check if URL has reset_form parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('reset_form') === 'true') {
+        // Reset the form
+        const form = document.querySelector('form[action*="add_stop"]');
+        if (form) {
+            form.reset();
+            
+            // Reset conditional field visibility
+            document.getElementById('deliver_notes_group').style.display = 'none';
+            document.getElementById('post_type_group').style.display = 'none';
+            document.getElementById('post_type_notes_group').style.display = 'none';
+            document.getElementById('agent_sign_group').style.display = 'none';
+            document.getElementById('riders_toppers_group').style.display = 'none';
+            document.getElementById('required_date_group').style.display = 'block';
+            
+            // Reset required attributes
+            document.getElementById('post_type').required = false;
+            document.getElementById('deliver_notes').required = false;
+            document.getElementById('riders_toppers_description').required = false;
+            document.getElementById('required_date').required = true;
+            
+            // Hide agent sign info if visible
+            hideAgentSignInfo();
+            
+            // Clean up URL without reloading page
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // Focus on first field (ASAP checkbox) after a short delay
+            setTimeout(() => {
+                document.getElementById('is_asap').focus();
+            }, 100);
+        }
+    }
 }
