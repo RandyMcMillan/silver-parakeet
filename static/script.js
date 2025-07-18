@@ -381,13 +381,30 @@ function setupAddressSignLookup() {
 function resetFormAfterSuccess() {
     // Check if URL has reset_form parameter
     const urlParams = new URLSearchParams(window.location.search);
+    console.log('Checking for reset_form parameter:', urlParams.get('reset_form'));
+    
     if (urlParams.get('reset_form') === 'true') {
         console.log('Form reset triggered');
         
         // Reset the form
         const form = document.querySelector('form[action*="add_stop"]');
+        console.log('Form found:', form);
+        
         if (form) {
             console.log('Found form, resetting...');
+            
+            // Force reset all form fields
+            const inputs = form.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                if (input.type === 'checkbox' || input.type === 'radio') {
+                    input.checked = false;
+                } else {
+                    input.value = '';
+                }
+                console.log(`Reset field: ${input.name || input.id} to: ${input.value || input.checked}`);
+            });
+            
+            // Call form.reset() as well
             form.reset();
             
             // Reset conditional field visibility
@@ -423,6 +440,13 @@ function resetFormAfterSuccess() {
                 }
             });
             
+            // Ensure ASAP checkbox is unchecked and date field is shown
+            const asapCheckbox = document.getElementById('is_asap');
+            if (asapCheckbox) {
+                asapCheckbox.checked = false;
+                console.log('ASAP checkbox unchecked');
+            }
+            
             // Hide agent sign info if visible
             hideAgentSignInfo();
             
@@ -437,13 +461,16 @@ function resetFormAfterSuccess() {
                 const firstField = document.getElementById('is_asap');
                 if (firstField) {
                     firstField.focus();
+                    console.log('Focus set to ASAP checkbox');
                 }
-            }, 100);
+            }, 200);
             
             console.log('Form reset completed');
         } else {
             console.log('Form not found for reset');
         }
+    } else {
+        console.log('No reset_form parameter found');
     }
 }
 
