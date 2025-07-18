@@ -8,6 +8,67 @@
             Route Optimization Dashboard
         </h1>
         <p class="lead">Optimize delivery routes using TSP algorithms with scheduling priorities</p>
+        
+        <!-- Stop Counters -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i data-feather="clock"></i>
+                            Next 7 Days
+                        </h5>
+                        <h2 class="mb-0">{{ stops_next_7_days }}</h2>
+                        <small>stops scheduled</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i data-feather="database"></i>
+                            Total System
+                        </h5>
+                        <h2 class="mb-0">{{ total_stops }}</h2>
+                        <small>total stops</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Departure Address Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="home"></i>
+                    Driver Departure Address
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.set_departure_address') }}" class="row g-3">
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" id="departure_address" name="departure_address" 
+                               placeholder="Enter departure address for all drivers" 
+                               value="{% if departure_address %}{{ departure_address.address }}{% endif %}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i data-feather="save"></i>
+                            Set Departure Address
+                        </button>
+                    </div>
+                </form>
+                {% if departure_address %}
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i data-feather="map-pin"></i>
+                        Current: {{ departure_address.address }}
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
@@ -282,7 +343,14 @@
                 <hr>
                 <div class="small text-muted">
                     <i data-feather="clock"></i>
-                    Routes generated with 7:00 AM start time and traffic data
+                    Routes optimized for 8-hour workdays with real-time traffic data
+                    <br>
+                    <i data-feather="map-pin"></i>
+                    {% if departure_address %}
+                        Starting from: {{ departure_address.address[:50] }}{% if departure_address.address|length > 50 %}...{% endif %}
+                    {% else %}
+                        No departure address set
+                    {% endif %}
                 </div>
                 {% else %}
                 <div class="text-center py-4">
@@ -315,7 +383,18 @@
                                 <h6 class="card-title mb-0">
                                     <i data-feather="user"></i>
                                     Driver {{ route.driver_number }}
-                                    <span class="badge bg-info ms-2">{{ route.total_time_minutes }} min</span>
+                                    {% set hours = (route.total_time_minutes // 60) %}
+                                    {% set minutes = (route.total_time_minutes % 60) %}
+                                    <span class="badge bg-{{ 'success' if route.total_time_minutes <= 480 else 'warning' if route.total_time_minutes <= 540 else 'danger' }} ms-2">
+                                        {{ hours }}h {{ minutes }}m
+                                    </span>
+                                    {% if route.total_time_minutes <= 480 %}
+                                        <small class="text-success">✓ Within 8-hour goal</small>
+                                    {% elif route.total_time_minutes <= 540 %}
+                                        <small class="text-warning">⚠ Extended day (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
+                                    {% else %}
+                                        <small class="text-danger">⚠ Overtime (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
+                                    {% endif %}
                                 </h6>
                             </div>
                             <div class="card-body">

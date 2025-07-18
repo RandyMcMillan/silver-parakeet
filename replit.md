@@ -99,19 +99,28 @@ Preferred communication style: Simple, everyday language.
 ## Key Features
 
 ### Route Optimization
-- **TSP Algorithm**: Optimizes stop order for minimum travel time
+- **TSP Algorithm**: Optimizes stop order for minimum travel time with traffic-aware routing
+- **8-Hour Workday Goal**: Automatically balances workloads to meet 8-hour daily targets
+- **Traffic Integration**: Real-time traffic data scraping for accurate time estimates
 - **Scheduling Priority**: Scheduled stops take precedence over ASAP
-- **Load Balancing**: Distributes stops across available employees
-- **Time Estimation**: 10-minute service time per stop
+- **Load Balancing**: Distributes stops across available drivers intelligently
+- **Departure Address**: Configurable starting point for all driver routes
+
+### Traffic Data Integration
+- **Real-time Traffic**: Scrapes traffic data from multiple sources (Google Maps, Bing, MapQuest patterns)
+- **Historical Patterns**: Uses time-of-day traffic multipliers for accurate estimates
+- **Rush Hour Awareness**: Factors morning (7-10am) and evening (4-8pm) rush periods
+- **Fallback Geocoding**: Graceful degradation when traffic data unavailable
 
 ### User Interface
-- **Intuitive Forms**: Easy stop entry with validation
-- **Real-time Updates**: Immediate feedback on actions
-- **Responsive Design**: Works on desktop and mobile
-- **Dark Theme**: Modern Bootstrap dark theme
+- **Stop Counters**: Dashboard shows total stops and next 7-day schedule
+- **Form Reset**: Automatic form clearing after successful stop submission
+- **Workday Indicators**: Color-coded route times with 8-hour goal tracking
+- **Departure Management**: Easy setting and updating of driver departure address
+- **Agent Sign Memory**: Remembers and displays sign descriptions for removal jobs
 
 ### Data Management
-- **Flexible Storage**: SQLite for development, PostgreSQL for production
-- **Data Validation**: Server-side validation for all inputs
-- **Error Handling**: Graceful error handling with user feedback
-- **Caching**: Distance calculation caching for performance
+- **PostgreSQL Database**: Production-ready database with traffic data storage
+- **Traffic Data Caching**: Stores historical traffic patterns for route optimization
+- **Departure Address Tracking**: Manages driver starting locations
+- **Agent Sign History**: Maintains installation history for efficient removal service

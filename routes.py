@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from datetime import datetime, date
-from models import Stop, Route, AgentSignHistory, db
+from datetime import datetime, date, timedelta
+from models import Stop, Route, AgentSignHistory, DriverDepartureAddress, TrafficData, db
 from tsp_solver import TSPSolver
+from traffic_scraper import TrafficDataScraper
 import json
 import logging
 
@@ -14,7 +15,31 @@ def index():
     routes = Route.query.all()
     agent_signs = AgentSignHistory.query.all()
     
-    return render_template('index.html', stops=stops, routes=routes, agent_signs=agent_signs, datetime=datetime)
+    # Calculate stop counts
+    total_stops = len(stops)
+    
+    # Calculate stops for next 7 days
+    next_7_days = datetime.now() + timedelta(days=7)
+    stops_next_7_days = Stop.query.filter(
+        Stop.required_date <= next_7_days,
+        Stop.required_date >= datetime.now().date()
+    ).count()
+    
+    # Add ASAP stops to the 7-day count
+    asap_stops = Stop.query.filter(Stop.is_asap == True).count()
+    stops_next_7_days += asap_stops
+    
+    # Get active departure address
+    departure_address = DriverDepartureAddress.query.filter_by(is_active=True).first()
+    
+    return render_template('index.html', 
+                         stops=stops, 
+                         routes=routes, 
+                         agent_signs=agent_signs, 
+                         datetime=datetime,
+                         total_stops=total_stops,
+                         stops_next_7_days=stops_next_7_days,
+                         departure_address=departure_address)
 
 @main.route('/add_stop', methods=['POST'])
 def add_stop():
@@ -133,11 +158,40 @@ def add_stop():
     
     return redirect(url_for('main.index'))
 
-
+@main.route('/set_departure_address', methods=['POST'])
+def set_departure_address():
+    """Set or update the driver departure address"""
+    try:
+        new_address = request.form.get('departure_address', '').strip()
+        
+        if not new_address:
+            flash('Please enter a departure address', 'error')
+            return redirect(url_for('main.index'))
+        
+        # Deactivate existing departure addresses
+        DriverDepartureAddress.query.update({'is_active': False})
+        
+        # Create new active departure address
+        departure_address = DriverDepartureAddress(
+            address=new_address,
+            is_active=True
+        )
+        
+        db.session.add(departure_address)
+        db.session.commit()
+        
+        flash('Departure address updated successfully', 'success')
+        
+    except Exception as e:
+        logging.error(f"Error setting departure address: {e}")
+        flash('Error updating departure address', 'error')
+        db.session.rollback()
+    
+    return redirect(url_for('main.index'))
 
 @main.route('/generate_routes', methods=['POST'])
 def generate_routes():
-    """Generate optimized routes for specified number of drivers"""
+    """Generate optimized routes for specified number of drivers with 8-hour workday goals"""
     try:
         # Get form data
         num_drivers = int(request.form.get('num_drivers', 1))
@@ -154,6 +208,12 @@ def generate_routes():
             flash('Number of drivers must be at least 1', 'error')
             return redirect(url_for('main.index'))
         
+        # Get departure address
+        departure_address = DriverDepartureAddress.query.filter_by(is_active=True).first()
+        if not departure_address:
+            flash('Please set a departure address first', 'error')
+            return redirect(url_for('main.index'))
+        
         # Clear existing routes
         Route.query.delete()
         
@@ -164,58 +224,53 @@ def generate_routes():
         # Sort scheduled stops by required date
         scheduled_stops.sort(key=lambda x: x.required_date or datetime.max)
         
-        # Initialize TSP solver with start time
+        # Initialize TSP solver and traffic scraper
         tsp_solver = TSPSolver()
+        traffic_scraper = TrafficDataScraper()
         
-        # Initialize driver workloads
-        driver_routes = {i: [] for i in range(1, num_drivers + 1)}
-        driver_times = {i: 0 for i in range(1, num_drivers + 1)}
+        # Convert all stops to format for TSP solver
+        all_stops_data = []
+        for stop in stops:
+            stop_data = {
+                'id': stop.id,
+                'address': stop.address,
+                'post_type': stop.post_type,
+                'service_type': stop.service_type,
+                'is_asap': stop.is_asap,
+                'required_date': stop.required_date
+            }
+            all_stops_data.append(stop_data)
         
-        # First, assign scheduled stops (priority)
-        for stop in scheduled_stops:
-            # Find driver with least current workload
-            min_time_driver = min(driver_times.keys(), key=lambda k: driver_times[k])
-            driver_routes[min_time_driver].append(stop)
-            driver_times[min_time_driver] += 10  # Base service time
+        # Optimize routes for 8-hour workday constraint
+        optimized_routes = tsp_solver.optimize_for_8_hour_workday(all_stops_data, start_time, num_drivers)
         
-        # Then, assign ASAP stops to balance workloads
-        for stop in asap_stops:
-            # Find driver with least current workload
-            min_time_driver = min(driver_times.keys(), key=lambda k: driver_times[k])
-            driver_routes[min_time_driver].append(stop)
-            driver_times[min_time_driver] += 10  # Base service time
-        
-        # Optimize each driver's route using TSP
-        for driver_num in range(1, num_drivers + 1):
-            route_stops = driver_routes[driver_num]
-            
-            if not route_stops:
+        # Create route records for each driver
+        for driver_num, route_indices in enumerate(optimized_routes, 1):
+            if not route_indices:
                 continue
             
-            # Convert stops to format for TSP solver
-            stop_data = []
-            for stop in route_stops:
-                stop_data.append({
-                    'id': stop.id,
-                    'address': stop.address,
-                    'post_type': stop.post_type,
-                    'service_type': stop.service_type,
-                    'is_asap': stop.is_asap
-                })
+            # Get stops for this route
+            route_stops = [all_stops_data[i] for i in route_indices]
             
-            # Solve TSP for this driver's stops with traffic consideration
-            if len(stop_data) > 1:
-                optimal_order = tsp_solver.solve_tsp_with_traffic(stop_data, start_time)
-                # Reorder stops based on TSP solution
-                ordered_stops = [route_stops[i] for i in optimal_order]
-            else:
-                ordered_stops = route_stops
+            # Calculate total time with traffic awareness
+            total_time = tsp_solver.calculate_total_time_with_traffic(route_stops, list(range(len(route_stops))), start_time)
             
-            # Calculate total time including travel with traffic
-            total_time = tsp_solver.calculate_total_time_with_traffic(stop_data, list(range(len(stop_data))), start_time)
+            # Add departure address travel time
+            if route_stops:
+                first_stop_address = route_stops[0]['address']
+                traffic_data = traffic_scraper.get_best_traffic_estimate(departure_address.address, first_stop_address)
+                if traffic_data:
+                    total_time += traffic_data['travel_time_minutes']
+                else:
+                    # Fallback: estimate 30 minutes to first stop
+                    total_time += 30
+            
+            # Check if route exceeds 8-hour limit and warn
+            if total_time > 480:  # 8 hours = 480 minutes
+                flash(f'Warning: Driver {driver_num} route exceeds 8 hours ({total_time//60}h {total_time%60}m)', 'warning')
             
             # Create route record
-            stop_sequence = json.dumps([stop.id for stop in ordered_stops])
+            stop_sequence = json.dumps([all_stops_data[i]['id'] for i in route_indices])
             route = Route(
                 driver_number=driver_num,
                 stop_sequence=stop_sequence,

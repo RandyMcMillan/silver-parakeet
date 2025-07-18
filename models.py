@@ -39,3 +39,25 @@ class AgentSignHistory(db.Model):
     
     def __repr__(self):
         return f'<AgentSignHistory {self.id}: {self.address}>'
+
+class DriverDepartureAddress(db.Model):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    address: Mapped[str] = mapped_column(Text, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<DriverDepartureAddress {self.id}: {self.address}>'
+
+class TrafficData(db.Model):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    from_address: Mapped[str] = mapped_column(Text, nullable=False)
+    to_address: Mapped[str] = mapped_column(Text, nullable=False)
+    travel_time_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    distance_miles: Mapped[float] = mapped_column(db.Float, nullable=True)
+    traffic_factor: Mapped[float] = mapped_column(db.Float, default=1.0)  # Multiplier for base time
+    scraped_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<TrafficData {self.id}: {self.from_address} to {self.to_address}>'

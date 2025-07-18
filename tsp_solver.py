@@ -180,6 +180,157 @@ class TSPSolver:
             coord = self.geocode_address(stop['address'])
             coordinates.append(coord)
         
+        # Calculate time-dependent distances
+        elapsed_time = 0
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    # Calculate distance with traffic at current elapsed time
+                    distance = self.calculate_distance_with_traffic(
+                        coordinates[i], coordinates[j], start_time, elapsed_time
+                    )
+                    matrix[i][j] = distance
+                    
+                    # Add estimated travel time for next calculation
+                    if i < j:  # Only increment once per pair
+                        travel_time_minutes = (distance * 2.0)  # Rough estimate: 2 min per km
+                        elapsed_time += travel_time_minutes + 10  # Include service time
+        
+        return matrix
+    
+    def solve_tsp_with_traffic(self, stops: List[Dict], start_time: str) -> List[int]:
+        """Solve TSP considering traffic patterns"""
+        if len(stops) <= 1:
+            return list(range(len(stops)))
+        
+        # Create traffic-aware distance matrix
+        distance_matrix = self.create_traffic_distance_matrix(stops, start_time)
+        
+        # Solve using nearest neighbor with traffic considerations
+        tour = self.nearest_neighbor_tsp(distance_matrix)
+        
+        # Improve with 2-opt considering traffic
+        if len(stops) > 2:
+            tour = self.two_opt_improvement(tour, distance_matrix)
+        
+        return tour
+    
+    def calculate_total_time_with_traffic(self, stops: List[Dict], tour: List[int], start_time: str) -> int:
+        """Calculate total time for a route considering traffic and service times"""
+        if len(stops) <= 1:
+            return 10 if stops else 0  # Just service time
+        
+        total_minutes = 0
+        elapsed_minutes = 0
+        
+        # Get coordinates for all stops
+        coordinates = []
+        for stop in stops:
+            coord = self.geocode_address(stop['address'])
+            coordinates.append(coord)
+        
+        # Calculate travel times between consecutive stops
+        for i in range(len(tour) - 1):
+            current_stop = tour[i]
+            next_stop = tour[i + 1]
+            
+            # Calculate distance with current traffic conditions
+            distance = self.calculate_distance_with_traffic(
+                coordinates[current_stop], coordinates[next_stop], 
+                start_time, elapsed_minutes
+            )
+            
+            # Convert distance to travel time (assuming 30 km/h average with traffic)
+            travel_time = (distance / 30) * 60  # minutes
+            total_minutes += travel_time
+            elapsed_minutes += travel_time
+            
+            # Add service time at next stop
+            service_time = 10  # minutes per stop
+            total_minutes += service_time
+            elapsed_minutes += service_time
+        
+        return int(total_minutes)
+    
+    def check_8_hour_limit(self, total_minutes: int) -> bool:
+        """Check if route exceeds 8-hour workday limit"""
+        return total_minutes <= 480  # 8 hours = 480 minutes
+    
+    def optimize_for_8_hour_workday(self, stops: List[Dict], start_time: str, max_drivers: int = 10) -> List[List[int]]:
+        """Optimize routes to fit within 8-hour workdays"""
+        if not stops:
+            return []
+        
+        # Start with single driver and see if we can fit all stops
+        for num_drivers in range(1, max_drivers + 1):
+            routes = self.distribute_stops_for_workday(stops, num_drivers, start_time)
+            
+            # Check if all routes fit within 8 hours
+            all_within_limit = True
+            for route in routes:
+                if route:  # Skip empty routes
+                    total_time = self.calculate_total_time_with_traffic(
+                        [stops[i] for i in route], route, start_time
+                    )
+                    if not self.check_8_hour_limit(total_time):
+                        all_within_limit = False
+                        break
+            
+            if all_within_limit:
+                return routes
+        
+        # If we can't fit within 8 hours even with max drivers, return best effort
+        return self.distribute_stops_for_workday(stops, max_drivers, start_time)
+    
+    def distribute_stops_for_workday(self, stops: List[Dict], num_drivers: int, start_time: str) -> List[List[int]]:
+        """Distribute stops among drivers for balanced workday"""
+        if not stops:
+            return [[] for _ in range(num_drivers)]
+        
+        # Separate scheduled and ASAP stops
+        scheduled_stops = [(i, stop) for i, stop in enumerate(stops) 
+                          if not stop.get('is_asap', False)]
+        asap_stops = [(i, stop) for i, stop in enumerate(stops) 
+                     if stop.get('is_asap', False)]
+        
+        # Initialize driver routes
+        driver_routes = [[] for _ in range(num_drivers)]
+        driver_times = [0] * num_drivers
+        
+        # Assign scheduled stops first (round-robin by urgency)
+        for i, (stop_idx, stop) in enumerate(scheduled_stops):
+            driver_num = i % num_drivers
+            driver_routes[driver_num].append(stop_idx)
+            driver_times[driver_num] += 10  # Base service time
+        
+        # Assign ASAP stops to drivers with least workload
+        for stop_idx, stop in asap_stops:
+            min_time_driver = min(range(num_drivers), key=lambda x: driver_times[x])
+            driver_routes[min_time_driver].append(stop_idx)
+            driver_times[min_time_driver] += 10
+        
+        # Optimize each driver's route
+        optimized_routes = []
+        for route in driver_routes:
+            if route:
+                # Get stops for this route
+                route_stops = [stops[i] for i in route]
+                # Solve TSP for this route
+                optimal_order = self.solve_tsp_with_traffic(route_stops, start_time)
+                # Convert back to original indices
+                optimized_route = [route[i] for i in optimal_order]
+                optimized_routes.append(optimized_route)
+            else:
+                optimized_routes.append([])
+        
+        return optimized_routes
+        
+        # Get coordinates for all stops
+        coordinates = []
+        for stop in stops:
+            coord = self.geocode_address(stop['address'])
+            coordinates.append(coord)
+        
         # Calculate distances with traffic consideration
         elapsed_time = 0
         for i in range(n):
