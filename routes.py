@@ -149,7 +149,8 @@ def add_stop():
         db.session.commit()
         
         flash('Stop added successfully', 'success')
-        return redirect(url_for('main.index', reset_form='true'))
+        # Return redirect with both URL parameter and localStorage trigger
+        return redirect(url_for('main.index', reset_form='true', form_reset_trigger='true'))
         
     except Exception as e:
         logging.error(f"Error adding stop: {e}")

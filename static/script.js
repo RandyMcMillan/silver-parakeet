@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Reset form after successful submission
     resetFormAfterSuccess();
     
+    // Check for form reset trigger in localStorage
+    checkForFormResetTrigger();
+    
     // Ensure departure address is populated on page load
     ensureDepartureAddressPopulated();
 });
@@ -521,4 +524,132 @@ function ensureDepartureAddressPopulated() {
                 console.error('Error fetching departure address:', error);
             });
     }
+}
+
+function checkForFormResetTrigger() {
+    // Check localStorage for form reset trigger
+    if (localStorage.getItem('formResetTrigger') === 'true') {
+        console.log('Form reset triggered from localStorage');
+        localStorage.removeItem('formResetTrigger');
+        
+        // Perform form reset
+        performFormReset();
+    }
+    
+    // Also check URL parameter as backup
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('form_reset_trigger') === 'true') {
+        console.log('Form reset triggered from URL parameter');
+        
+        // Perform form reset
+        performFormReset();
+        
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
+
+function performFormReset() {
+    console.log('Performing form reset');
+    
+    // Reset the form
+    const form = document.querySelector('form[action*="add_stop"]');
+    console.log('Form found:', form);
+    
+    if (form) {
+        console.log('Found form, resetting...');
+        
+        // Force reset all form fields except departure address
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            // Skip departure address field
+            if (input.id === 'departure_address') {
+                console.log('Skipping departure_address field');
+                return;
+            }
+            
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                input.checked = false;
+            } else {
+                input.value = '';
+            }
+            console.log(`Reset field: ${input.name || input.id} to: ${input.value || input.checked}`);
+        });
+        
+        // Call form.reset() but then restore departure address
+        const departureAddressValue = document.getElementById('departure_address')?.value || '';
+        form.reset();
+        if (departureAddressValue) {
+            const departureField = document.getElementById('departure_address');
+            if (departureField) {
+                departureField.value = departureAddressValue;
+                console.log('Restored departure address:', departureAddressValue);
+            }
+        }
+        
+        // Reset conditional field visibility
+        const fieldsToHide = ['deliver_notes_group', 'post_type_group', 'post_type_notes_group', 'agent_sign_group', 'riders_toppers_group'];
+        fieldsToHide.forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                element.style.display = 'none';
+                console.log(`Hidden ${fieldId}`);
+            }
+        });
+        
+        // Show required date group
+        const requiredDateGroup = document.getElementById('required_date_group');
+        if (requiredDateGroup) {
+            requiredDateGroup.style.display = 'block';
+            console.log('Shown required_date_group');
+        }
+        
+        // Reset required attributes
+        const fieldsToResetRequired = [
+            { id: 'post_type', required: false },
+            { id: 'deliver_notes', required: false },
+            { id: 'riders_toppers_description', required: false },
+            { id: 'required_date', required: true }
+        ];
+        
+        fieldsToResetRequired.forEach(field => {
+            const element = document.getElementById(field.id);
+            if (element) {
+                element.required = field.required;
+                console.log(`Set ${field.id} required to ${field.required}`);
+            }
+        });
+        
+        // Ensure ASAP checkbox is unchecked and date field is shown
+        const asapCheckbox = document.getElementById('is_asap');
+        if (asapCheckbox) {
+            asapCheckbox.checked = false;
+            console.log('ASAP checkbox unchecked');
+        }
+        
+        // Hide agent sign info if visible
+        hideAgentSignInfo();
+        
+        // Update counters dynamically
+        updateStopCounters();
+        
+        // Focus on first field (ASAP checkbox) after a short delay
+        setTimeout(() => {
+            const firstField = document.getElementById('is_asap');
+            if (firstField) {
+                firstField.focus();
+                console.log('Focus set to ASAP checkbox');
+            }
+        }, 200);
+        
+        console.log('Form reset completed');
+    } else {
+        console.log('Form not found for reset');
+    }
+}
+
+function setFormResetTrigger() {
+    // Set localStorage flag to trigger form reset after successful submission
+    localStorage.setItem('formResetTrigger', 'true');
+    console.log('Form reset trigger set in localStorage');
 }
