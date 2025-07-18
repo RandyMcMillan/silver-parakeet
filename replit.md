@@ -113,14 +113,31 @@ Preferred communication style: Simple, everyday language.
 - **Fallback Geocoding**: Graceful degradation when traffic data unavailable
 
 ### User Interface
-- **Stop Counters**: Dashboard shows total stops and next 7-day schedule
-- **Form Reset**: Automatic form clearing after successful stop submission
+- **Stop Counters**: Dashboard shows total stops and next 7-day schedule with dynamic updates
+- **Form Reset**: Fully automated form clearing after successful stop submission using localStorage triggers
 - **Workday Indicators**: Color-coded route times with 8-hour goal tracking
-- **Departure Management**: Easy setting and updating of driver departure address
+- **Departure Management**: Easy setting and updating of driver departure address with persistence
 - **Agent Sign Memory**: Remembers and displays sign descriptions for removal jobs
+- **Adblocker Compatibility**: Form reset system works even with browser adblockers interfering
 
 ### Data Management
 - **PostgreSQL Database**: Production-ready database with traffic data storage
 - **Traffic Data Caching**: Stores historical traffic patterns for route optimization
 - **Departure Address Tracking**: Manages driver starting locations
 - **Agent Sign History**: Maintains installation history for efficient removal service
+
+## Recent Changes (July 18, 2025)
+
+### Form Reset System Implementation
+- **Dual Trigger System**: Implemented both localStorage and URL parameter triggers for maximum reliability
+- **Adblocker Resistance**: System works even when browser extensions interfere with redirects
+- **Field Preservation**: Departure address field preserved during form resets
+- **Dynamic Counter Updates**: Stop counters update automatically after form submission
+- **Comprehensive Debugging**: Added detailed console logging for troubleshooting form reset process
+- **Multiple Event Handlers**: Form submission captured through onsubmit attribute, addEventListener, and button click handlers
+
+### Departure Address Persistence
+- **Database Integration**: Departure address stored in DriverDepartureAddress model with active status tracking
+- **API Integration**: Departure address included in stop counter API endpoint
+- **Template Rendering**: Address properly displayed in form field on page load
+- **Form Preservation**: Address maintained across form resets and page navigation
