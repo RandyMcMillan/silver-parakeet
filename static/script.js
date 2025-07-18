@@ -588,10 +588,11 @@ function performFormReset() {
             
             if (input.type === 'checkbox' || input.type === 'radio') {
                 input.checked = false;
+                console.log(`Reset checkbox: ${input.name || input.id} to: ${input.checked}`);
             } else {
                 input.value = '';
+                console.log(`Reset field: ${input.name || input.id} to: "${input.value}"`);
             }
-            console.log(`Reset field: ${input.name || input.id} to: ${input.value || input.checked}`);
         });
         
         // Call form.reset() but then restore departure address

@@ -1,0 +1,238 @@
+
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+_app-a00b140124e256df.js:38 [LaunchDarkly] LaunchDarkly client initialized
+8Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.Understand this error
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'ambient-light-sensor'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'battery'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'execution-while-not-rendered'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'execution-while-out-of-viewport'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'layout-animations'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'legacy-image-formats'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'navigation-override'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'oversized-images'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'publickey-credentials'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'speaker-selection'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'unoptimized-images'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'unsized-media'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Unrecognized feature: 'pointer-lock'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Allow attribute will take precedence over 'allowfullscreen'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+framework-b34b7a55f6488728.js:1 Allow attribute will take precedence over 'allowpaymentrequest'.
+_ @ framework-b34b7a55f6488728.js:1
+(anonymous) @ framework-b34b7a55f6488728.js:1
+uD @ framework-b34b7a55f6488728.js:1
+uI @ framework-b34b7a55f6488728.js:1
+uM @ framework-b34b7a55f6488728.js:1
+uS @ framework-b34b7a55f6488728.js:1
+C @ framework-b34b7a55f6488728.js:1
+z @ framework-b34b7a55f6488728.js:1Understand this warning
+RouteGenerator:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+workspace_iframe.html:32 Unrecognized feature: 'ambient-light-sensor'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'battery'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-not-rendered'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-out-of-viewport'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'layout-animations'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'legacy-image-formats'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'navigation-override'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'oversized-images'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'publickey-credentials'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'speaker-selection'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'unoptimized-images'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'unsized-media'.Understand this warning
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowfullscreen'.Understand this warning
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowpaymentrequest'.Understand this warning
+ feather: 'route' is not a valid icon
+Mt.forEach.n.<computed> @ eruda.js:2
+(anonymous) @ feather-icons:12
+(anonymous) @ feather-icons:12
+n.default @ feather-icons:12
+(anonymous) @ cc5eab80-7dcb-4f56-9…ard.replit.dev/:418Understand this warning
+ Checking for reset_form parameter: null
+ No reset_form parameter found
+ Checking for form reset triggers...
+ URL reset_form: null
+ URL form_reset_trigger: null
+ localStorage formResetTrigger: true
+ Form reset triggered from localStorage
+ Performing form reset
+ Form found: [object HTMLFormElement]
+ Found form, resetting...
+ Reset field: is_asap to: on
+ Reset field: required_date to: false
+ Reset field: service_type to: undefined
+ Reset field: deliver_notes to: undefined
+ Reset field: post_type to: undefined
+ Reset field: post_type_notes to: undefined
+ Reset field: agent_sign_description to: undefined
+ Reset field: has_riders_toppers to: on
+ Reset field: riders_toppers_description to: undefined
+ Reset field: has_shelter to: on
+ Reset field: street_address to: false
+ Reset field: apt_unit to: false
+ Reset field: city to: false
+ Reset field: state to: false
+ Reset field: zip_code to: false
+ Hidden deliver_notes_group
+ Hidden post_type_group
+ Hidden post_type_notes_group
+ Hidden agent_sign_group
+ Hidden riders_toppers_group
+ Shown required_date_group
+ Set post_type required to false
+ Set deliver_notes required to false
+ Set riders_toppers_description required to false
+ Set required_date required to true
+ ASAP checkbox unchecked
+ Form reset completed
+ Setting up form submission handlers
+ Focus set to ASAP checkbox
+ Counters and departure address updated: [object Object]
+Console.js:61 feather: 'route' is not a valid icon
+Mt.forEach.n.<computed> @ Console.js:61Understand this warning
+Console.js:61 Checking for reset_form parameter: null
+Console.js:61 No reset_form parameter found
+Console.js:61 Checking for form reset triggers...
+Console.js:61 URL reset_form: null
+Console.js:61 URL form_reset_trigger: null
+Console.js:61 localStorage formResetTrigger: null
+Console.js:61 No form reset triggers found
+Console.js:61 Setting up form submission handlers
+Console.js:61 feather: 'route' is not a valid icon
+Mt.forEach.n.<computed> @ Console.js:61Understand this warning
+Console.js:61 Checking for reset_form parameter: null
+Console.js:61 No reset_form parameter found
+Console.js:61 Checking for form reset triggers...
+Console.js:61 URL reset_form: null
+Console.js:61 URL form_reset_trigger: null
+Console.js:61 localStorage formResetTrigger: null
+Console.js:61 No form reset triggers found
+Console.js:61 Setting up form submission handlers
+Console.js:61 Submit button clicked
+Console.js:61 Form is valid, setting reset trigger
+Console.js:61 Form reset trigger set in localStorage
+Console.js:61 Current localStorage formResetTrigger: true
+Console.js:61 Form is being submitted...
