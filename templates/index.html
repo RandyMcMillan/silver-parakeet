@@ -83,7 +83,7 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('main.add_stop') }}" onsubmit="setFormResetTrigger()">
+                <form method="POST" action="{{ url_for('main.add_stop') }}" onsubmit="setFormResetTrigger()" autocomplete="off">
                     <div class="mb-3">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="is_asap" name="is_asap" 
@@ -175,7 +175,7 @@
                         <div class="row">
                             <div class="col-md-8 mb-2">
                                 <input type="text" class="form-control" id="street_address" name="street_address" 
-                                       placeholder="Street Address" required>
+                                       placeholder="Street Address" required autocomplete="off">
                             </div>
                             <div class="col-md-4 mb-2">
                                 <input type="text" class="form-control" id="apt_unit" name="apt_unit" 
@@ -185,15 +185,15 @@
                         <div class="row">
                             <div class="col-md-6 mb-2">
                                 <input type="text" class="form-control" id="city" name="city" 
-                                       placeholder="City" required>
+                                       placeholder="City" required autocomplete="off">
                             </div>
                             <div class="col-md-3 mb-2">
                                 <input type="text" class="form-control" id="state" name="state" 
-                                       placeholder="State" required>
+                                       placeholder="State" required autocomplete="off">
                             </div>
                             <div class="col-md-3 mb-2">
                                 <input type="text" class="form-control" id="zip_code" name="zip_code" 
-                                       placeholder="ZIP Code" required>
+                                       placeholder="ZIP Code" required autocomplete="off">
                             </div>
                         </div>
                     </div>
