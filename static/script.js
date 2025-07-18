@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check for form reset trigger in localStorage
     checkForFormResetTrigger();
     
+    // Set up form submission handler
+    setupFormSubmissionHandler();
+    
     // Ensure departure address is populated on page load
     ensureDepartureAddressPopulated();
 });
@@ -671,4 +674,36 @@ function setFormResetTrigger() {
     
     // Return true to allow form submission to continue
     return true;
+}
+
+function setupFormSubmissionHandler() {
+    // Set up both onsubmit and button click handlers for maximum reliability
+    const form = document.querySelector('form[action*="add_stop"]');
+    const submitButton = document.getElementById('add-stop-btn');
+    
+    if (form) {
+        console.log('Setting up form submission handlers');
+        
+        // Form submit handler
+        form.addEventListener('submit', function(e) {
+            console.log('Form submit event triggered');
+            setFormResetTrigger();
+        });
+        
+        // Button click handler as backup
+        if (submitButton) {
+            submitButton.addEventListener('click', function(e) {
+                console.log('Submit button clicked');
+                // Check if form is valid before setting trigger
+                if (form.checkValidity()) {
+                    console.log('Form is valid, setting reset trigger');
+                    setFormResetTrigger();
+                } else {
+                    console.log('Form is invalid, not setting reset trigger');
+                }
+            });
+        }
+    } else {
+        console.log('Form not found for submission handler setup');
+    }
 }
