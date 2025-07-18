@@ -158,6 +158,28 @@ def add_stop():
     
     return redirect(url_for('main.index'))
 
+@main.route('/api/stop_counters')
+def api_stop_counters():
+    """API endpoint to get current stop counters"""
+    stops = Stop.query.all()
+    total_stops = len(stops)
+    
+    # Calculate stops for next 7 days
+    next_7_days = datetime.now() + timedelta(days=7)
+    stops_next_7_days = Stop.query.filter(
+        Stop.required_date <= next_7_days,
+        Stop.required_date >= datetime.now().date()
+    ).count()
+    
+    # Add ASAP stops to the 7-day count
+    asap_stops = Stop.query.filter(Stop.is_asap == True).count()
+    stops_next_7_days += asap_stops
+    
+    return jsonify({
+        'total_stops': total_stops,
+        'stops_next_7_days': stops_next_7_days
+    })
+
 @main.route('/set_departure_address', methods=['POST'])
 def set_departure_address():
     """Set or update the driver departure address"""

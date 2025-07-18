@@ -384,6 +384,7 @@ function resetFormAfterSuccess() {
         // Reset the form
         const form = document.querySelector('form[action*="add_stop"]');
         if (form) {
+            console.log('Found form, resetting...');
             form.reset();
             
             // Reset conditional field visibility
@@ -392,6 +393,7 @@ function resetFormAfterSuccess() {
                 const element = document.getElementById(fieldId);
                 if (element) {
                     element.style.display = 'none';
+                    console.log(`Hidden ${fieldId}`);
                 }
             });
             
@@ -399,6 +401,7 @@ function resetFormAfterSuccess() {
             const requiredDateGroup = document.getElementById('required_date_group');
             if (requiredDateGroup) {
                 requiredDateGroup.style.display = 'block';
+                console.log('Shown required_date_group');
             }
             
             // Reset required attributes
@@ -413,6 +416,7 @@ function resetFormAfterSuccess() {
                 const element = document.getElementById(field.id);
                 if (element) {
                     element.required = field.required;
+                    console.log(`Set ${field.id} required to ${field.required}`);
                 }
             });
             
@@ -421,6 +425,9 @@ function resetFormAfterSuccess() {
             
             // Clean up URL without reloading page
             window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // Update counters dynamically
+            updateStopCounters();
             
             // Focus on first field (ASAP checkbox) after a short delay
             setTimeout(() => {
@@ -431,6 +438,32 @@ function resetFormAfterSuccess() {
             }, 100);
             
             console.log('Form reset completed');
+        } else {
+            console.log('Form not found for reset');
         }
     }
+}
+
+function updateStopCounters() {
+    // Fetch updated counter data from server
+    fetch('/api/stop_counters')
+        .then(response => response.json())
+        .then(data => {
+            // Update next 7 days counter
+            const next7DaysElement = document.querySelector('.card.bg-primary .h2');
+            if (next7DaysElement) {
+                next7DaysElement.textContent = data.stops_next_7_days;
+            }
+            
+            // Update total system counter
+            const totalSystemElement = document.querySelector('.card.bg-info .h2');
+            if (totalSystemElement) {
+                totalSystemElement.textContent = data.total_stops;
+            }
+            
+            console.log('Counters updated:', data);
+        })
+        .catch(error => {
+            console.error('Error updating counters:', error);
+        });
 }
