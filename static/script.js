@@ -530,7 +530,9 @@ function ensureDepartureAddressPopulated() {
 }
 
 function checkForFormResetTrigger() {
-    console.log('Checking for form reset triggers...');
+    console.log('=== CHECKING FOR FORM RESET TRIGGERS ===');
+    console.log('Current URL:', window.location.href);
+    console.log('Search params:', window.location.search);
     
     // Check URL parameters first as they're more reliable
     const urlParams = new URLSearchParams(window.location.search);
@@ -541,30 +543,33 @@ function checkForFormResetTrigger() {
     console.log('URL form_reset_trigger:', urlTriggerParam);
     
     if (urlResetParam === 'true' || urlTriggerParam === 'true') {
-        console.log('Form reset triggered from URL parameters');
+        console.log('✓ Form reset triggered from URL parameters');
         
         // Perform form reset
         performFormReset();
         
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
+        console.log('✓ URL cleaned up');
         return;
     }
     
-    // Check localStorage as backup
+    // Check localStorage as backup - but remove it first to prevent loops
     const localStorageTrigger = localStorage.getItem('formResetTrigger');
     console.log('localStorage formResetTrigger:', localStorageTrigger);
     
     if (localStorageTrigger === 'true') {
-        console.log('Form reset triggered from localStorage');
-        localStorage.removeItem('formResetTrigger');
+        console.log('✓ Form reset triggered from localStorage');
+        localStorage.removeItem('formResetTrigger'); // Remove immediately to prevent loops
         
         // Perform form reset
         performFormReset();
+        console.log('✓ localStorage trigger cleared');
         return;
     }
     
-    console.log('No form reset triggers found');
+    console.log('✗ No form reset triggers found');
+    console.log('=== END RESET TRIGGER CHECK ===');
 }
 
 function performFormReset() {
@@ -716,10 +721,11 @@ function setupFormSubmissionHandler() {
     if (form) {
         console.log('Setting up form submission handlers');
         
-        // Simple form submit handler - don't interfere with submission
+        // Form submit handler - set localStorage trigger
         form.addEventListener('submit', function(e) {
-            console.log('Form submit event triggered - allowing natural submission');
-            // Don't call setFormResetTrigger here as it might interfere with submission
+            console.log('Form submit event triggered - setting localStorage trigger');
+            localStorage.setItem('formResetTrigger', 'true');
+            console.log('localStorage trigger set for post-redirect reset');
         });
         
         // Button click handler as backup
