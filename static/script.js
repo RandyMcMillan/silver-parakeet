@@ -673,6 +673,20 @@ function performFormReset() {
                 }
             });
             console.log('=== END VERIFICATION ===');
+            
+            // Force clear any autofilled values after verification
+            setTimeout(() => {
+                console.log('=== FORCING CLEAR AUTOFILL ===');
+                const addressFields = ['street_address', 'apt_unit', 'city', 'state', 'zip_code'];
+                addressFields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field && field.value) {
+                        console.log(`Autofill detected in ${fieldId}: "${field.value}" - clearing it`);
+                        field.value = '';
+                    }
+                });
+                console.log('=== AUTOFILL CLEAR COMPLETE ===');
+            }, 500);
         }, 300);
         
         console.log('Form reset completed');
