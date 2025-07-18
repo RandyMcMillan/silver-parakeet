@@ -175,9 +175,13 @@ def api_stop_counters():
     asap_stops = Stop.query.filter(Stop.is_asap == True).count()
     stops_next_7_days += asap_stops
     
+    # Get active departure address
+    departure_address = DriverDepartureAddress.query.filter_by(is_active=True).first()
+    
     return jsonify({
         'total_stops': total_stops,
-        'stops_next_7_days': stops_next_7_days
+        'stops_next_7_days': stops_next_7_days,
+        'departure_address': departure_address.address if departure_address else None
     })
 
 @main.route('/set_departure_address', methods=['POST'])

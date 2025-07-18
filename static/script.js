@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Reset form after successful submission
     resetFormAfterSuccess();
+    
+    // Ensure departure address is populated on page load
+    ensureDepartureAddressPopulated();
 });
 
 function toggleDateInput() {
@@ -461,9 +464,34 @@ function updateStopCounters() {
                 totalSystemElement.textContent = data.total_stops;
             }
             
-            console.log('Counters updated:', data);
+            // Update departure address field
+            const departureAddressField = document.getElementById('departure_address');
+            if (departureAddressField && data.departure_address) {
+                departureAddressField.value = data.departure_address;
+            }
+            
+            console.log('Counters and departure address updated:', data);
         })
         .catch(error => {
             console.error('Error updating counters:', error);
         });
+}
+
+function ensureDepartureAddressPopulated() {
+    // Check if departure address field exists and is empty
+    const departureAddressField = document.getElementById('departure_address');
+    if (departureAddressField && !departureAddressField.value.trim()) {
+        // Fetch current departure address from API
+        fetch('/api/stop_counters')
+            .then(response => response.json())
+            .then(data => {
+                if (data.departure_address) {
+                    departureAddressField.value = data.departure_address;
+                    console.log('Departure address populated:', data.departure_address);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching departure address:', error);
+            });
+    }
 }
