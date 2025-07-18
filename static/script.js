@@ -716,23 +716,17 @@ function setupFormSubmissionHandler() {
     if (form) {
         console.log('Setting up form submission handlers');
         
-        // Form submit handler
+        // Simple form submit handler - don't interfere with submission
         form.addEventListener('submit', function(e) {
-            console.log('Form submit event triggered');
-            setFormResetTrigger();
+            console.log('Form submit event triggered - allowing natural submission');
+            // Don't call setFormResetTrigger here as it might interfere with submission
         });
         
         // Button click handler as backup
         if (submitButton) {
             submitButton.addEventListener('click', function(e) {
                 console.log('Submit button clicked');
-                // Check if form is valid before setting trigger
-                if (form.checkValidity()) {
-                    console.log('Form is valid, setting reset trigger');
-                    setFormResetTrigger();
-                } else {
-                    console.log('Form is invalid, not setting reset trigger');
-                }
+                // Just log, don't interfere with form submission
             });
         }
     } else {
