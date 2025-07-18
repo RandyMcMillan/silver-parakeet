@@ -661,6 +661,20 @@ function performFormReset() {
             }
         }, 200);
         
+        // Verify the reset actually worked by checking field values
+        setTimeout(() => {
+            console.log('=== FORM RESET VERIFICATION ===');
+            const verifyInputs = form.querySelectorAll('input, select, textarea');
+            verifyInputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    console.log(`${input.id || input.name}: ${input.checked}`);
+                } else {
+                    console.log(`${input.id || input.name}: "${input.value}"`);
+                }
+            });
+            console.log('=== END VERIFICATION ===');
+        }, 300);
+        
         console.log('Form reset completed');
     } else {
         console.log('Form not found for reset');
