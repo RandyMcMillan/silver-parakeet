@@ -527,18 +527,27 @@ function ensureDepartureAddressPopulated() {
 }
 
 function checkForFormResetTrigger() {
+    console.log('Checking for form reset triggers...');
+    
     // Check localStorage for form reset trigger
-    if (localStorage.getItem('formResetTrigger') === 'true') {
+    const localStorageTrigger = localStorage.getItem('formResetTrigger');
+    console.log('localStorage formResetTrigger:', localStorageTrigger);
+    
+    if (localStorageTrigger === 'true') {
         console.log('Form reset triggered from localStorage');
         localStorage.removeItem('formResetTrigger');
         
         // Perform form reset
         performFormReset();
+        return;
     }
     
     // Also check URL parameter as backup
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('form_reset_trigger') === 'true') {
+    const urlTrigger = urlParams.get('form_reset_trigger');
+    console.log('URL form_reset_trigger:', urlTrigger);
+    
+    if (urlTrigger === 'true') {
         console.log('Form reset triggered from URL parameter');
         
         // Perform form reset
@@ -546,7 +555,10 @@ function checkForFormResetTrigger() {
         
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
+        return;
     }
+    
+    console.log('No form reset triggers found');
 }
 
 function performFormReset() {
@@ -652,4 +664,11 @@ function setFormResetTrigger() {
     // Set localStorage flag to trigger form reset after successful submission
     localStorage.setItem('formResetTrigger', 'true');
     console.log('Form reset trigger set in localStorage');
+    console.log('Current localStorage formResetTrigger:', localStorage.getItem('formResetTrigger'));
+    
+    // Also log that form is being submitted
+    console.log('Form is being submitted...');
+    
+    // Return true to allow form submission to continue
+    return true;
 }
