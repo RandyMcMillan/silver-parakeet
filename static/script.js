@@ -532,7 +532,26 @@ function ensureDepartureAddressPopulated() {
 function checkForFormResetTrigger() {
     console.log('Checking for form reset triggers...');
     
-    // Check localStorage for form reset trigger
+    // Check URL parameters first as they're more reliable
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlResetParam = urlParams.get('reset_form');
+    const urlTriggerParam = urlParams.get('form_reset_trigger');
+    
+    console.log('URL reset_form:', urlResetParam);
+    console.log('URL form_reset_trigger:', urlTriggerParam);
+    
+    if (urlResetParam === 'true' || urlTriggerParam === 'true') {
+        console.log('Form reset triggered from URL parameters');
+        
+        // Perform form reset
+        performFormReset();
+        
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+    }
+    
+    // Check localStorage as backup
     const localStorageTrigger = localStorage.getItem('formResetTrigger');
     console.log('localStorage formResetTrigger:', localStorageTrigger);
     
@@ -542,22 +561,6 @@ function checkForFormResetTrigger() {
         
         // Perform form reset
         performFormReset();
-        return;
-    }
-    
-    // Also check URL parameter as backup
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlTrigger = urlParams.get('form_reset_trigger');
-    console.log('URL form_reset_trigger:', urlTrigger);
-    
-    if (urlTrigger === 'true') {
-        console.log('Form reset triggered from URL parameter');
-        
-        // Perform form reset
-        performFormReset();
-        
-        // Clean up URL
-        window.history.replaceState({}, document.title, window.location.pathname);
         return;
     }
     
