@@ -721,11 +721,28 @@ function setupFormSubmissionHandler() {
     if (form) {
         console.log('Setting up form submission handlers');
         
-        // Form submit handler - set localStorage trigger
+        // Form submit handler - set localStorage trigger and check for errors
         form.addEventListener('submit', function(e) {
-            console.log('Form submit event triggered - setting localStorage trigger');
+            console.log('=== FORM SUBMISSION STARTING ===');
+            console.log('Form validity:', form.checkValidity());
+            console.log('Form action:', form.action);
+            console.log('Form method:', form.method);
+            
+            // Check for validation errors
+            const invalidFields = form.querySelectorAll(':invalid');
+            if (invalidFields.length > 0) {
+                console.log('INVALID FIELDS FOUND:');
+                invalidFields.forEach(field => {
+                    console.log(`- ${field.name || field.id}: ${field.validationMessage}`);
+                });
+                console.log('Form submission will be blocked by browser');
+                return; // Don't set trigger if form is invalid
+            }
+            
+            console.log('Form is valid - setting localStorage trigger');
             localStorage.setItem('formResetTrigger', 'true');
-            console.log('localStorage trigger set for post-redirect reset');
+            console.log('localStorage trigger set - form should submit now');
+            console.log('=== FORM SUBMISSION CONTINUING ===');
         });
         
         // Button click handler as backup
