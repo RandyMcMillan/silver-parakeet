@@ -745,11 +745,40 @@ function setupFormSubmissionHandler() {
             console.log('=== FORM SUBMISSION CONTINUING ===');
         });
         
-        // Button click handler as backup
+        // Button click handler with detailed debugging
         if (submitButton) {
             submitButton.addEventListener('click', function(e) {
-                console.log('Submit button clicked');
-                // Just log, don't interfere with form submission
+                console.log('=== SUBMIT BUTTON CLICKED ===');
+                console.log('Button type:', submitButton.type);
+                console.log('Form element:', form);
+                console.log('Form validity:', form.checkValidity());
+                
+                // Check each required field
+                const requiredFields = form.querySelectorAll('[required]');
+                console.log('Required fields check:');
+                let hasEmptyRequired = false;
+                
+                requiredFields.forEach(field => {
+                    const isEmpty = !field.value.trim();
+                    console.log(`- ${field.name || field.id}: ${isEmpty ? 'EMPTY' : 'filled'} (${field.value})`);
+                    if (isEmpty) hasEmptyRequired = true;
+                });
+                
+                if (hasEmptyRequired) {
+                    console.log('❌ BLOCKING: Required fields are empty');
+                    console.log('Form will not submit due to validation');
+                } else {
+                    console.log('✅ All required fields filled');
+                    console.log('Form should submit normally');
+                }
+                
+                // Force form submission if valid
+                setTimeout(() => {
+                    if (form.checkValidity()) {
+                        console.log('Force triggering form submission...');
+                        form.submit();
+                    }
+                }, 100);
             });
         }
     } else {
