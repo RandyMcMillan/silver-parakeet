@@ -786,58 +786,64 @@ function setupFormSubmissionHandler() {
     }
 }
 
-// Address autocomplete functionality
-function handleAddressInput(input) {
-    const address = input.value.trim();
-    if (address.length < 10) return; // Wait for substantial input
-    
-    // Simple pattern matching for common address formats
-    const addressPatterns = [
-        // "123 Main St, Atlanta, GA"
-        /^(.+),\s*([^,]+),\s*([A-Z]{2})$/i,
-        // "123 Main St Atlanta GA"
-        /^(.+)\s+([A-Za-z\s]+)\s+([A-Z]{2})$/i
-    ];
-    
-    for (const pattern of addressPatterns) {
-        const match = address.match(pattern);
-        if (match) {
-            const [, street, city, state] = match;
-            
-            // Auto-fill city and state if they're empty
-            const cityField = document.getElementById('city');
-            const stateField = document.getElementById('state');
-            
-            if (cityField && !cityField.value.trim()) {
-                cityField.value = city.trim();
-                console.log('Auto-filled city:', city.trim());
-            }
-            
-            if (stateField && !stateField.value.trim()) {
-                stateField.value = state.trim().toUpperCase();
-                console.log('Auto-filled state:', state.trim().toUpperCase());
-            }
-            
-            // Update the street address to just the street part
-            input.value = street.trim();
-            break;
-        }
-    }
-}
-
+// ZIP code autocomplete functionality
 function handleZipCodeInput(input) {
     const zipCode = input.value.trim();
     
-    // Basic ZIP code to city/state mapping for common areas
+    // Expanded ZIP code to city/state mapping
     const zipMappings = {
+        // Atlanta, GA
         '30312': { city: 'Atlanta', state: 'GA' },
         '30309': { city: 'Atlanta', state: 'GA' },
         '30308': { city: 'Atlanta', state: 'GA' },
         '30318': { city: 'Atlanta', state: 'GA' },
+        '30305': { city: 'Atlanta', state: 'GA' },
+        '30306': { city: 'Atlanta', state: 'GA' },
+        '30307': { city: 'Atlanta', state: 'GA' },
+        '30310': { city: 'Atlanta', state: 'GA' },
+        '30313': { city: 'Atlanta', state: 'GA' },
+        '30314': { city: 'Atlanta', state: 'GA' },
+        '30315': { city: 'Atlanta', state: 'GA' },
+        '30316': { city: 'Atlanta', state: 'GA' },
+        '30317': { city: 'Atlanta', state: 'GA' },
+        
+        // New York, NY
         '10001': { city: 'New York', state: 'NY' },
         '10002': { city: 'New York', state: 'NY' },
+        '10003': { city: 'New York', state: 'NY' },
+        '10004': { city: 'New York', state: 'NY' },
+        '10005': { city: 'New York', state: 'NY' },
+        '10006': { city: 'New York', state: 'NY' },
+        '10007': { city: 'New York', state: 'NY' },
+        '10008': { city: 'New York', state: 'NY' },
+        '10009': { city: 'New York', state: 'NY' },
+        '10010': { city: 'New York', state: 'NY' },
+        
+        // Beverly Hills, CA
         '90210': { city: 'Beverly Hills', state: 'CA' },
-        '90211': { city: 'Beverly Hills', state: 'CA' }
+        '90211': { city: 'Beverly Hills', state: 'CA' },
+        '90212': { city: 'Beverly Hills', state: 'CA' },
+        
+        // Los Angeles, CA
+        '90001': { city: 'Los Angeles', state: 'CA' },
+        '90002': { city: 'Los Angeles', state: 'CA' },
+        '90003': { city: 'Los Angeles', state: 'CA' },
+        '90004': { city: 'Los Angeles', state: 'CA' },
+        '90005': { city: 'Los Angeles', state: 'CA' },
+        
+        // Chicago, IL
+        '60601': { city: 'Chicago', state: 'IL' },
+        '60602': { city: 'Chicago', state: 'IL' },
+        '60603': { city: 'Chicago', state: 'IL' },
+        '60604': { city: 'Chicago', state: 'IL' },
+        '60605': { city: 'Chicago', state: 'IL' },
+        
+        // Miami, FL
+        '33101': { city: 'Miami', state: 'FL' },
+        '33102': { city: 'Miami', state: 'FL' },
+        '33109': { city: 'Miami Beach', state: 'FL' },
+        '33139': { city: 'Miami Beach', state: 'FL' },
+        '33140': { city: 'Miami Beach', state: 'FL' }
     };
     
     if (zipCode.length === 5 && zipMappings[zipCode]) {
