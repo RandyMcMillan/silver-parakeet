@@ -785,3 +785,73 @@ function setupFormSubmissionHandler() {
         console.log('Form not found for submission handler setup');
     }
 }
+
+// Address autocomplete functionality
+function handleAddressInput(input) {
+    const address = input.value.trim();
+    if (address.length < 10) return; // Wait for substantial input
+    
+    // Simple pattern matching for common address formats
+    const addressPatterns = [
+        // "123 Main St, Atlanta, GA"
+        /^(.+),\s*([^,]+),\s*([A-Z]{2})$/i,
+        // "123 Main St Atlanta GA"
+        /^(.+)\s+([A-Za-z\s]+)\s+([A-Z]{2})$/i
+    ];
+    
+    for (const pattern of addressPatterns) {
+        const match = address.match(pattern);
+        if (match) {
+            const [, street, city, state] = match;
+            
+            // Auto-fill city and state if they're empty
+            const cityField = document.getElementById('city');
+            const stateField = document.getElementById('state');
+            
+            if (cityField && !cityField.value.trim()) {
+                cityField.value = city.trim();
+                console.log('Auto-filled city:', city.trim());
+            }
+            
+            if (stateField && !stateField.value.trim()) {
+                stateField.value = state.trim().toUpperCase();
+                console.log('Auto-filled state:', state.trim().toUpperCase());
+            }
+            
+            // Update the street address to just the street part
+            input.value = street.trim();
+            break;
+        }
+    }
+}
+
+function handleZipCodeInput(input) {
+    const zipCode = input.value.trim();
+    
+    // Basic ZIP code to city/state mapping for common areas
+    const zipMappings = {
+        '30312': { city: 'Atlanta', state: 'GA' },
+        '30309': { city: 'Atlanta', state: 'GA' },
+        '30308': { city: 'Atlanta', state: 'GA' },
+        '30318': { city: 'Atlanta', state: 'GA' },
+        '10001': { city: 'New York', state: 'NY' },
+        '10002': { city: 'New York', state: 'NY' },
+        '90210': { city: 'Beverly Hills', state: 'CA' },
+        '90211': { city: 'Beverly Hills', state: 'CA' }
+    };
+    
+    if (zipCode.length === 5 && zipMappings[zipCode]) {
+        const cityField = document.getElementById('city');
+        const stateField = document.getElementById('state');
+        
+        if (cityField && !cityField.value.trim()) {
+            cityField.value = zipMappings[zipCode].city;
+            console.log('Auto-filled city from ZIP:', zipMappings[zipCode].city);
+        }
+        
+        if (stateField && !stateField.value.trim()) {
+            stateField.value = zipMappings[zipCode].state;
+            console.log('Auto-filled state from ZIP:', zipMappings[zipCode].state);
+        }
+    }
+}

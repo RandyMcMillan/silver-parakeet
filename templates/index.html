@@ -175,7 +175,8 @@
                         <div class="row">
                             <div class="col-md-8 mb-2">
                                 <input type="text" class="form-control" id="street_address" name="street_address" 
-                                       placeholder="Street Address" required autocomplete="new-password">
+                                       placeholder="Street Address" required autocomplete="new-password" 
+                                       oninput="handleAddressInput(this)">
                             </div>
                             <div class="col-md-4 mb-2">
                                 <input type="text" class="form-control" id="apt_unit" name="apt_unit" 
@@ -193,7 +194,8 @@
                             </div>
                             <div class="col-md-3 mb-2">
                                 <input type="text" class="form-control" id="zip_code" name="zip_code" 
-                                       placeholder="ZIP Code" required autocomplete="new-password">
+                                       placeholder="ZIP Code" required autocomplete="new-password"
+                                       oninput="handleZipCodeInput(this)">
                             </div>
                         </div>
                     </div>
