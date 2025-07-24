@@ -116,17 +116,16 @@ def add_stop():
                 return redirect(url_for('main.index'))
         
         # Create new stop
-        stop = Stop(
-            post_type=post_type,
-            address=address,
-            service_type=service_type,
-            is_asap=is_asap,
-            required_date=required_date,
-            agent_sign_description=agent_sign_description if service_type == 'install' else None,
-            has_riders_toppers=has_riders_toppers,
-            riders_toppers_description=riders_toppers_description if has_riders_toppers else None,
-            has_shelter=has_shelter
-        )
+        stop = Stop()
+        stop.post_type = post_type
+        stop.address = address
+        stop.service_type = service_type
+        stop.is_asap = is_asap
+        stop.required_date = required_date
+        stop.agent_sign_description = agent_sign_description if service_type == 'install' else None
+        stop.has_riders_toppers = has_riders_toppers
+        stop.riders_toppers_description = riders_toppers_description if has_riders_toppers else None
+        stop.has_shelter = has_shelter
         
         db.session.add(stop)
         
@@ -140,10 +139,9 @@ def add_stop():
                 existing_sign.updated_at = datetime.utcnow()
             else:
                 # Create new record
-                agent_sign_history = AgentSignHistory(
-                    address=address,
-                    sign_description=agent_sign_description
-                )
+                agent_sign_history = AgentSignHistory()
+                agent_sign_history.address = address
+                agent_sign_history.sign_description = agent_sign_description
                 db.session.add(agent_sign_history)
         
         db.session.commit()
@@ -199,10 +197,9 @@ def set_departure_address():
         DriverDepartureAddress.query.update({'is_active': False})
         
         # Create new active departure address
-        departure_address = DriverDepartureAddress(
-            address=new_address,
-            is_active=True
-        )
+        departure_address = DriverDepartureAddress()
+        departure_address.address = new_address
+        departure_address.is_active = True
         
         db.session.add(departure_address)
         db.session.commit()
@@ -298,12 +295,11 @@ def generate_routes():
             
             # Create route record
             stop_sequence = json.dumps([all_stops_data[i]['id'] for i in route_indices])
-            route = Route(
-                driver_number=driver_num,
-                stop_sequence=stop_sequence,
-                total_time_minutes=total_time,
-                start_time=start_time
-            )
+            route = Route()
+            route.driver_number = driver_num
+            route.stop_sequence = stop_sequence
+            route.total_time_minutes = total_time
+            route.start_time = start_time
             
             db.session.add(route)
         

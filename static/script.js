@@ -861,3 +861,23 @@ function handleZipCodeInput(input) {
         }
     }
 }
+
+// Departure address form handling
+function updateDepartureAddressDisplay(form) {
+    const addressInput = form.querySelector('#departure_address');
+    const currentDisplay = document.getElementById('current_departure_text');
+    const submitBtn = document.getElementById('departure_submit_btn');
+    
+    if (addressInput && currentDisplay) {
+        // Immediately update the display
+        currentDisplay.textContent = addressInput.value;
+        
+        // Show loading state
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i data-feather="loader"></i> Updating...';
+            submitBtn.disabled = true;
+        }
+        
+        console.log('Departure address updated to:', addressInput.value);
+    }
+}
