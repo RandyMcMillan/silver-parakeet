@@ -869,15 +869,18 @@ function updateDepartureAddressDisplay(form) {
     const submitBtn = document.getElementById('departure_submit_btn');
     
     if (addressInput && currentDisplay) {
-        // Immediately update the display
-        currentDisplay.textContent = addressInput.value;
-        
         // Show loading state
         if (submitBtn) {
             submitBtn.innerHTML = '<i data-feather="loader"></i> Updating...';
             submitBtn.disabled = true;
         }
         
-        console.log('Departure address updated to:', addressInput.value);
+        console.log('Departure address submitting:', addressInput.value);
+        
+        // Let the form submit normally - the page will refresh with the new address
+        setTimeout(() => {
+            // This will run after form submission starts
+            console.log('Form submitted, page will refresh');
+        }, 100);
     }
 }
