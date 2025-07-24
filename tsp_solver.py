@@ -12,18 +12,46 @@ class TSPSolver:
         self.distance_cache = {}
         
     def geocode_address(self, address: str) -> Tuple[float, float]:
-        """Convert address to coordinates"""
+        """Convert address to coordinates with reliable fallback"""
         try:
-            location = self.geolocator.geocode(address)
+            # Try online geocoding first with timeout
+            location = self.geolocator.geocode(address, timeout=3)
             if location:
                 return (location.latitude, location.longitude)
             else:
-                # Fallback to random coordinates for demo purposes
-                logging.warning(f"Could not geocode address: {address}")
-                return (40.7128 + random.uniform(-0.1, 0.1), -74.0060 + random.uniform(-0.1, 0.1))
+                logging.warning(f"Could not geocode address: {address}, using fallback")
+                return self.get_fallback_coordinates(address)
         except Exception as e:
-            logging.error(f"Geocoding error for {address}: {e}")
-            return (40.7128 + random.uniform(-0.1, 0.1), -74.0060 + random.uniform(-0.1, 0.1))
+            logging.error(f"Geocoding error for {address}: {e}, using fallback")
+            return self.get_fallback_coordinates(address)
+    
+    def get_fallback_coordinates(self, address: str) -> Tuple[float, float]:
+        """Provide fallback coordinates based on city/ZIP patterns"""
+        address_lower = address.lower()
+        
+        # Atlanta area fallback coordinates
+        if 'atlanta' in address_lower or '303' in address:
+            return (33.7490, -84.3880)  # Atlanta downtown
+        
+        # New York area fallback coordinates  
+        if 'new york' in address_lower or 'ny' in address_lower or '100' in address:
+            return (40.7128, -74.0060)  # NYC downtown
+        
+        # Los Angeles area fallback coordinates
+        if 'los angeles' in address_lower or 'beverly hills' in address_lower or '902' in address:
+            return (34.0522, -118.2437)  # LA downtown
+            
+        # Chicago area fallback coordinates
+        if 'chicago' in address_lower or '606' in address:
+            return (41.8781, -87.6298)  # Chicago downtown
+            
+        # Miami area fallback coordinates
+        if 'miami' in address_lower or '331' in address:
+            return (25.7617, -80.1918)  # Miami downtown
+        
+        # Default fallback to Atlanta if no pattern matches
+        logging.info(f"No location pattern found for {address}, defaulting to Atlanta")
+        return (33.7490, -84.3880)
     
     def calculate_distance(self, coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float:
         """Calculate distance between two coordinates in kilometers"""
