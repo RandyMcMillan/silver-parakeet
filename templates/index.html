@@ -46,24 +46,14 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('main.set_departure_address') }}" class="row g-3" onsubmit="updateDepartureAddressDisplay(this)">
-                    <div class="col-md-8">
-                        <input type="text" class="form-control" id="departure_address" name="departure_address" 
-                               placeholder="Enter departure address for all drivers" 
-                               value="{% if departure_address %}{{ departure_address.address }}{% endif %}" required>
+                <div class="alert alert-info mb-0">
+                    <div class="d-flex align-items-center">
+                        <i data-feather="map-pin" class="me-2"></i>
+                        <div>
+                            <strong>Fixed Start Location:</strong><br>
+                            183 DeCalb Industrial Way, Decatur, GA 30030
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-primary w-100" id="departure_submit_btn">
-                            <i data-feather="save"></i>
-                            Set Departure Address
-                        </button>
-                    </div>
-                </form>
-                <div class="mt-2" id="current_departure_display">
-                    <small class="text-muted">
-                        <i data-feather="map-pin"></i>
-                        Current: <span id="current_departure_text">{% if departure_address %}{{ departure_address.address }}{% else %}Not set{% endif %}</span>
-                    </small>
                 </div>
             </div>
         </div>
@@ -345,11 +335,7 @@
                     Routes optimized for 8-hour workdays with real-time traffic data
                     <br>
                     <i data-feather="map-pin"></i>
-                    {% if departure_address %}
-                        Starting from: {{ departure_address.address[:50] }}{% if departure_address.address|length > 50 %}...{% endif %}
-                    {% else %}
-                        No departure address set
-                    {% endif %}
+                    Starting from: {{ departure_address[:50] }}{% if departure_address|length > 50 %}...{% endif %}
                 </div>
                 {% else %}
                 <div class="text-center py-4">

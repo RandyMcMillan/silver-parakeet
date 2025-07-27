@@ -126,7 +126,16 @@ Preferred communication style: Simple, everyday language.
 - **Departure Address Tracking**: Manages driver starting locations
 - **Agent Sign History**: Maintains installation history for efficient removal service
 
-## Recent Changes (July 18, 2025)
+## Recent Changes (July 27, 2025)
+
+### Fixed Departure Address Implementation
+- **Departure Address System**: Changed from user-configurable to fixed address "183 DeCalb Industrial Way, Decatur, GA 30030"
+- **UI Simplification**: Removed departure address form and replaced with read-only display
+- **Code Architecture**: Updated all routes to use `get_fixed_departure_address()` function instead of database queries
+- **Database Update**: Set the fixed address as active in the database for system consistency
+- **Form Removal**: Eliminated the ability to modify departure address through the web interface
+
+## Previous Changes (July 18, 2025)
 
 ### Form Reset System Implementation
 - **Dual Trigger System**: Implemented both localStorage and URL parameter triggers for maximum reliability

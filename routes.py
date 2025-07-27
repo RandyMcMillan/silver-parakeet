@@ -29,8 +29,8 @@ def index():
     asap_stops = Stop.query.filter(Stop.is_asap == True).count()
     stops_next_7_days += asap_stops
     
-    # Get active departure address
-    departure_address = DriverDepartureAddress.query.filter_by(is_active=True).first()
+    # Use fixed departure address  
+    departure_address_str = get_fixed_departure_address()
     
     return render_template('index.html', 
                          stops=stops, 
@@ -39,7 +39,7 @@ def index():
                          datetime=datetime,
                          total_stops=total_stops,
                          stops_next_7_days=stops_next_7_days,
-                         departure_address=departure_address)
+                         departure_address=departure_address_str)
 
 @main.route('/add_stop', methods=['POST'])
 def add_stop():
@@ -174,44 +174,18 @@ def api_stop_counters():
     asap_stops = Stop.query.filter(Stop.is_asap == True).count()
     stops_next_7_days += asap_stops
     
-    # Get active departure address
-    departure_address = DriverDepartureAddress.query.filter_by(is_active=True).first()
+    # Use fixed departure address
+    departure_address_str = get_fixed_departure_address()
     
     return jsonify({
         'total_stops': total_stops,
         'stops_next_7_days': stops_next_7_days,
-        'departure_address': departure_address.address if departure_address else None
+        'departure_address': departure_address_str
     })
 
-@main.route('/set_departure_address', methods=['POST'])
-def set_departure_address():
-    """Set or update the driver departure address"""
-    try:
-        new_address = request.form.get('departure_address', '').strip()
-        
-        if not new_address:
-            flash('Please enter a departure address', 'error')
-            return redirect(url_for('main.index'))
-        
-        # Deactivate existing departure addresses
-        DriverDepartureAddress.query.update({'is_active': False})
-        
-        # Create new active departure address
-        departure_address = DriverDepartureAddress()
-        departure_address.address = new_address
-        departure_address.is_active = True
-        
-        db.session.add(departure_address)
-        db.session.commit()
-        
-        flash('Departure address updated successfully', 'success')
-        
-    except Exception as e:
-        logging.error(f"Error setting departure address: {e}")
-        flash('Error updating departure address', 'error')
-        db.session.rollback()
-    
-    return redirect(url_for('main.index'))
+def get_fixed_departure_address():
+    """Get the fixed departure address"""
+    return "183 DeCalb Industrial Way, Decatur, GA 30030"
 
 @main.route('/generate_routes', methods=['POST'])
 def generate_routes():
@@ -232,11 +206,8 @@ def generate_routes():
             flash('Number of drivers must be at least 1', 'error')
             return redirect(url_for('main.index'))
         
-        # Get departure address
-        departure_address = DriverDepartureAddress.query.filter_by(is_active=True).first()
-        if not departure_address:
-            flash('Please set a departure address first', 'error')
-            return redirect(url_for('main.index'))
+        # Use fixed departure address
+        departure_address_str = get_fixed_departure_address()
         
         # Clear existing routes
         Route.query.delete()
@@ -282,7 +253,7 @@ def generate_routes():
             # Add departure address travel time
             if route_stops:
                 first_stop_address = route_stops[0]['address']
-                traffic_data = traffic_scraper.get_best_traffic_estimate(departure_address.address, first_stop_address)
+                traffic_data = traffic_scraper.get_best_traffic_estimate(departure_address_str, first_stop_address)
                 if traffic_data:
                     total_time += traffic_data['travel_time_minutes']
                 else:
