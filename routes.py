@@ -209,8 +209,9 @@ def generate_routes():
         # Use fixed departure address
         departure_address_str = get_fixed_departure_address()
         
-        # Clear existing routes
-        Route.query.delete()
+        # Always clear existing routes before generating new ones
+        deleted_count = Route.query.delete()
+        logging.info(f"Cleared {deleted_count} existing routes")
         
         # Separate scheduled and ASAP stops
         scheduled_stops = [s for s in stops if not s.is_asap and s.required_date]
@@ -259,14 +260,27 @@ def generate_routes():
             valid_indices = [i for i in route_indices if i < len(all_stops_data)]
             route_stops = [all_stops_data[i] for i in valid_indices]
             
-            # Calculate estimated time (simple calculation)
+            # Calculate estimated time with realistic drive times
             if route_stops:
-                # Estimate: 10 minutes service per stop + 15 minutes travel between stops
-                total_time = len(route_stops) * 10 + (len(route_stops) - 1) * 15
-                # Add travel time from departure to first stop (estimate 30 minutes)
-                total_time += 30
-                # Add return time to departure (estimate 30 minutes)  
-                total_time += 30
+                # Service time: 10 minutes per stop
+                service_time = len(route_stops) * 10
+                
+                # Drive time between stops: 20 minutes average (city driving)
+                drive_time_between_stops = (len(route_stops) - 1) * 20 if len(route_stops) > 1 else 0
+                
+                # Drive time from departure to first stop: 25 minutes average
+                departure_to_first = 25
+                
+                # Drive time from last stop back to departure: 25 minutes average  
+                last_to_departure = 25
+                
+                total_time = service_time + drive_time_between_stops + departure_to_first + last_to_departure
+                
+                logging.info(f"Driver {driver_num} route time breakdown: "
+                           f"Service: {service_time}min, "
+                           f"Between stops: {drive_time_between_stops}min, "
+                           f"Departure trips: {departure_to_first + last_to_departure}min, "
+                           f"Total: {total_time}min")
             else:
                 total_time = 0
             
@@ -285,7 +299,8 @@ def generate_routes():
             db.session.add(route)
         
         db.session.commit()
-        flash(f'Routes generated successfully for {num_drivers} drivers', 'success')
+        total_routes = len([r for r in optimized_routes if r])
+        flash(f'Routes generated successfully for {total_routes} driver(s). Previous routes cleared and replaced.', 'success')
         
     except Exception as e:
         import traceback

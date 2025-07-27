@@ -221,17 +221,14 @@
                         <div class="form-text">Default start time for all routes (used for traffic calculations)</div>
                     </div>
                     
-                    <div class="d-grid gap-2">
+                    <div class="d-grid">
                         <button type="submit" class="btn btn-success">
                             <i data-feather="navigation"></i>
                             Generate Optimized Routes
                         </button>
-                        
-                        <a href="{{ url_for('main.clear_routes') }}" class="btn btn-outline-secondary"
-                           onclick="return confirm('Clear all generated routes?')">
-                            <i data-feather="trash-2"></i>
-                            Clear All Routes
-                        </a>
+                        <div class="form-text mt-2 text-center">
+                            <small>Previous routes will be automatically cleared and replaced</small>
+                        </div>
                     </div>
                 </form>
             </div>
