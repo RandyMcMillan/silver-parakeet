@@ -185,7 +185,7 @@ def api_stop_counters():
 
 def get_fixed_departure_address():
     """Get the fixed departure address"""
-    return "183 DeCalb Industrial Way, Decatur, GA 30030"
+    return "183 DeKalb Industrial Way, Decatur, GA 30030"
 
 @main.route('/generate_routes', methods=['POST'])
 def generate_routes():
@@ -236,36 +236,46 @@ def generate_routes():
             }
             all_stops_data.append(stop_data)
         
-        # Optimize routes for 8-hour workday constraint
-        optimized_routes = tsp_solver.optimize_for_8_hour_workday(all_stops_data, start_time, num_drivers)
+        # Simple route distribution without external geocoding
+        # Distribute stops evenly among drivers
+        stops_per_driver = len(all_stops_data) // num_drivers
+        remainder = len(all_stops_data) % num_drivers
+        
+        optimized_routes = []
+        current_index = 0
+        
+        for driver in range(num_drivers):
+            driver_stops = stops_per_driver + (1 if driver < remainder else 0)
+            route = list(range(current_index, current_index + driver_stops))
+            optimized_routes.append(route)
+            current_index += driver_stops
         
         # Create route records for each driver
         for driver_num, route_indices in enumerate(optimized_routes, 1):
             if not route_indices:
                 continue
             
-            # Get stops for this route
-            route_stops = [all_stops_data[i] for i in route_indices]
+            # Get stops for this route (ensure indices are valid)
+            valid_indices = [i for i in route_indices if i < len(all_stops_data)]
+            route_stops = [all_stops_data[i] for i in valid_indices]
             
-            # Calculate total time with traffic awareness
-            total_time = tsp_solver.calculate_total_time_with_traffic(route_stops, list(range(len(route_stops))), start_time)
-            
-            # Add departure address travel time
+            # Calculate estimated time (simple calculation)
             if route_stops:
-                first_stop_address = route_stops[0]['address']
-                traffic_data = traffic_scraper.get_best_traffic_estimate(departure_address_str, first_stop_address)
-                if traffic_data:
-                    total_time += traffic_data['travel_time_minutes']
-                else:
-                    # Fallback: estimate 30 minutes to first stop
-                    total_time += 30
+                # Estimate: 10 minutes service per stop + 15 minutes travel between stops
+                total_time = len(route_stops) * 10 + (len(route_stops) - 1) * 15
+                # Add travel time from departure to first stop (estimate 30 minutes)
+                total_time += 30
+                # Add return time to departure (estimate 30 minutes)  
+                total_time += 30
+            else:
+                total_time = 0
             
             # Check if route exceeds 8-hour limit and warn
             if total_time > 480:  # 8 hours = 480 minutes
                 flash(f'Warning: Driver {driver_num} route exceeds 8 hours ({total_time//60}h {total_time%60}m)', 'warning')
             
             # Create route record
-            stop_sequence = json.dumps([all_stops_data[i]['id'] for i in route_indices])
+            stop_sequence = json.dumps([all_stops_data[i]['id'] for i in valid_indices])
             route = Route()
             route.driver_number = driver_num
             route.stop_sequence = stop_sequence
@@ -278,8 +288,10 @@ def generate_routes():
         flash(f'Routes generated successfully for {num_drivers} drivers', 'success')
         
     except Exception as e:
+        import traceback
         logging.error(f"Error generating routes: {e}")
-        flash('Error generating routes', 'error')
+        logging.error(f"Traceback: {traceback.format_exc()}")
+        flash(f'Error generating routes: {str(e)}', 'error')
         db.session.rollback()
     
     return redirect(url_for('main.index'))

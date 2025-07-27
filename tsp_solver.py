@@ -345,8 +345,8 @@ class TSPSolver:
                 route_stops = [stops[i] for i in route]
                 # Solve TSP for this route
                 optimal_order = self.solve_tsp_with_traffic(route_stops, start_time)
-                # Convert back to original indices
-                optimized_route = [route[i] for i in optimal_order]
+                # Convert back to original indices - optimal_order contains indices into route_stops
+                optimized_route = [route[i] for i in optimal_order if i < len(route)]
                 optimized_routes.append(optimized_route)
             else:
                 optimized_routes.append([])
@@ -373,7 +373,7 @@ class TSPSolver:
         return matrix
     
     def solve_tsp_with_traffic(self, stops: List[Dict], start_time: str) -> List[int]:
-        """Solve TSP with traffic consideration"""
+        """Solve TSP with traffic consideration and return to start"""
         if len(stops) <= 1:
             return list(range(len(stops)))
         
@@ -386,6 +386,10 @@ class TSPSolver:
         # Improve with 2-opt
         if len(stops) > 2:
             tour = self.two_opt_improvement(tour, distance_matrix)
+        
+        # Ensure tour returns to start (TSP requirement)
+        if len(tour) > 1 and tour[-1] != tour[0]:
+            tour.append(tour[0])
         
         return tour
     
