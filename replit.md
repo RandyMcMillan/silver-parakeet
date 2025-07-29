@@ -1,8 +1,8 @@
-# Route Optimizer Application
+# Shut Up and Drive - Route Optimization Application
 
 ## Overview
 
-This is a Flask-based web application that optimizes delivery routes for field service teams using Traveling Salesman Problem (TSP) algorithms. The application allows users to manage stops, employees, and generate optimized routes while considering scheduling priorities and service types.
+"Shut Up and Drive" is a Flask-based web application that optimizes delivery routes for field service teams using Traveling Salesman Problem (TSP) algorithms. The application gets drivers on the road efficiently by managing stops, employees, and generating optimized routes while considering scheduling priorities and service types.
 
 ## User Preferences
 
