@@ -3,11 +3,16 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h1 class="mb-4">
-            <i data-feather="truck"></i>
-            Shut Up and Drive Dashboard
-        </h1>
-        <p class="lead">NO EXCUSES. NO DELAYS. JUST OPTIMIZED ROUTES AND MAXIMUM EFFICIENCY.</p>
+        <div class="d-flex align-items-center mb-4">
+            <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Company Logo" class="me-3" style="height: 50px; width: auto; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div>
+                <h1 class="mb-1">
+                    <i data-feather="truck"></i>
+                    Shut Up and Drive Dashboard
+                </h1>
+                <p class="lead mb-0">Route Optimization Platform</p>
+            </div>
+        </div>
         
         <!-- Stop Counters -->
         <div class="row mb-4">
