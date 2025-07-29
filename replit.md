@@ -128,6 +128,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 29, 2025)
 
+### 8-Hour Minimum Shift Optimization with Overtime Minimization
+- **8-Hour Minimum Preference**: Routes balanced to ensure each driver meets 480-minute (8-hour) minimum shift requirement
+- **Overtime Minimization**: Algorithm prioritizes reducing overtime hours over perfect workload balance
+- **9-Hour Maximum Limit**: Hard cap at 540 minutes (9 hours) to prevent excessive overtime
+- **Intelligent Redistribution**: Moves stops from overtime drivers to undertime drivers when possible
+- **Priority-Based Balancing**: First reduces overtime, then improves utilization for drivers significantly under 8 hours
+- **Enhanced UI Indicators**: Route cards show overtime/undertime status with clear visual indicators
+
 ### Traffic-Aware Routing System - Advanced Optimization
 - **High Traffic Zone Avoidance**: Intelligent routing that identifies and avoids Atlanta's high traffic areas during peak hours
 - **Historical Traffic Pattern Integration**: Uses time-of-day traffic multipliers for downtown Atlanta, Buckhead, Midtown, and Perimeter Center

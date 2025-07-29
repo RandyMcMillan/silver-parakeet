@@ -348,7 +348,7 @@
                 <hr>
                 <div class="small text-muted">
                     <i data-feather="clock"></i>
-                    Routes optimized for 8-hour workdays with real-time traffic data
+                    Routes optimized for 8-hour minimum shifts with overtime minimization
                     <br>
                     <i data-feather="map-pin"></i>
                     Starting from: {{ departure_address[:50] }}{% if departure_address|length > 50 %}...{% endif %}
@@ -406,15 +406,21 @@
                                             Driver {{ route.driver_number }}
                                             {% set hours = (route.total_time_minutes // 60) %}
                                             {% set minutes = (route.total_time_minutes % 60) %}
-                                            <span class="badge bg-{{ 'success' if route.total_time_minutes <= 480 else 'warning' if route.total_time_minutes <= 540 else 'danger' }} ms-2">
+                                            {% set overtime_minutes = route.total_time_minutes - 480 if route.total_time_minutes > 480 else 0 %}
+                                            {% set undertime_minutes = 480 - route.total_time_minutes if route.total_time_minutes < 480 else 0 %}
+                                            
+                                            <span class="badge bg-{{ 'success' if route.total_time_minutes >= 480 and route.total_time_minutes <= 510 else 'warning' if route.total_time_minutes > 510 and route.total_time_minutes <= 540 else 'danger' if route.total_time_minutes > 540 else 'info' }} ms-2">
                                                 {{ hours }}h {{ minutes }}m
                                             </span>
-                                            {% if route.total_time_minutes <= 480 %}
-                                                <small class="text-success">✓ Within 8-hour goal</small>
-                                            {% elif route.total_time_minutes <= 540 %}
-                                                <small class="text-warning">⚠ Extended day (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
+                                            
+                                            {% if route.total_time_minutes >= 480 and route.total_time_minutes <= 510 %}
+                                                <small class="text-success">✓ 8-hour minimum met</small>
+                                            {% elif route.total_time_minutes > 510 and route.total_time_minutes <= 540 %}
+                                                <small class="text-warning">⚠ Overtime: +{{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m</small>
+                                            {% elif route.total_time_minutes > 540 %}
+                                                <small class="text-danger">⚠ Excessive OT: +{{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m</small>
                                             {% else %}
-                                                <small class="text-danger">⚠ Overtime (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
+                                                <small class="text-info">⚠ Under minimum: -{{ (undertime_minutes // 60) }}h {{ (undertime_minutes % 60) }}m</small>
                                             {% endif %}
                                         </h6>
                                         <i data-feather="chevron-down" class="ms-auto collapse-icon"></i>

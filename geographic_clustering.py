@@ -187,9 +187,21 @@ class GeographicClusterer:
         return total_time
 
     def balance_workload_for_8_hours(self, stop_distribution: List[List[int]], stops: List[Dict], target_minutes: int = 480) -> List[List[int]]:
-        """Balance workload distribution to target 8-hour (480 minute) workdays"""
+        """
+        Balance workloads to target 8-hour minimum shifts while minimizing overtime
+        
+        Args:
+            stop_distribution: Initial distribution of stop indices per driver
+            stops: List of stop dictionaries
+            target_minutes: 8-hour minimum (480 minutes) per shift
+            
+        Returns:
+            Balanced distribution targeting 8-hour minimum shifts with minimal overtime
+        """
         if not stop_distribution:
             return stop_distribution
+        
+        max_minutes = 540  # 9 hours maximum (1 hour overtime limit)
         
         # Calculate current workloads
         workloads = []
@@ -198,39 +210,118 @@ class GeographicClusterer:
             workloads.append({
                 'driver_index': i,
                 'route_indices': route_indices.copy(),
-                'workload_minutes': workload_time
+                'workload_minutes': workload_time,
+                'overtime_minutes': max(0, workload_time - target_minutes),
+                'undertime_minutes': max(0, target_minutes - workload_time)
             })
             logging.info(f"Driver {i+1} initial workload: {workload_time} minutes ({workload_time/60:.1f} hours)")
         
-        # Balance workloads by moving stops from overloaded to underloaded drivers
-        max_iterations = 20
-        for iteration in range(max_iterations):
-            # Find most overloaded and most underloaded drivers
-            overloaded = max(workloads, key=lambda x: x['workload_minutes'])
-            underloaded = min(workloads, key=lambda x: x['workload_minutes'])
-            
-            # If difference is small or overloaded is close to target, we're done
-            workload_diff = overloaded['workload_minutes'] - underloaded['workload_minutes']
-            if workload_diff < 60 or overloaded['workload_minutes'] <= target_minutes + 60:
-                break
-            
-            # Move one stop from overloaded to underloaded
-            if overloaded['route_indices']:
-                stop_to_move = overloaded['route_indices'].pop()
-                underloaded['route_indices'].append(stop_to_move)
-                
-                # Recalculate workloads
-                overloaded['workload_minutes'] = self.calculate_route_workload_time(overloaded['route_indices'], stops)
-                underloaded['workload_minutes'] = self.calculate_route_workload_time(underloaded['route_indices'], stops)
-                
-                logging.debug(f"Iteration {iteration+1}: Moved stop from driver {overloaded['driver_index']+1} to driver {underloaded['driver_index']+1}")
+        # Sort by priority: minimize overtime first, then maximize utilization
+        workloads.sort(key=lambda x: (x['overtime_minutes'], -x['workload_minutes']))
         
-        # Extract balanced routes and log final workloads
+        # Rebalance to minimize overtime and meet 8-hour minimum
+        max_iterations = 30
+        for iteration in range(max_iterations):
+            improved = False
+            
+            # Find drivers with overtime and drivers with undertime
+            overtime_drivers = [w for w in workloads if w['workload_minutes'] > target_minutes]
+            undertime_drivers = [w for w in workloads if w['workload_minutes'] < target_minutes]
+            
+            # Priority 1: Move stops from overtime drivers to undertime drivers
+            for over_driver in overtime_drivers:
+                for under_driver in undertime_drivers:
+                    if over_driver['route_indices'] and under_driver['workload_minutes'] < target_minutes:
+                        # Try moving one stop from overtime to undertime driver
+                        stop_time = 75  # Service time + average drive time estimate
+                        
+                        new_over_workload = over_driver['workload_minutes'] - stop_time
+                        new_under_workload = under_driver['workload_minutes'] + stop_time
+                        
+                        # Check if move reduces overtime and doesn't exceed max hours
+                        reduces_overtime = new_over_workload < over_driver['workload_minutes']
+                        stays_within_max = new_under_workload <= max_minutes
+                        improves_undertime = new_under_workload <= target_minutes + 60  # Allow slight overage to meet minimum
+                        
+                        if reduces_overtime and stays_within_max and improves_undertime:
+                            # Perform the move
+                            stop_to_move = over_driver['route_indices'].pop()
+                            under_driver['route_indices'].append(stop_to_move)
+                            
+                            # Update workloads with actual calculations
+                            over_driver['workload_minutes'] = self.calculate_route_workload_time(over_driver['route_indices'], stops)
+                            under_driver['workload_minutes'] = self.calculate_route_workload_time(under_driver['route_indices'], stops)
+                            over_driver['overtime_minutes'] = max(0, over_driver['workload_minutes'] - target_minutes)
+                            under_driver['overtime_minutes'] = max(0, under_driver['workload_minutes'] - target_minutes)
+                            over_driver['undertime_minutes'] = max(0, target_minutes - over_driver['workload_minutes'])
+                            under_driver['undertime_minutes'] = max(0, target_minutes - under_driver['workload_minutes'])
+                            
+                            improved = True
+                            logging.info(f"Iteration {iteration+1}: Moved stop from driver {over_driver['driver_index']+1} (OT reduction) to {under_driver['driver_index']+1}")
+                            break
+                
+                if improved:
+                    break
+            
+            if not improved:
+                break
+        
+        # Priority 2: Redistribute work from drivers with significant undertime
+        undertime_drivers = [w for w in workloads if w['workload_minutes'] < target_minutes - 60]  # More than 1 hour under
+        adequate_drivers = [w for w in workloads if target_minutes <= w['workload_minutes'] <= target_minutes + 60]
+        
+        for under_driver in undertime_drivers:
+            for adequate_driver in adequate_drivers:
+                if adequate_driver['route_indices'] and adequate_driver['workload_minutes'] > target_minutes + 30:
+                    # Move a stop from adequate to undertime driver
+                    stop_to_move = adequate_driver['route_indices'].pop()
+                    under_driver['route_indices'].append(stop_to_move)
+                    
+                    # Recalculate workloads
+                    adequate_driver['workload_minutes'] = self.calculate_route_workload_time(adequate_driver['route_indices'], stops)
+                    under_driver['workload_minutes'] = self.calculate_route_workload_time(under_driver['route_indices'], stops)
+                    
+                    if adequate_driver['workload_minutes'] >= target_minutes and under_driver['workload_minutes'] <= max_minutes:
+                        logging.info(f"Redistributed stop to improve utilization for driver {under_driver['driver_index']+1}")
+                        break
+                    else:
+                        # Revert if move doesn't improve things
+                        under_driver['route_indices'].pop()
+                        adequate_driver['route_indices'].append(stop_to_move)
+                        adequate_driver['workload_minutes'] = self.calculate_route_workload_time(adequate_driver['route_indices'], stops)
+                        under_driver['workload_minutes'] = self.calculate_route_workload_time(under_driver['route_indices'], stops)
+        
+        # Extract balanced routes and calculate final totals
         balanced_distribution = []
+        total_overtime = 0
+        total_undertime = 0
+        
         for workload in sorted(workloads, key=lambda x: x['driver_index']):
             balanced_distribution.append(workload['route_indices'])
-            hours = workload['workload_minutes'] / 60
-            logging.info(f"Driver {workload['driver_index']+1} final workload: {workload['workload_minutes']} minutes ({hours:.1f} hours)")
+            
+            # Recalculate final workload for accurate reporting
+            final_workload = self.calculate_route_workload_time(workload['route_indices'], stops)
+            hours = final_workload / 60
+            
+            overtime = max(0, final_workload - target_minutes)
+            undertime = max(0, target_minutes - final_workload)
+            
+            total_overtime += overtime
+            total_undertime += undertime
+            
+            status = ""
+            if final_workload < target_minutes:
+                under_hours = undertime / 60
+                status = f" (SHORT: {under_hours:.1f}h under minimum)"
+            elif final_workload > target_minutes:
+                over_hours = overtime / 60
+                status = f" (OVERTIME: {over_hours:.1f}h over 8h minimum)"
+            else:
+                status = " (IDEAL: exactly 8 hours)"
+            
+            logging.info(f"Driver {workload['driver_index']+1}: {final_workload} minutes ({hours:.1f} hours){status}")
+        
+        logging.info(f"Total overtime: {total_overtime/60:.1f} hours, Total undertime: {total_undertime/60:.1f} hours")
         
         return balanced_distribution
 
