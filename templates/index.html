@@ -544,9 +544,11 @@
 {% endif %}
 
 <script>
-// Leaflet maps are ready immediately - no API key needed
+// Hybrid mapping solution: Google Maps API for routing, Leaflet for visualization
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Leaflet mapping ready - free OpenStreetMap tiles');
+    console.log('Hybrid mapping ready: Google Maps routing + Leaflet visualization');
+    console.log('Route optimization uses Google Maps API for traffic-aware times');
+    console.log('Map display uses free OpenStreetMap tiles via Leaflet');
     console.log('Maps will initialize when "Show Map" is clicked');
 });
 </script>

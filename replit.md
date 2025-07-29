@@ -128,16 +128,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 29, 2025)
 
-### Cost-Free Mapping with OpenStreetMap and Leaflet
-- **OpenStreetMap Tiles**: Switched from Google Maps to free OpenStreetMap tiles using Leaflet.js
-- **Eliminated API Costs**: No API keys required - completely free mapping solution
-- **Leaflet Route Visualization**: Interactive maps with numbered stop markers and route lines
-- **Free Geocoding**: Uses Nominatim (OpenStreetMap) geocoding service instead of paid APIs
+### Hybrid Mapping Solution - Cost Optimization
+- **Google Maps API for Routing**: Continues using Google Maps Distance Matrix API for accurate traffic-aware route optimization and drive times
+- **OpenStreetMap for Visualization**: Uses free Leaflet.js with OpenStreetMap tiles for visual map display only
+- **Cost Optimization**: Minimizes Google Maps API usage by only calling for routing data, not map tiles or visualization
+- **Leaflet Route Display**: Interactive maps with numbered stop markers and route lines using free mapping
+- **Free Map Tiles**: Zero cost for map visualization while maintaining accurate routing intelligence
 - **Custom Markers**: Blue numbered circles for stops, green 'S' for start, gray 'E' for end
 - **Route Path Lines**: Connects all stops with blue polylines showing the planned route
-- **Popup Information**: Click markers to see stop details (address, service type, etc.)
-- **Auto-Fit Bounds**: Map automatically zooms to show all stops in the route
-- **Operational Cost Reduction**: Zero ongoing mapping costs while maintaining full functionality
+- **Best of Both**: Real-time traffic routing accuracy with zero-cost map display
 
 ### Google Maps API Integration and Geographic Clustering (Previous Implementation)
 - **Google Maps Distance Matrix API**: Live traffic-aware drive time calculations between actual addresses
