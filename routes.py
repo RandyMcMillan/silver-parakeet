@@ -315,8 +315,13 @@ def generate_routes():
         flash(f'Error generating routes: {str(e)}', 'error')
         db.session.rollback()
     
-    # Add cache-busting parameter to force browser refresh
-    return redirect(url_for('main.index', refresh=True, t=int(datetime.now().timestamp())))
+    # Force browser refresh with strong cache-busting
+    from flask import make_response
+    response = make_response(redirect(url_for('main.index', v=int(datetime.now().timestamp()))))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @main.route('/delete_stop/<int:stop_id>')
 def delete_stop(stop_id):

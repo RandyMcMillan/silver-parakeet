@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>{% block title %}Route Optimizer{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
@@ -62,6 +65,18 @@
     <!-- Initialize Feather Icons -->
     <script>
         feather.replace();
+        
+        // Check if page was redirected after route generation and force refresh
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('v')) {
+            // Remove the cache-busting parameter and force a complete page reload
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            // Force a hard refresh to bypass any browser caching
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 100);
+        }
     </script>
 </body>
 </html>
