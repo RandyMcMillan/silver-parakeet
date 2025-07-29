@@ -399,7 +399,7 @@ h1::before {
     visibility: visible !important;
     min-height: 38px;
     position: relative;
-    z-index: 10;
+    z-index: 200;
     display: block !important;
 }
 
@@ -428,7 +428,7 @@ h1::before {
     text-shadow: 0 0 10px var(--suad-primary);
     margin-bottom: 8px !important;
     position: relative;
-    z-index: 10;
+    z-index: 150;
     display: block !important;
 }
 
@@ -479,7 +479,7 @@ h1::before {
     text-shadow: 0 0 5px var(--suad-primary);
     margin-top: 5px !important;
     position: relative;
-    z-index: 10;
+    z-index: 150;
     display: block !important;
 }
 
@@ -506,7 +506,7 @@ h1::before {
     visibility: visible !important;
     min-height: 38px;
     position: relative;
-    z-index: 10;
+    z-index: 200;
     display: block !important;
 }
 
@@ -538,7 +538,7 @@ h1::before {
     width: 1.2em !important;
     height: 1.2em !important;
     position: relative;
-    z-index: 10;
+    z-index: 200;
     display: inline-block !important;
 }
 
@@ -664,16 +664,20 @@ h1::before {
     }
 }
 
-/* Form Element Visibility Fix */
-.mb-3, .form-group {
-    position: relative;
-    z-index: 5;
-    isolation: isolate;
+/* CSS Layer Stacking Order Fix */
+.card {
+    z-index: 1;
 }
 
 .card-body {
     position: relative;
-    z-index: 2;
+    z-index: 50;
+    isolation: isolate;
+}
+
+.mb-3, .form-group {
+    position: relative;
+    z-index: 100;
     isolation: isolate;
 }
 
@@ -683,7 +687,7 @@ textarea.form-control {
     border: 2px solid var(--suad-primary) !important;
     color: var(--suad-white) !important;
     position: relative;
-    z-index: 10;
+    z-index: 200;
     display: block !important;
 }
 
@@ -692,7 +696,7 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
     border: 2px solid var(--suad-primary) !important;
     color: var(--suad-white) !important;
     position: relative;
-    z-index: 10;
+    z-index: 200;
     display: block !important;
 }
 
@@ -708,7 +712,7 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
 /* Ensure form container visibility */
 form {
     position: relative;
-    z-index: 3;
+    z-index: 75;
 }
 
 /* Override any potential conflicts */
