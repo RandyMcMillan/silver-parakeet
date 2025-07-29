@@ -24,25 +24,60 @@ class GeographicClusterer:
         # Skip external geocoding to prevent timeouts, use area-based coordinates
         try:
             fallback = self.get_area_fallback_coordinates(address)
-            self.geocache[address] = fallback
-            logging.info(f"Using area-based coordinates for {address}: {fallback}")
-            return fallback
+            # Ensure coordinates are valid tuples of floats
+            if fallback and len(fallback) == 2:
+                lat, lon = float(fallback[0]), float(fallback[1])
+                if -90 <= lat <= 90 and -180 <= lon <= 180:
+                    self.geocache[address] = (lat, lon)
+                    logging.debug(f"Using area-based coordinates for {address}: {(lat, lon)}")
+                    return (lat, lon)
+            
+            # If fallback fails, use default
+            default = (33.7490, -84.3880)
+            self.geocache[address] = default
+            logging.warning(f"Using default coordinates for {address}: {default}")
+            return default
         except Exception as e:
-            logging.error(f"Fallback coordinate error for {address}: {e}")
+            logging.error(f"Coordinate error for {address}: {e}")
             # Default Atlanta center
             default = (33.7490, -84.3880)
             self.geocache[address] = default
             return default
     
     def calculate_distance(self, addr1: str, addr2: str) -> float:
-        """Calculate distance between two addresses in miles"""
+        """Calculate distance between two addresses in miles using simple math fallback"""
         try:
             coords1 = self.get_coordinates(addr1)
             coords2 = self.get_coordinates(addr2)
-            distance = geodesic(coords1, coords2).miles
-            return distance
+            
+            # Validate coordinates
+            if (coords1 and coords2 and 
+                len(coords1) == 2 and len(coords2) == 2 and
+                isinstance(coords1[0], (int, float)) and isinstance(coords1[1], (int, float)) and
+                isinstance(coords2[0], (int, float)) and isinstance(coords2[1], (int, float))):
+                
+                lat1, lon1 = float(coords1[0]), float(coords1[1])
+                lat2, lon2 = float(coords2[0]), float(coords2[1])
+                
+                # Validate coordinate ranges
+                if (-90 <= lat1 <= 90 and -180 <= lon1 <= 180 and 
+                    -90 <= lat2 <= 90 and -180 <= lon2 <= 180):
+                    
+                    # Use simple Euclidean distance converted to miles for Atlanta area
+                    # This avoids geodesic library issues while maintaining relative accuracy
+                    lat_diff = lat2 - lat1
+                    lon_diff = lon2 - lon1
+                    # Approximate conversion: 1 degree ≈ 69 miles at Atlanta latitude
+                    distance = ((lat_diff ** 2 + lon_diff ** 2) ** 0.5) * 69
+                    return max(distance, 0.1)  # Minimum distance to avoid zero
+                else:
+                    logging.warning(f"Invalid coordinate ranges: {coords1}, {coords2}")
+                    return 10.0
+            else:
+                logging.warning(f"Invalid coordinates format: {coords1}, {coords2}")
+                return 10.0
         except Exception as e:
-            logging.error(f"Distance calculation error: {e}")
+            logging.error(f"Distance calculation error between {addr1} and {addr2}: {e}")
             return 10.0  # Fallback estimate
     
     def get_area_fallback_coordinates(self, address: str) -> Tuple[float, float]:
