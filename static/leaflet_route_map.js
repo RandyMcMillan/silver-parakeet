@@ -215,36 +215,57 @@ class LeafletRouteMapper {
     }
 
     async getRouteGeometry(start, end) {
-        try {
-            // Use OSRM (Open Source Routing Machine) - free routing service
-            const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?geometries=geojson&overview=full`;
-            
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent': 'ShutUpAndDrive/1.0 (Route Optimization App)'
-                }
-            });
-            
-            if (!response.ok) {
-                console.warn(`OSRM HTTP ${response.status}: ${response.statusText}`);
-                return null;
+        // Try multiple routing services for better reliability
+        const routingServices = [
+            {
+                name: 'OSRM Public',
+                url: `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?geometries=geojson&overview=full&continue_straight=true`
+            },
+            {
+                name: 'OSRM Germany',
+                url: `https://routing.openstreetmap.de/routed-car/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?geometries=geojson&overview=full&continue_straight=true`
             }
-            
-            const data = await response.json();
-            
-            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-                const route = data.routes[0];
+        ];
+
+        for (const service of routingServices) {
+            try {
+                const response = await Promise.race([
+                    fetch(service.url, {
+                        headers: {
+                            'User-Agent': 'ShutUpAndDrive/1.0 (Route Optimization App)',
+                            'Accept': 'application/json'
+                        }
+                    }),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Timeout')), 8000)
+                    )
+                ]);
                 
-                // Convert GeoJSON coordinates to Leaflet format [lat, lng]
-                return route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                        const route = data.routes[0];
+                        
+                        if (route.geometry && route.geometry.coordinates && route.geometry.coordinates.length > 0) {
+                            console.log(`Successfully routed using ${service.name}`);
+                            // Convert GeoJSON coordinates to Leaflet format [lat, lng]
+                            return route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                        }
+                    }
+                }
+                
+                console.warn(`${service.name}: No valid route found`);
+                
+            } catch (error) {
+                console.warn(`${service.name} routing failed:`, error.message);
+                continue; // Try next service
             }
-            
-            console.warn('OSRM: No valid route found');
-            return null;
-        } catch (error) {
-            console.error('OSRM routing error:', error);
-            return null;
         }
+
+        // If all routing services fail, return null for straight line fallback
+        console.log('All routing services failed, will use straight line');
+        return null;
     }
 
     resizeMap(routeId) {
@@ -257,9 +278,15 @@ class LeafletRouteMapper {
 // Global instance
 const leafletRouteMapper = new LeafletRouteMapper();
 
-// Function to initialize a specific route map with Leaflet
+// Function to initialize a specific route map with Leaflet (updated to use simple mapper)
 function initializeLeafletRouteMap(routeId, stops, departureAddress) {
-    leafletRouteMapper.initializeMap(routeId, stops, departureAddress);
+    // Use the simple route mapper for better reliability
+    if (typeof initializeSimpleRouteMap !== 'undefined') {
+        initializeSimpleRouteMap(routeId, stops, departureAddress);
+    } else {
+        // Fallback to original if simple mapper not loaded
+        leafletRouteMapper.initializeMap(routeId, stops, departureAddress);
+    }
 }
 
 // Function to handle map visibility toggle (updated for Leaflet)
