@@ -165,6 +165,15 @@ Preferred communication style: Simple, everyday language.
 - **LocalStorage Backup**: JavaScript stores driver count locally during updates
 - **Auto-Refresh**: Page refreshes with preserved driver count after route generation
 
+### Complete Route Display with Drive Times
+- **START Point**: Fixed departure address with 7:00 AM start time
+- **Drive to First Stop**: 25-minute estimate from base to first location
+- **Between Stops**: 20-minute drive time estimates between consecutive stops
+- **Service Time**: 10-minute service time displayed for each stop
+- **Drive Back to Base**: 25-minute return trip estimate
+- **RETURN Point**: Clear end-of-route indication at departure address
+- **Visual Separation**: Drive times shown in muted text with navigation icons
+
 ### Technical Improvements
 - **Offline Operation**: System works without external geocoding dependencies
 - **Database Integration**: Routes properly saved and displayed with accurate time calculations

@@ -400,8 +400,21 @@
                                                     <br>
                                                     <small class="text-muted">{{ departure_address }}</small>
                                                 </div>
+                                                <div class="text-end">
+                                                    <small class="text-success">7:00 AM</small>
+                                                </div>
                                             </div>
                                         </li>
+                                        
+                                        <!-- Drive time to first stop -->
+                                        {% if stop_ids %}
+                                        <li class="mb-1 text-center">
+                                            <small class="text-muted">
+                                                <i data-feather="navigation" style="width: 12px; height: 12px;"></i>
+                                                Drive to first stop: ~25 minutes
+                                            </small>
+                                        </li>
+                                        {% endif %}
                                         
                                         {% for stop_id in stop_ids %}
                                             {% set stop = stops|selectattr('id', 'equalto', stop_id)|first %}
@@ -438,12 +451,32 @@
                                                         {% endif %}
                                                     </div>
                                                     <div class="text-end">
-                                                        <small class="text-muted">~10 min</small>
+                                                        <small class="text-muted">~10 min service</small>
                                                     </div>
                                                 </div>
                                             </li>
+                                            
+                                            <!-- Drive time to next stop (if not the last stop) -->
+                                            {% if not loop.last %}
+                                            <li class="mb-1 text-center">
+                                                <small class="text-muted">
+                                                    <i data-feather="navigation" style="width: 12px; height: 12px;"></i>
+                                                    Drive to next stop: ~20 minutes
+                                                </small>
+                                            </li>
+                                            {% endif %}
                                             {% endif %}
                                         {% endfor %}
+                                        
+                                        <!-- Drive time back to base -->
+                                        {% if stop_ids %}
+                                        <li class="mb-1 text-center">
+                                            <small class="text-muted">
+                                                <i data-feather="navigation" style="width: 12px; height: 12px;"></i>
+                                                Drive back to base: ~25 minutes
+                                            </small>
+                                        </li>
+                                        {% endif %}
                                         
                                         <!-- Return to start -->
                                         <li class="mb-2 bg-light p-2 rounded">
@@ -457,7 +490,7 @@
                                                     <small class="text-muted">{{ departure_address }}</small>
                                                 </div>
                                                 <div class="text-end">
-                                                    <small class="text-muted">~25 min</small>
+                                                    <small class="text-muted">End of route</small>
                                                 </div>
                                             </div>
                                         </li>
