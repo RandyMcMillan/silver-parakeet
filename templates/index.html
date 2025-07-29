@@ -366,26 +366,52 @@
                 <div class="row">
                     {% for route in routes %}
                     {% set google_maps_data = route.google_maps_data|from_json if route.google_maps_data else None %}
-                    <div class="col-lg-6 mb-4">
+                    {% set stop_ids = route.stop_sequence|from_json %}
+                    {% set route_stops = [] %}
+                    {% for stop_id in stop_ids %}
+                        {% set stop = stops|selectattr('id', 'equalto', stop_id)|first %}
+                        {% if stop %}
+                            {% set _ = route_stops.append({
+                                'id': stop.id,
+                                'post_type': stop.post_type,
+                                'address': stop.address,
+                                'service_type': stop.service_type,
+                                'is_asap': stop.is_asap,
+                                'required_date': stop.required_date
+                            }) %}
+                        {% endif %}
+                    {% endfor %}
+                    <div class="col-lg-6 mb-4" data-route-id="{{ route.driver_number }}" data-stops-data="{{ route_stops|tojson|e }}" data-departure-address="{{ departure_address }}">
                         <div class="card">
                             <div class="card-header">
-                                <h6 class="card-title mb-0">
-                                    <i data-feather="user"></i>
-                                    Driver {{ route.driver_number }}
-                                    {% set hours = (route.total_time_minutes // 60) %}
-                                    {% set minutes = (route.total_time_minutes % 60) %}
-                                    <span class="badge bg-{{ 'success' if route.total_time_minutes <= 480 else 'warning' if route.total_time_minutes <= 540 else 'danger' }} ms-2">
-                                        {{ hours }}h {{ minutes }}m
-                                    </span>
-                                    {% if route.total_time_minutes <= 480 %}
-                                        <small class="text-success">✓ Within 8-hour goal</small>
-                                    {% elif route.total_time_minutes <= 540 %}
-                                        <small class="text-warning">⚠ Extended day (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
-                                    {% else %}
-                                        <small class="text-danger">⚠ Overtime (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
-                                    {% endif %}
-                                </h6>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-0">
+                                        <i data-feather="user"></i>
+                                        Driver {{ route.driver_number }}
+                                        {% set hours = (route.total_time_minutes // 60) %}
+                                        {% set minutes = (route.total_time_minutes % 60) %}
+                                        <span class="badge bg-{{ 'success' if route.total_time_minutes <= 480 else 'warning' if route.total_time_minutes <= 540 else 'danger' }} ms-2">
+                                            {{ hours }}h {{ minutes }}m
+                                        </span>
+                                        {% if route.total_time_minutes <= 480 %}
+                                            <small class="text-success">✓ Within 8-hour goal</small>
+                                        {% elif route.total_time_minutes <= 540 %}
+                                            <small class="text-warning">⚠ Extended day (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
+                                        {% else %}
+                                            <small class="text-danger">⚠ Overtime (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
+                                        {% endif %}
+                                    </h6>
+                                    <button class="btn btn-sm btn-outline-primary" id="map-toggle-{{ route.driver_number }}" onclick="toggleRouteMap({{ route.driver_number }})">
+                                        <i data-feather="map" style="width: 14px; height: 14px;"></i>
+                                        Show Map
+                                    </button>
+                                </div>
                             </div>
+                            <!-- Map container (initially hidden) -->
+                            <div id="map-container-{{ route.driver_number }}" style="display: none;" class="card-body p-0">
+                                <div id="map-{{ route.driver_number }}" style="height: 400px; width: 100%;"></div>
+                            </div>
+                            
                             <div class="card-body">
                                 {% set stop_ids = route.stop_sequence|from_json %}
                                 {% if stop_ids %}
@@ -513,5 +539,29 @@
         </div>
     </div>
 </div>
+{% endif %}
+
+<!-- Google Maps API -->
+{% if google_maps_api_key %}
+<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMaps"></script>
+<script>
+// Initialize Google Maps callback
+function initMaps() {
+    console.log('Google Maps API loaded');
+    // Initialize route maps if routes exist
+    const routeCards = document.querySelectorAll('[data-route-id]');
+    routeCards.forEach(card => {
+        const routeId = card.dataset.routeId;
+        const stopsData = JSON.parse(card.dataset.stopsData || '[]');
+        const departureAddress = card.dataset.departureAddress;
+        
+        if (stopsData.length > 0) {
+            setTimeout(() => {
+                initializeRouteMap(routeId, stopsData, departureAddress);
+            }, 500); // Small delay to ensure DOM is ready
+        }
+    });
+}
+</script>
 {% endif %}
 {% endblock %}

@@ -5,6 +5,7 @@ from tsp_solver import TSPSolver
 from traffic_scraper import TrafficDataScraper
 import json
 import logging
+import os
 
 main = Blueprint('main', __name__)
 
@@ -44,7 +45,8 @@ def index():
                          total_stops=total_stops,
                          stops_next_7_days=stops_next_7_days,
                          departure_address=departure_address_str,
-                         current_driver_count=saved_driver_count)
+                         current_driver_count=saved_driver_count,
+                         google_maps_api_key=os.environ.get('GOOGLE_MAPS_API_KEY', ''))
 
 @main.route('/add_stop', methods=['POST'])
 def add_stop():
