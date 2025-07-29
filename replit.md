@@ -129,13 +129,13 @@ Interest in companion apps: Delivery driver mobile/web applications for field op
 
 ## Recent Changes (July 29, 2025)
 
-### 8-Hour Minimum Shift Optimization - Employee-First Priority
-- **Employee Welfare Priority**: Algorithm aggressively ensures ALL drivers reach 8-hour minimum before any other optimization
-- **Multi-Stage Redistribution**: Three-tier approach prioritizes 8h minimum, then balances workload, finally reduces excessive overtime
-- **Flexible Overtime Acceptance**: Allows up to 10 hours and moderate overtime to ensure no driver falls below 8h minimum
-- **Critical Alert System**: UI prominently flags any driver under 8h as "CRITICAL" requiring immediate attention
-- **Employee-Focused Messaging**: Status messages emphasize meeting minimum pay requirements over efficiency metrics
-- **Aggressive Redistribution**: Moves stops from any driver with 3+ stops to ensure undertime drivers reach 8h minimum
+### 8-Hour Minimum Shift Optimization - Demand-Based Flexibility
+- **8-Hour Target Priority**: Algorithm ensures all drivers reach 8-hour minimum with minimal overage as workload demands
+- **Demand-Based Allocation**: Accepts reasonable overtime (8.5-9.5h ideal range) when workload requires it
+- **Balanced Approach**: Prioritizes 8h minimum while allowing flexibility for operational needs
+- **Realistic Expectations**: UI messaging reflects "minimum 8h, slightly over as demand allows" philosophy
+- **Workload-Driven**: Algorithm balances employee needs with business operational requirements
+- **Flexible Overtime**: Accepts moderate overtime when necessary to meet both minimum hours and service demands
 
 ### Traffic-Aware Routing System - Advanced Optimization
 - **High Traffic Zone Avoidance**: Intelligent routing that identifies and avoids Atlanta's high traffic areas during peak hours

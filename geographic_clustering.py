@@ -240,13 +240,14 @@ class GeographicClusterer:
                             new_under_workload = under_driver['workload_minutes'] + stop_time
                             new_donor_workload = donor_driver['workload_minutes'] - stop_time
                             
-                            # Prioritize getting drivers to 8 hours above all else
-                            helps_reach_minimum = new_under_workload <= target_minutes + 120  # Allow up to 2h overtime to reach minimum
-                            donor_stays_reasonable = new_donor_workload >= 240  # Donor keeps at least 4 hours (minimum viable)
+                            # Target exactly 8 hours as ideal, allow minimal overage if needed
+                            gets_to_minimum = new_under_workload >= target_minutes  # Must reach 8h minimum
+                            reasonable_overage = new_under_workload <= target_minutes + 90  # Minimal overage allowed
+                            donor_keeps_viable = new_donor_workload >= target_minutes - 90  # Donor doesn't go too low
                             stays_within_max = new_under_workload <= max_minutes
                             
-                            # Priority: Get undertime drivers to 8h minimum, even if it creates overtime
-                            if helps_reach_minimum and donor_stays_reasonable and stays_within_max:
+                            # Move stop if it gets driver to 8h+ with minimal overage
+                            if gets_to_minimum and reasonable_overage and donor_keeps_viable and stays_within_max:
                                 # Perform the move
                                 stop_to_move = donor_driver['route_indices'].pop()
                                 under_driver['route_indices'].append(stop_to_move)
@@ -356,16 +357,16 @@ class GeographicClusterer:
             status = ""
             if final_workload < target_minutes:
                 under_hours = undertime / 60
-                status = f" (CRITICAL: -{under_hours:.1f}h under 8h minimum - NEEDS MORE WORK)"
-            elif final_workload <= target_minutes + 60:  # Within 1 hour of 8h minimum
+                status = f" (UNDER MINIMUM: -{under_hours:.1f}h short of 8h target - needs more work)"
+            elif final_workload <= target_minutes + 30:  # Within 30 minutes of 8h
                 over_hours = overtime / 60
-                status = f" (EXCELLENT: 8h minimum + {over_hours:.1f}h overtime)"
-            elif final_workload <= target_minutes + 120:  # 1-2 hours overtime
+                status = f" (IDEAL: 8h minimum + {over_hours:.1f}h as demand allows)"
+            elif final_workload <= target_minutes + 90:  # 1-1.5 hours over
                 over_hours = overtime / 60
-                status = f" (GOOD: 8h minimum + {over_hours:.1f}h overtime)"
-            else:  # More than 2 hours overtime
+                status = f" (GOOD: 8h minimum + {over_hours:.1f}h based on workload)"
+            else:  # More than 1.5 hours overtime
                 over_hours = overtime / 60
-                status = f" (ACCEPTABLE: 8h minimum + {over_hours:.1f}h overtime)"
+                status = f" (HIGH: 8h minimum + {over_hours:.1f}h overtime)"
             
             logging.info(f"Driver {workload['driver_index']+1}: {final_workload} minutes ({hours:.1f} hours){status}")
         
