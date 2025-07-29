@@ -131,13 +131,25 @@ class LeafletRouteMapper {
 
     async geocodeAddress(address) {
         try {
-            // Use Nominatim (OpenStreetMap) geocoding service - free
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
+            // Use Nominatim (OpenStreetMap) geocoding service - free with improved parameters
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ", Georgia, USA")}&limit=1&countrycodes=us`;
+            
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': 'ShutUpAndDrive/1.0 (Route Optimization App)'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const data = await response.json();
             
             if (data && data.length > 0) {
                 const lat = parseFloat(data[0].lat);
                 const lon = parseFloat(data[0].lon);
+                console.log(`Geocoded ${address}: [${lat}, ${lon}]`);
                 return [lat, lon];
             }
             
@@ -207,7 +219,17 @@ class LeafletRouteMapper {
             // Use OSRM (Open Source Routing Machine) - free routing service
             const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?geometries=geojson&overview=full`;
             
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': 'ShutUpAndDrive/1.0 (Route Optimization App)'
+                }
+            });
+            
+            if (!response.ok) {
+                console.warn(`OSRM HTTP ${response.status}: ${response.statusText}`);
+                return null;
+            }
+            
             const data = await response.json();
             
             if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
@@ -217,6 +239,7 @@ class LeafletRouteMapper {
                 return route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
             }
             
+            console.warn('OSRM: No valid route found');
             return null;
         } catch (error) {
             console.error('OSRM routing error:', error);
