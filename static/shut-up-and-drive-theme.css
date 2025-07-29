@@ -194,7 +194,7 @@ h1::before {
         inset 0 1px 0 rgba(255, 102, 0, 0.2);
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
-    overflow: hidden;
+    z-index: 1;
 }
 
 .card::before {
@@ -206,6 +206,7 @@ h1::before {
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--suad-primary), transparent);
     transition: left 0.6s ease;
+    z-index: 2;
 }
 
 .card:hover {
@@ -385,7 +386,7 @@ h1::before {
 
 /* Form Controls - Mission Input */
 .form-control {
-    background: rgba(26, 26, 26, 0.9) !important;
+    background: rgba(26, 26, 26, 0.95) !important;
     border: 2px solid var(--suad-primary) !important;
     color: var(--suad-white) !important;
     font-weight: 600;
@@ -397,6 +398,9 @@ h1::before {
     opacity: 1 !important;
     visibility: visible !important;
     min-height: 38px;
+    position: relative;
+    z-index: 10;
+    display: block !important;
 }
 
 .form-control:focus {
@@ -423,6 +427,9 @@ h1::before {
     font-size: 1rem;
     text-shadow: 0 0 10px var(--suad-primary);
     margin-bottom: 8px !important;
+    position: relative;
+    z-index: 10;
+    display: block !important;
 }
 
 /* Alerts - Command Feedback */
@@ -471,6 +478,9 @@ h1::before {
     font-size: 0.85rem !important;
     text-shadow: 0 0 5px var(--suad-primary);
     margin-top: 5px !important;
+    position: relative;
+    z-index: 10;
+    display: block !important;
 }
 
 .form-text small {
@@ -482,7 +492,7 @@ h1::before {
 
 /* Form Select Elements - Command Style */
 .form-select {
-    background: rgba(26, 26, 26, 0.9) !important;
+    background: rgba(26, 26, 26, 0.95) !important;
     border: 2px solid var(--suad-primary) !important;
     color: var(--suad-white) !important;
     font-weight: 600;
@@ -495,6 +505,9 @@ h1::before {
     opacity: 1 !important;
     visibility: visible !important;
     min-height: 38px;
+    position: relative;
+    z-index: 10;
+    display: block !important;
 }
 
 .form-select:focus {
@@ -517,13 +530,16 @@ h1::before {
 
 /* Form Check Elements - Command Style */
 .form-check-input {
-    background-color: rgba(26, 26, 26, 0.9) !important;
+    background-color: rgba(26, 26, 26, 0.95) !important;
     border: 2px solid var(--suad-primary) !important;
     transition: all 0.3s ease;
     opacity: 1 !important;
     visibility: visible !important;
     width: 1.2em !important;
     height: 1.2em !important;
+    position: relative;
+    z-index: 10;
+    display: inline-block !important;
 }
 
 .form-check-input:checked {
@@ -646,4 +662,62 @@ h1::before {
         background: linear-gradient(135deg, #228B22 0%, var(--suad-success) 100%);
         transform: scale(1.02);
     }
+}
+
+/* Form Element Visibility Fix */
+.mb-3, .form-group {
+    position: relative;
+    z-index: 5;
+    isolation: isolate;
+}
+
+.card-body {
+    position: relative;
+    z-index: 2;
+    isolation: isolate;
+}
+
+/* Ensure all form elements are properly stacked */
+textarea.form-control {
+    background: rgba(26, 26, 26, 0.95) !important;
+    border: 2px solid var(--suad-primary) !important;
+    color: var(--suad-white) !important;
+    position: relative;
+    z-index: 10;
+    display: block !important;
+}
+
+input[type="text"], input[type="date"], input[type="time"], input[type="number"], input[type="datetime-local"] {
+    background: rgba(26, 26, 26, 0.95) !important;
+    border: 2px solid var(--suad-primary) !important;
+    color: var(--suad-white) !important;
+    position: relative;
+    z-index: 10;
+    display: block !important;
+}
+
+/* Fix for Bootstrap form controls that might be hidden */
+.form-control:not(:placeholder-shown),
+.form-control:focus,
+.form-select:focus {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+/* Ensure form container visibility */
+form {
+    position: relative;
+    z-index: 3;
+}
+
+/* Override any potential conflicts */
+* {
+    box-sizing: border-box;
+}
+
+.form-control, .form-select {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
 }
