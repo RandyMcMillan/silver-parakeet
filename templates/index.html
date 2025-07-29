@@ -248,11 +248,17 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="map-pin"></i>
-                    Current Stops ({{ stops|length }})
+                    <button class="btn btn-link p-0 text-decoration-none text-start w-100 d-flex align-items-center" 
+                            type="button" data-bs-toggle="collapse" data-bs-target="#currentStopsCollapse" 
+                            aria-expanded="false" aria-controls="currentStopsCollapse">
+                        <i data-feather="map-pin" class="me-2"></i>
+                        Current Stops ({{ stops|length }})
+                        <i data-feather="chevron-down" class="ms-auto collapse-icon"></i>
+                    </button>
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="collapse" id="currentStopsCollapse">
+                <div class="card-body">
                 {% if stops %}
                     <div class="table-responsive">
                         <table class="table table-sm">
@@ -302,6 +308,7 @@
                         <p class="text-muted mt-2">No stops added yet. Add your first stop above.</p>
                     </div>
                 {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -385,23 +392,28 @@
                         <div class="card">
                             <div class="card-header">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <h6 class="card-title mb-0">
-                                        <i data-feather="user"></i>
-                                        Driver {{ route.driver_number }}
-                                        {% set hours = (route.total_time_minutes // 60) %}
-                                        {% set minutes = (route.total_time_minutes % 60) %}
-                                        <span class="badge bg-{{ 'success' if route.total_time_minutes <= 480 else 'warning' if route.total_time_minutes <= 540 else 'danger' }} ms-2">
-                                            {{ hours }}h {{ minutes }}m
-                                        </span>
-                                        {% if route.total_time_minutes <= 480 %}
-                                            <small class="text-success">✓ Within 8-hour goal</small>
-                                        {% elif route.total_time_minutes <= 540 %}
-                                            <small class="text-warning">⚠ Extended day (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
-                                        {% else %}
-                                            <small class="text-danger">⚠ Overtime (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
-                                        {% endif %}
-                                    </h6>
-                                    <button class="btn btn-sm btn-outline-primary" id="map-toggle-{{ route.driver_number }}" onclick="toggleRouteMap({{ route.driver_number }})">
+                                    <button class="btn btn-link p-0 text-decoration-none text-start flex-grow-1 d-flex align-items-center" 
+                                            type="button" data-bs-toggle="collapse" data-bs-target="#routeCollapse{{ route.driver_number }}" 
+                                            aria-expanded="false" aria-controls="routeCollapse{{ route.driver_number }}">
+                                        <h6 class="card-title mb-0">
+                                            <i data-feather="user" class="me-2"></i>
+                                            Driver {{ route.driver_number }}
+                                            {% set hours = (route.total_time_minutes // 60) %}
+                                            {% set minutes = (route.total_time_minutes % 60) %}
+                                            <span class="badge bg-{{ 'success' if route.total_time_minutes <= 480 else 'warning' if route.total_time_minutes <= 540 else 'danger' }} ms-2">
+                                                {{ hours }}h {{ minutes }}m
+                                            </span>
+                                            {% if route.total_time_minutes <= 480 %}
+                                                <small class="text-success">✓ Within 8-hour goal</small>
+                                            {% elif route.total_time_minutes <= 540 %}
+                                                <small class="text-warning">⚠ Extended day (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
+                                            {% else %}
+                                                <small class="text-danger">⚠ Overtime (+{{ ((route.total_time_minutes - 480) // 60) }}h {{ ((route.total_time_minutes - 480) % 60) }}m)</small>
+                                            {% endif %}
+                                        </h6>
+                                        <i data-feather="chevron-down" class="ms-auto collapse-icon"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary ms-2" id="map-toggle-{{ route.driver_number }}" onclick="toggleRouteMap({{ route.driver_number }})">
                                         <i data-feather="map" style="width: 14px; height: 14px;"></i>
                                         Show Map
                                     </button>
@@ -414,7 +426,8 @@
                                 <script type="application/json" id="route-data-{{ route.driver_number }}">{{ route_stops|tojson }}</script>
                             </div>
                             
-                            <div class="card-body">
+                            <div class="collapse" id="routeCollapse{{ route.driver_number }}">
+                                <div class="card-body">
                                 {% set stop_ids = route.stop_sequence|from_json %}
                                 {% if stop_ids %}
                                     <ol class="route-list">
@@ -532,6 +545,7 @@
                                 {% else %}
                                     <p class="text-muted">No stops assigned</p>
                                 {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -1,0 +1,21 @@
+/* Collapse icon rotation animation */
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+[aria-expanded="true"] .collapse-icon {
+    transform: rotate(180deg);
+}
+
+/* Ensure collapse buttons maintain proper text alignment */
+.btn-link {
+    color: inherit !important;
+}
+
+.btn-link:hover {
+    color: inherit !important;
+}
+
+.btn-link:focus {
+    box-shadow: none !important;
+}
