@@ -91,15 +91,9 @@ class LeafletRouteMapper {
                 coordinates.push(depCoords);
             }
 
-            // Draw route line connecting all points
+            // Draw route lines following actual street routes
             if (coordinates.length > 1) {
-                const polyline = L.polyline(coordinates, {
-                    color: '#007bff',
-                    weight: 4,
-                    opacity: 0.8
-                }).addTo(map);
-                
-                this.routeLines[routeId] = polyline;
+                await this.drawStreetRoutes(map, routeId, coordinates, stops);
                 
                 // Fit map to show all markers
                 const group = new L.featureGroup(this.markers[routeId]);
@@ -151,6 +145,81 @@ class LeafletRouteMapper {
             return null;
         } catch (error) {
             console.error(`Geocoding error for ${address}:`, error);
+            return null;
+        }
+    }
+
+    async drawStreetRoutes(map, routeId, coordinates, stops) {
+        const routeSegments = [];
+        
+        try {
+            // Draw route segments between consecutive points using OSRM routing
+            for (let i = 0; i < coordinates.length - 1; i++) {
+                const start = coordinates[i];
+                const end = coordinates[i + 1];
+                
+                const routeGeometry = await this.getRouteGeometry(start, end);
+                
+                if (routeGeometry && routeGeometry.length > 0) {
+                    // Create polyline from route geometry
+                    const polyline = L.polyline(routeGeometry, {
+                        color: '#007bff',
+                        weight: 4,
+                        opacity: 0.8
+                    }).addTo(map);
+                    
+                    routeSegments.push(polyline);
+                } else {
+                    // Fallback to straight line if routing fails
+                    const fallbackLine = L.polyline([start, end], {
+                        color: '#6c757d',
+                        weight: 3,
+                        opacity: 0.6,
+                        dashArray: '5, 10'
+                    }).addTo(map);
+                    
+                    routeSegments.push(fallbackLine);
+                }
+                
+                // Add small delay to respect API rate limits
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            this.routeLines[routeId] = routeSegments;
+            
+        } catch (error) {
+            console.error('Error drawing street routes:', error);
+            
+            // Fallback to simple polyline
+            const fallbackPolyline = L.polyline(coordinates, {
+                color: '#6c757d',
+                weight: 3,
+                opacity: 0.6,
+                dashArray: '5, 10'
+            }).addTo(map);
+            
+            this.routeLines[routeId] = [fallbackPolyline];
+        }
+    }
+
+    async getRouteGeometry(start, end) {
+        try {
+            // Use OSRM (Open Source Routing Machine) - free routing service
+            const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?geometries=geojson&overview=full`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                const route = data.routes[0];
+                
+                // Convert GeoJSON coordinates to Leaflet format [lat, lng]
+                return route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('OSRM routing error:', error);
             return null;
         }
     }

@@ -131,12 +131,14 @@ Preferred communication style: Simple, everyday language.
 ### Hybrid Mapping Solution - Cost Optimization
 - **Google Maps API for Routing**: Continues using Google Maps Distance Matrix API for accurate traffic-aware route optimization and drive times
 - **OpenStreetMap for Visualization**: Uses free Leaflet.js with OpenStreetMap tiles for visual map display only
+- **OSRM Street Routing**: Uses free OSRM (Open Source Routing Machine) to draw route paths along actual streets and roads
 - **Cost Optimization**: Minimizes Google Maps API usage by only calling for routing data, not map tiles or visualization
-- **Leaflet Route Display**: Interactive maps with numbered stop markers and route lines using free mapping
-- **Free Map Tiles**: Zero cost for map visualization while maintaining accurate routing intelligence
+- **Leaflet Route Display**: Interactive maps with numbered stop markers and realistic street-following route lines
+- **Free Map Services**: Zero cost for map visualization and street routing while maintaining accurate time optimization
 - **Custom Markers**: Blue numbered circles for stops, green 'S' for start, gray 'E' for end
-- **Route Path Lines**: Connects all stops with blue polylines showing the planned route
-- **Best of Both**: Real-time traffic routing accuracy with zero-cost map display
+- **Realistic Route Paths**: Blue lines follow actual street routes between stops using free OSRM routing service
+- **Fallback Handling**: Graceful degradation to straight lines if street routing unavailable
+- **Best of Both**: Real-time traffic routing accuracy with zero-cost realistic map display
 
 ### Google Maps API Integration and Geographic Clustering (Previous Implementation)
 - **Google Maps Distance Matrix API**: Live traffic-aware drive time calculations between actual addresses
