@@ -4,7 +4,7 @@ Integrates with traffic-aware routing for cost optimization
 """
 
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any, Union
 
 class TundraFuelCalculator:
     """
@@ -37,7 +37,7 @@ class TundraFuelCalculator:
         }
     
     def calculate_fuel_cost(self, distance_miles: float, traffic_condition: str = 'moderate_traffic', 
-                           route_type: str = 'mixed') -> Dict[str, float]:
+                           route_type: str = 'mixed') -> Dict[str, Union[float, str]]:
         """
         Calculate fuel cost for a given route considering traffic and route type
         
@@ -57,7 +57,10 @@ class TundraFuelCalculator:
             traffic_multiplier = self.traffic_multipliers.get(traffic_condition, 0.85)
             effective_mpg = base_mpg * traffic_multiplier
             
-            # Calculate fuel consumption
+            # Calculate fuel consumption with zero-division protection
+            if effective_mpg <= 0:
+                effective_mpg = self.combined_mpg * 0.85  # Use fallback efficiency
+            
             gallons_used = distance_miles / effective_mpg
             fuel_cost = gallons_used * self.gas_price_per_gallon
             
@@ -106,7 +109,7 @@ class TundraFuelCalculator:
                 return 'light_traffic'
     
     def calculate_route_fuel_efficiency(self, stops: List[Dict], departure_address: str, 
-                                      start_time_hour: int) -> Dict[str, float]:
+                                      start_time_hour: int) -> Dict[str, Union[float, str, List[Dict]]]:
         """
         Calculate total fuel cost for an entire route with multiple stops
         
@@ -123,26 +126,34 @@ class TundraFuelCalculator:
             total_fuel_cost = 0
             segments = []
             
-            # Estimate distances between stops (this would integrate with Google Maps in practice)
+            # Estimate distances between stops with error handling
             current_hour = start_time_hour
             
             # Distance from departure to first stop
             if stops:
-                segment_distance = self._estimate_distance(departure_address, stops[0]['address'])
-                traffic_condition = self.get_traffic_condition_from_time(current_hour)
-                
-                fuel_data = self.calculate_fuel_cost(segment_distance, traffic_condition, 'mixed')
-                total_distance += segment_distance
-                total_fuel_cost += fuel_data['fuel_cost']
-                segments.append({
-                    'from': 'Departure',
-                    'to': stops[0]['address'],
-                    'distance': segment_distance,
-                    'fuel_cost': fuel_data['fuel_cost'],
-                    'traffic_condition': traffic_condition
-                })
-                
-                current_hour += 1  # Assume 1 hour per stop including service time
+                try:
+                    segment_distance = self._estimate_distance(departure_address, stops[0]['address'])
+                    traffic_condition = self.get_traffic_condition_from_time(current_hour)
+                    
+                    fuel_data = self.calculate_fuel_cost(segment_distance, traffic_condition, 'mixed')
+                    fuel_cost = fuel_data.get('fuel_cost', 0)
+                    
+                    total_distance += segment_distance
+                    total_fuel_cost += fuel_cost
+                    segments.append({
+                        'from': 'Departure',
+                        'to': stops[0]['address'],
+                        'distance': segment_distance,
+                        'fuel_cost': fuel_cost,
+                        'traffic_condition': traffic_condition
+                    })
+                    
+                    current_hour += 1  # Assume 1 hour per stop including service time
+                except Exception as e:
+                    logging.error(f"Error calculating fuel for first segment: {e}")
+                    # Use fallback values
+                    total_distance += 15.0
+                    total_fuel_cost += 3.5
             
             # Distance between stops
             for i in range(len(stops) - 1):
