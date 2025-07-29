@@ -1,5 +1,5 @@
 from app import db
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy import DateTime, String, Integer, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -25,6 +25,7 @@ class Route(db.Model):
     stop_sequence: Mapped[str] = mapped_column(Text, nullable=False)  # JSON string of stop IDs in order
     total_time_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     start_time: Mapped[str] = mapped_column(String(10), nullable=False, default='07:00')
+    route_date: Mapped[date] = mapped_column(db.Date, nullable=False, default=lambda: date.today())
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     def __repr__(self):

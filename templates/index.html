@@ -401,7 +401,7 @@
                                                     <small class="text-muted">{{ departure_address }}</small>
                                                 </div>
                                                 <div class="text-end">
-                                                    <small class="text-success">7:00 AM</small>
+                                                    <small class="text-success">{{ route.start_time }} - {{ route.route_date.strftime('%m/%d') if route.route_date else 'Today' }}</small>
                                                 </div>
                                             </div>
                                         </li>

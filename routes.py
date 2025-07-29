@@ -204,6 +204,17 @@ def generate_routes():
         start_time = request.form.get('start_time', '07:00')
         session['last_driver_count'] = num_drivers
         
+        # Determine route date - if current time is past start time, schedule for next day
+        current_time = datetime.now().time()
+        start_time_obj = datetime.strptime(start_time, '%H:%M').time()
+        
+        if current_time > start_time_obj:
+            route_date = (datetime.now() + timedelta(days=1)).date()
+            logging.info(f"Current time {current_time} is past start time {start_time_obj}, scheduling routes for next day: {route_date}")
+        else:
+            route_date = datetime.now().date()
+            logging.info(f"Current time {current_time} is before start time {start_time_obj}, scheduling routes for today: {route_date}")
+        
         # Get all stops
         stops = Stop.query.all()
         
@@ -316,6 +327,7 @@ def generate_routes():
             route.stop_sequence = stop_sequence
             route.total_time_minutes = total_time
             route.start_time = start_time
+            route.route_date = route_date  # Add route date to database
             
             db.session.add(route)
             routes_created += 1
@@ -342,7 +354,8 @@ def generate_routes():
     
     # Direct redirect with immediate reload trigger
     from flask import make_response
-    timestamp = int(time.time() * 1000)
+    import time as time_module
+    timestamp = int(time_module.time() * 1000)
     response = make_response(redirect(url_for('main.index', refresh='routes', v=timestamp, _external=False)))
     
     # Aggressive cache prevention headers
