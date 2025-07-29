@@ -543,17 +543,11 @@
 </div>
 {% endif %}
 
-<!-- Google Maps API -->
-{% if google_maps_api_key %}
-<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMaps"></script>
 <script>
-// Initialize Google Maps callback
-function initMaps() {
-    console.log('Google Maps API loaded');
-    // Don't initialize maps immediately - wait for user to click Show Map
-    // This prevents loading maps that may not be viewed
-    console.log('Maps will be initialized when "Show Map" is clicked');
-}
+// Leaflet maps are ready immediately - no API key needed
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Leaflet mapping ready - free OpenStreetMap tiles');
+    console.log('Maps will initialize when "Show Map" is clicked');
+});
 </script>
-{% endif %}
 {% endblock %}

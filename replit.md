@@ -128,7 +128,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 29, 2025)
 
-### Google Maps API Integration and Geographic Clustering
+### Cost-Free Mapping with OpenStreetMap and Leaflet
+- **OpenStreetMap Tiles**: Switched from Google Maps to free OpenStreetMap tiles using Leaflet.js
+- **Eliminated API Costs**: No API keys required - completely free mapping solution
+- **Leaflet Route Visualization**: Interactive maps with numbered stop markers and route lines
+- **Free Geocoding**: Uses Nominatim (OpenStreetMap) geocoding service instead of paid APIs
+- **Custom Markers**: Blue numbered circles for stops, green 'S' for start, gray 'E' for end
+- **Route Path Lines**: Connects all stops with blue polylines showing the planned route
+- **Popup Information**: Click markers to see stop details (address, service type, etc.)
+- **Auto-Fit Bounds**: Map automatically zooms to show all stops in the route
+- **Operational Cost Reduction**: Zero ongoing mapping costs while maintaining full functionality
+
+### Google Maps API Integration and Geographic Clustering (Previous Implementation)
 - **Google Maps Distance Matrix API**: Live traffic-aware drive time calculations between actual addresses
 - **Real-Time Traffic Data**: Uses "duration_in_traffic" for current road conditions and congestion
 - **Geographic Clustering**: Intelligent grouping of nearby stops using proximity algorithms before driver assignment
