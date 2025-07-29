@@ -87,16 +87,55 @@
             });
         }
         
-        // Immediate route refresh detection and reload
+        // Update driver count and regenerate routes
+        function updateDriverCount() {
+            const numDrivers = document.getElementById('num_drivers').value;
+            const startTime = document.getElementById('start_time').value;
+            const updateBtn = document.getElementById('updateDriverBtn');
+            
+            // Update button state
+            updateBtn.innerHTML = '<i data-feather="clock"></i> Updating...';
+            updateBtn.disabled = true;
+            
+            // Create form data and submit
+            const formData = new FormData();
+            formData.append('num_drivers', numDrivers);
+            formData.append('start_time', startTime);
+            
+            fetch('/generate_routes', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Cache-Control': 'no-cache'
+                }
+            }).then(response => {
+                if (response.redirected) {
+                    // Force immediate page reload with cache bypass
+                    window.location.href = window.location.pathname + '?update=' + Date.now();
+                } else {
+                    // Reset button if no redirect
+                    updateBtn.innerHTML = '<i data-feather="refresh-cw"></i> Update Routes';
+                    updateBtn.disabled = false;
+                    feather.replace();
+                }
+            }).catch(error => {
+                console.error('Route generation error:', error);
+                updateBtn.innerHTML = '<i data-feather="alert-circle"></i> Error - Try Again';
+                updateBtn.disabled = false;
+                feather.replace();
+            });
+        }
+        
+        // Handle both form redirect and update button refresh
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('refresh') === 'routes') {
+        if (urlParams.get('refresh') === 'routes' || urlParams.get('update')) {
             console.log('Route refresh detected, forcing reload...');
             // Clear URL history immediately  
             window.history.replaceState({}, document.title, window.location.pathname);
             // Force hard reload to bypass all caching
             setTimeout(() => {
-                window.location.href = window.location.pathname + '?bust=' + Date.now();
-            }, 50);
+                window.location.reload(true);
+            }, 100);
         }
     </script>
 </body>
