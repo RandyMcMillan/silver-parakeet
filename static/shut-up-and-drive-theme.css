@@ -184,7 +184,7 @@ h1::before {
         0 0 40px rgba(255, 140, 0, 0.3);
 }
 
-/* Cards - Command Module Style */
+/* Cards - Command Module Style - SIMPLIFIED */
 .card {
     background: linear-gradient(145deg, var(--suad-charcoal) 0%, var(--suad-dark) 100%) !important;
     border: 3px solid var(--suad-primary) !important;
@@ -192,9 +192,9 @@ h1::before {
     box-shadow: 
         0 10px 30px rgba(0,0,0,0.8),
         inset 0 1px 0 rgba(255, 102, 0, 0.2);
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
     z-index: 1;
+    overflow: visible !important;
 }
 
 .card::before {
@@ -384,28 +384,28 @@ h1::before {
     font-size: 1.2rem !important;
 }
 
-/* Form Controls - Mission Input - CRITICAL VISIBILITY FIX */
+/* EMERGENCY FORM FIX - MAXIMUM VISIBILITY */
 .form-control {
     background: #1a1a1a !important;
     border: 3px solid #FF6600 !important;
     color: #FFFFFF !important;
-    font-weight: 600 !important;
-    font-size: 1rem !important;
     width: 100% !important;
     height: 42px !important;
     padding: 8px 12px !important;
-    margin: 0 !important;
+    display: block !important;
+    position: relative !important;
+    z-index: 999999 !important;
     opacity: 1 !important;
     visibility: visible !important;
-    display: block !important;
-    position: static !important;
-    z-index: 9999 !important;
     box-sizing: border-box !important;
-    -webkit-appearance: none !important;
-    -moz-appearance: none !important;
-    appearance: none !important;
-    outline: none !important;
-    transition: border-color 0.3s ease !important;
+    margin: 0 !important;
+    float: none !important;
+    clear: both !important;
+    overflow: visible !important;
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
+    transform: none !important;
 }
 
 .form-control:focus {
@@ -491,32 +491,32 @@ h1::before {
     letter-spacing: 0.5px;
 }
 
-/* Form Select Elements - CRITICAL VISIBILITY FIX */
+/* EMERGENCY SELECT FIX - MAXIMUM VISIBILITY */
 .form-select {
     background: #1a1a1a !important;
     border: 3px solid #FF6600 !important;
     color: #FFFFFF !important;
-    font-weight: 600 !important;
-    font-size: 1rem !important;
     width: 100% !important;
     height: 42px !important;
     padding: 8px 12px !important;
-    margin: 0 !important;
+    display: block !important;
+    position: relative !important;
+    z-index: 999999 !important;
     opacity: 1 !important;
     visibility: visible !important;
-    display: block !important;
-    position: static !important;
-    z-index: 9999 !important;
     box-sizing: border-box !important;
-    -webkit-appearance: none !important;
-    -moz-appearance: none !important;
-    appearance: none !important;
-    outline: none !important;
+    margin: 0 !important;
+    float: none !important;
+    clear: both !important;
+    overflow: visible !important;
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
+    transform: none !important;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23FF6600' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
     background-repeat: no-repeat !important;
     background-position: right 0.75rem center !important;
     background-size: 16px 12px !important;
-    transition: border-color 0.3s ease !important;
 }
 
 .form-select:focus {
@@ -669,18 +669,23 @@ h1::before {
     }
 }
 
-/* SIMPLIFIED STACKING - NO COMPLEX Z-INDEX */
+/* EMERGENCY CONTAINER FIX */
 .card {
     position: relative;
+    z-index: 1;
 }
 
 .card-body {
     position: relative;
+    z-index: 2;
+    overflow: visible !important;
 }
 
 .mb-3, .form-group {
     position: relative;
+    z-index: 10;
     margin-bottom: 1rem;
+    overflow: visible !important;
 }
 
 /* Ensure all form elements are properly stacked */
@@ -688,44 +693,43 @@ textarea.form-control {
     background: #1a1a1a !important;
     border: 3px solid #FF6600 !important;
     color: #FFFFFF !important;
-    font-weight: 600 !important;
-    font-size: 1rem !important;
     width: 100% !important;
     min-height: 80px !important;
     padding: 8px 12px !important;
-    margin: 0 !important;
+    display: block !important;
+    position: relative !important;
+    z-index: 999999 !important;
     opacity: 1 !important;
     visibility: visible !important;
-    display: block !important;
-    position: static !important;
-    z-index: 9999 !important;
     box-sizing: border-box !important;
+    margin: 0 !important;
+    float: none !important;
+    clear: both !important;
+    overflow: visible !important;
     resize: vertical !important;
-    outline: none !important;
-    transition: border-color 0.3s ease !important;
 }
 
 input[type="text"], input[type="date"], input[type="time"], input[type="number"], input[type="datetime-local"] {
     background: #1a1a1a !important;
     border: 3px solid #FF6600 !important;
     color: #FFFFFF !important;
-    font-weight: 600 !important;
-    font-size: 1rem !important;
     width: 100% !important;
     height: 42px !important;
     padding: 8px 12px !important;
-    margin: 0 !important;
+    display: block !important;
+    position: relative !important;
+    z-index: 999999 !important;
     opacity: 1 !important;
     visibility: visible !important;
-    display: block !important;
-    position: static !important;
-    z-index: 9999 !important;
     box-sizing: border-box !important;
-    -webkit-appearance: none !important;
-    -moz-appearance: none !important;
-    appearance: none !important;
-    outline: none !important;
-    transition: border-color 0.3s ease !important;
+    margin: 0 !important;
+    float: none !important;
+    clear: both !important;
+    overflow: visible !important;
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
+    transform: none !important;
 }
 
 /* Fix for Bootstrap form controls that might be hidden */
@@ -737,10 +741,79 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
     display: block !important;
 }
 
-/* Ensure form container visibility */
+/* EMERGENCY FORM CONTAINER */
 form {
     position: relative;
-    z-index: 75;
+    z-index: 100;
+    overflow: visible !important;
+}
+
+/* NUCLEAR OPTION - OVERRIDE EVERYTHING */
+.form-control, .form-select, input[type="text"], input[type="date"], input[type="time"], input[type="number"], input[type="datetime-local"], textarea, select {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 999999 !important;
+    background: #1a1a1a !important;
+    border: 3px solid #FF6600 !important;
+    color: #FFFFFF !important;
+    width: 100% !important;
+    height: 42px !important;
+    padding: 8px 12px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    float: none !important;
+    clear: both !important;
+    overflow: visible !important;
+    clip: auto !important;
+    clip-path: none !important;
+    transform: none !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+}
+
+textarea {
+    height: 80px !important;
+    min-height: 80px !important;
+    resize: vertical !important;
+}
+
+/* OVERRIDE BOOTSTRAP COMPLETELY */
+.form-control:not([type="hidden"]), .form-select {
+    display: block !important;
+    width: 100% !important;
+    padding: 8px 12px !important;
+    font-size: 1rem !important;
+    font-weight: 400 !important;
+    line-height: 1.5 !important;
+    color: #FFFFFF !important;
+    background-color: #1a1a1a !important;
+    background-image: none !important;
+    border: 3px solid #FF6600 !important;
+    border-radius: 0.375rem !important;
+    transition: none !important;
+    height: 42px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    position: relative !important;
+    z-index: 999999 !important;
+}
+
+/* REMOVE ALL TRANSFORMS AND POSITIONING */
+* {
+    transform: none !important;
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
 }
 
 /* Override any potential conflicts */
