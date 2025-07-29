@@ -417,20 +417,31 @@ def generate_routes():
         flash(f'Error generating routes: {str(e)}', 'error')
         db.session.rollback()
     
-    # Direct redirect with immediate reload trigger
+    # Direct redirect with multiple cache-busting parameters
     from flask import make_response
     import time as time_module
     timestamp = int(time_module.time() * 1000)
-    response = make_response(redirect(url_for('main.index', refresh='routes', v=timestamp, _external=False)))
     
-    # Aggressive cache prevention headers
+    # Create response with multiple URL parameters to ensure cache bypass
+    redirect_url = url_for('main.index', 
+                          refresh='routes', 
+                          v=timestamp, 
+                          update='true',
+                          cache_bust=timestamp,
+                          _external=False)
+    
+    response = make_response(redirect(redirect_url))
+    
+    # Maximum strength cache prevention headers
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0, private'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     response.headers['Last-Modified'] = datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')
     response.headers['ETag'] = f'"{timestamp}"'
     response.headers['Vary'] = '*'
+    response.headers['X-Cache-Control'] = 'no-cache'
     
+    logging.info(f"Redirecting to: {redirect_url}")
     return response
 
 @main.route('/delete_stop/<int:stop_id>')

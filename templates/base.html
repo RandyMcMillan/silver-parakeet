@@ -120,14 +120,18 @@
                     'Cache-Control': 'no-cache'
                 }
             }).then(response => {
+                console.log('Route generation response:', response);
                 if (response.redirected) {
                     // Force immediate page reload with cache bypass
-                    window.location.href = window.location.pathname + '?update=' + Date.now();
+                    const timestamp = Date.now();
+                    console.log('Redirect detected, reloading with timestamp:', timestamp);
+                    window.location.href = window.location.pathname + '?update=' + timestamp;
                 } else {
-                    // Reset button if no redirect
-                    updateBtn.innerHTML = '<i data-feather="refresh-cw"></i> Update Routes';
-                    updateBtn.disabled = false;
-                    feather.replace();
+                    // If no redirect, force a manual reload anyway
+                    console.log('No redirect, forcing manual reload');
+                    setTimeout(() => {
+                        window.location.reload(true);
+                    }, 500);
                 }
             }).catch(error => {
                 console.error('Route generation error:', error);
@@ -139,14 +143,24 @@
         
         // Handle both form redirect and update button refresh
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('refresh') === 'routes' || urlParams.get('update')) {
+        if (urlParams.get('refresh') === 'routes' || urlParams.get('update') || urlParams.get('v')) {
             console.log('Route refresh detected, forcing reload...');
+            console.log('URL params:', urlParams.toString());
+            
             // Clear URL history immediately  
             window.history.replaceState({}, document.title, window.location.pathname);
-            // Force hard reload to bypass all caching
+            
+            // Multiple reload strategies for maximum reliability
+            setTimeout(() => {
+                // Strategy 1: Force reload with timestamp
+                const timestamp = Date.now();
+                window.location.href = window.location.pathname + '?cache_bust=' + timestamp;
+            }, 50);
+            
+            // Fallback strategy if first doesn't work
             setTimeout(() => {
                 window.location.reload(true);
-            }, 100);
+            }, 200);
         }
         
         // Toggle manual timestamp field visibility
