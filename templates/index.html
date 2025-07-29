@@ -409,12 +409,12 @@
                                         
                                         <!-- Drive time to first stop -->
                                         {% if stop_ids %}
-                                        <li class="mb-1 text-center">
+                                        <div class="mb-1 text-center" style="list-style: none;">
                                             <small class="text-muted">
                                                 <i data-feather="navigation" style="width: 12px; height: 12px;"></i>
                                                 Drive to first stop: ~{{ google_maps_data.departure_to_first if google_maps_data else '12-18' }} minutes{% if google_maps_data and google_maps_data.data_source == 'Google Maps real-time' %} <small class="text-success">(real-time)</small>{% endif %}
                                             </small>
-                                        </li>
+                                        </div>
                                         {% endif %}
                                         
                                         {% for stop_id in stop_ids %}
@@ -464,24 +464,24 @@
                                             
                                             <!-- Drive time to next stop (if not the last stop) -->
                                             {% if not loop.last %}
-                                            <li class="mb-1 text-center">
+                                            <div class="mb-1 text-center" style="list-style: none;">
                                                 <small class="text-muted">
                                                     <i data-feather="navigation" style="width: 12px; height: 12px;"></i>
                                                     Drive to next stop: ~{{ google_maps_data.between_stops[loop.index0] if google_maps_data and google_maps_data.between_stops and loop.index0 < google_maps_data.between_stops|length else '8-12' }} minutes{% if google_maps_data and google_maps_data.data_source == 'Google Maps real-time' %} <small class="text-success">(real-time)</small>{% endif %}
                                                 </small>
-                                            </li>
+                                            </div>
                                             {% endif %}
                                             {% endif %}
                                         {% endfor %}
                                         
                                         <!-- Drive time back to base -->
                                         {% if stop_ids %}
-                                        <li class="mb-1 text-center">
+                                        <div class="mb-1 text-center" style="list-style: none;">
                                             <small class="text-muted">
                                                 <i data-feather="navigation" style="width: 12px; height: 12px;"></i>
                                                 Drive back to base: ~{{ google_maps_data.last_to_departure if google_maps_data else '12-18' }} minutes{% if google_maps_data and google_maps_data.data_source == 'Google Maps real-time' %} <small class="text-success">(real-time)</small>{% endif %}
                                             </small>
-                                        </li>
+                                        </div>
                                         {% endif %}
                                         
                                         <!-- Return to start -->
