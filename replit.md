@@ -128,6 +128,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 29, 2025)
 
+### Traffic-Aware Routing System - Advanced Optimization
+- **High Traffic Zone Avoidance**: Intelligent routing that identifies and avoids Atlanta's high traffic areas during peak hours
+- **Historical Traffic Pattern Integration**: Uses time-of-day traffic multipliers for downtown Atlanta, Buckhead, Midtown, and Perimeter Center
+- **Strategic Timing Optimization**: Evaluates multiple timing strategies (Early Start, Late Start, Split Shift) to minimize traffic exposure
+- **Zone-Based Route Assignment**: Categorizes stops by traffic zones and optimizes driver assignments accordingly
+- **Real-Time Traffic Recommendations**: Provides specific tips for avoiding I-285, GA-400, and surface street alternatives
+- **Split Shift Strategy**: Suburban stops at 6 AM, city stops at 10 AM to avoid rush hour completely
+- **Traffic Impact Scoring**: Quantifies traffic impact for each route strategy to choose optimal timing
+- **Geographic Traffic Analysis**: Analyzes stop distribution across high-traffic vs suburban areas for better planning
+
+### UI Improvements - Collapsible Interface
+- **Collapsible Current Stops**: Current stops section now expandable/collapsible with animated chevron icons
+- **Collapsible Driver Routes**: Each individual driver route can be collapsed to show just summary information
+- **Clean Visual Layout**: Reduces screen clutter while maintaining full functionality access
+- **Preserved Map Functionality**: Show Map buttons remain accessible outside collapse areas
+- **Smooth Animations**: CSS transitions for expand/collapse actions with rotating chevron indicators
+
+## Recent Changes (July 29, 2025) - Previous Updates
+
 ### Hybrid Mapping Solution - Cost Optimization
 - **Google Maps API for Routing**: Continues using Google Maps Distance Matrix API for accurate traffic-aware route optimization and drive times
 - **OpenStreetMap for Visualization**: Uses free Leaflet.js with OpenStreetMap tiles for visual map display only

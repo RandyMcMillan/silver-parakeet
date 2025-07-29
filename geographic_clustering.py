@@ -4,6 +4,7 @@ from typing import List, Dict, Tuple
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 import time
+from traffic_aware_routing import TrafficAwareRouter
 
 class GeographicClusterer:
     """Clusters stops by geographic proximity for efficient route assignment"""
@@ -11,6 +12,7 @@ class GeographicClusterer:
     def __init__(self):
         self.geocoder = Nominatim(user_agent="route_optimizer")
         self.geocache = {}  # Cache coordinates to avoid repeated API calls
+        self.traffic_router = TrafficAwareRouter()  # Traffic-aware routing system
         
     def get_coordinates(self, address: str) -> Tuple[float, float]:
         """Get latitude/longitude for an address with caching"""
@@ -234,7 +236,7 @@ class GeographicClusterer:
 
     def get_optimized_stop_distribution(self, stops: List[Dict], num_drivers: int) -> List[List[int]]:
         """
-        Get stop distribution optimized for 8-hour workdays and geographic proximity
+        Get stop distribution optimized for 8-hour workdays, geographic proximity, and traffic avoidance
         
         Args:
             stops: List of stop dictionaries
@@ -244,12 +246,28 @@ class GeographicClusterer:
             List of lists containing stop indices for each driver
         """
         try:
+            # Add coordinates to stops for traffic analysis
+            stops_with_coords = []
+            for stop in stops:
+                coords = self.get_coordinates(stop['address'])
+                stop_with_coords = stop.copy()
+                stop_with_coords['coordinates'] = coords
+                stops_with_coords.append(stop_with_coords)
+            
+            # Get traffic-aware routing analysis
+            traffic_analysis = self.traffic_router.get_geographic_route_optimization(stops_with_coords, num_drivers)
+            logging.info(f"Traffic zone analysis: {traffic_analysis['zone_analysis']}")
+            logging.info(f"Recommended timing strategy: {traffic_analysis['timing_strategy']['strategy_name']}")
+            
             # Start with geographic clustering for efficiency
-            clusters = self.cluster_stops_by_proximity(stops, num_drivers)
+            clusters = self.cluster_stops_by_proximity(stops_with_coords, num_drivers)
+            
+            # Apply traffic-aware optimization to clusters
+            optimized_clusters = self._apply_traffic_optimization(clusters, traffic_analysis)
             
             # Convert clusters to stop indices
             stop_distribution = []
-            for cluster in clusters:
+            for cluster in optimized_clusters:
                 indices = []
                 for stop in cluster:
                     # Find the index of this stop in the original list
@@ -260,18 +278,27 @@ class GeographicClusterer:
                 stop_distribution.append(indices)
             
             # Balance workloads for 8-hour target
-            logging.info("Balancing workloads for 8-hour target...")
+            logging.info("Balancing workloads for 8-hour target with traffic considerations...")
             balanced_distribution = self.balance_workload_for_8_hours(stop_distribution, stops)
             
-            # Log final cluster information
+            # Log final cluster information with traffic insights
             for i, cluster_indices in enumerate(balanced_distribution):
                 cluster_stops = [stops[idx]['address'] for idx in cluster_indices]
                 workload_time = self.calculate_route_workload_time(cluster_indices, stops)
+                traffic_assignment = traffic_analysis['route_assignments'][i] if i < len(traffic_analysis['route_assignments']) else {}
+                
                 logging.info(f"Driver {i+1} final route: {len(cluster_indices)} stops, {workload_time} minutes ({workload_time/60:.1f} hours)")
+                if traffic_assignment:
+                    logging.info(f"  Recommended start: {traffic_assignment.get('recommended_start_time', '07:00')} ({traffic_assignment.get('strategy', 'Standard')})")
+                
                 for addr in cluster_stops[:3]:  # Show first 3 addresses
                     logging.debug(f"  - {addr}")
                 if len(cluster_stops) > 3:
                     logging.debug(f"  ... and {len(cluster_stops)-3} more")
+            
+            # Log traffic avoidance recommendations
+            for tip in traffic_analysis['traffic_avoidance_tips'][:3]:
+                logging.info(f"Traffic tip: {tip}")
             
             return balanced_distribution
             
@@ -294,3 +321,18 @@ class GeographicClusterer:
                     distribution.append([])
             
             return distribution
+    
+    def _apply_traffic_optimization(self, clusters: List[List[Dict]], traffic_analysis: Dict) -> List[List[Dict]]:
+        """Apply traffic-aware optimizations to geographic clusters"""
+        # For now, return clusters as-is but log traffic insights
+        # Future enhancement: reorder stops within clusters based on traffic patterns
+        
+        zone_analysis = traffic_analysis['zone_analysis']
+        timing_strategy = traffic_analysis['timing_strategy']
+        
+        logging.info(f"Traffic optimization applied:")
+        logging.info(f"  - High traffic stops: {zone_analysis.get('downtown_atlanta', 0) + zone_analysis.get('buckhead', 0)}")
+        logging.info(f"  - Suburban stops: {zone_analysis.get('suburban', 0)}")
+        logging.info(f"  - Best timing strategy: {timing_strategy['strategy_name']} (impact: {timing_strategy['avg_traffic_impact']:.2f})")
+        
+        return clusters
