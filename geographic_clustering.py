@@ -18,23 +18,20 @@ class GeographicClusterer:
             return self.geocache[address]
             
         try:
-            # Add a small delay to respect geocoding limits
-            time.sleep(0.1)
-            location = self.geocoder.geocode(address, timeout=10)
+            # Use shorter timeout to prevent worker crashes
+            location = self.geocoder.geocode(address, timeout=2)
             if location:
                 coords = (location.latitude, location.longitude)
                 self.geocache[address] = coords
                 return coords
             else:
                 logging.warning(f"Could not geocode address: {address}")
-                # Return Atlanta center as fallback
-                fallback = (33.7490, -84.3880)
+                fallback = self.get_area_fallback_coordinates(address)
                 self.geocache[address] = fallback
                 return fallback
         except Exception as e:
             logging.error(f"Geocoding error for {address}: {e}")
-            # Return Atlanta center as fallback
-            fallback = (33.7490, -84.3880)
+            fallback = self.get_area_fallback_coordinates(address)
             self.geocache[address] = fallback
             return fallback
     
@@ -48,6 +45,32 @@ class GeographicClusterer:
         except Exception as e:
             logging.error(f"Distance calculation error: {e}")
             return 10.0  # Fallback estimate
+    
+    def get_area_fallback_coordinates(self, address: str) -> Tuple[float, float]:
+        """Get fallback coordinates based on Atlanta area keywords"""
+        address_lower = address.lower()
+        
+        # Atlanta area fallback coordinates
+        if 'peachtree' in address_lower or 'buckhead' in address_lower:
+            return (33.8484, -84.3781)  # Buckhead area
+        elif 'sandy springs' in address_lower:
+            return (33.9304, -84.3733)
+        elif 'marietta' in address_lower:
+            return (33.9526, -84.5499)
+        elif 'dunwoody' in address_lower:
+            return (33.9463, -84.3346)
+        elif 'roswell' in address_lower:
+            return (34.0232, -84.3616)
+        elif 'decatur' in address_lower:
+            return (33.7748, -84.2963)
+        elif 'tucker' in address_lower:
+            return (33.8485, -84.2169)
+        elif 'east point' in address_lower:
+            return (33.6818, -84.4402)
+        elif 'college park' in address_lower:
+            return (33.6534, -84.4493)
+        else:
+            return (33.7490, -84.3880)  # Default Atlanta center
     
     def cluster_stops_by_proximity(self, stops: List[Dict], num_drivers: int) -> List[List[Dict]]:
         """
