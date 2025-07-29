@@ -376,6 +376,12 @@ def generate_routes():
                 stop_addresses = [stop['address'] for stop in route_stops]
                 departure_address = get_fixed_departure_address()
                 
+                # Initialize default values
+                drive_times_list = []
+                departure_to_first = 25
+                last_to_departure = 25
+                traffic_description = "fallback estimates"
+                
                 # Get drive times from Google Maps or fallback estimates
                 try:
                     drive_times_list, departure_to_first, last_to_departure = maps_service.get_route_drive_times(
@@ -481,7 +487,11 @@ def generate_routes():
         final_routes = Route.query.all()
         logging.info(f"Final route count after generation: {len(final_routes)}")
         for route in final_routes:
-            logging.info(f"Route {route.driver_number}: {len(route.stop_sequence) if route.stop_sequence else 0} stops, {route.total_time_minutes} minutes")
+            try:
+                stop_count = len(json.loads(route.stop_sequence)) if route.stop_sequence else 0
+            except:
+                stop_count = 0
+            logging.info(f"Route {route.driver_number}: {stop_count} stops, {route.total_time_minutes} minutes")
         
     except Exception as e:
         import traceback

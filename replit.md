@@ -129,6 +129,14 @@ Interest in companion apps: Delivery driver mobile/web applications for field op
 
 ## Recent Changes (July 29, 2025) - Latest Updates
 
+### Driver Count Bug Fixes - Stable Route Generation
+- **Fixed Geographic Clustering**: Resolved geodesic library conflicts preventing route generation with driver count changes
+- **Robust Distance Calculation**: Implemented Euclidean distance fallback for Atlanta area with coordinate validation
+- **Enhanced Error Handling**: Added comprehensive error handling to prevent clustering crashes during route generation
+- **Stop Count Logging Fix**: Corrected route logging to properly display actual stop counts instead of incorrect totals
+- **Variable Driver Support**: System now reliably handles 1-10+ drivers with proper stop distribution
+- **Route Generation Stability**: All driver count configurations (1-6 drivers tested) generate routes successfully
+
 ### Overtime Policy Integration - 8-Week Lead Time Management
 - **Overtime Policy Model**: Added comprehensive OvertimePolicy database model with 8-week minimum lead time requirement
 - **Route Overtime Tracking**: Enhanced Route model with overtime_approved and lead_time_weeks fields for compliance tracking
