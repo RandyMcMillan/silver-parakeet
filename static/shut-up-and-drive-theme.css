@@ -446,13 +446,85 @@ h1::before {
 
 /* Departure Address - Command Central */
 .alert-info {
-    background: linear-gradient(135deg, var(--suad-dark) 0%, #2d2d2d 100%) !important;
-    border: 3px solid var(--suad-accent) !important;
-    color: var(--suad-accent) !important;
+    background: linear-gradient(135deg, var(--suad-dark) 0%, var(--suad-charcoal) 100%) !important;
+    border: 3px solid var(--suad-primary) !important;
+    color: var(--suad-white) !important;
     font-weight: 700 !important;
     font-size: 1.1rem;
     text-transform: uppercase;
     letter-spacing: 1px;
+    text-shadow: 0 0 10px var(--suad-primary);
+}
+
+/* Form Helper Text - Command Style */
+.form-text {
+    color: var(--suad-accent) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.85rem !important;
+    text-shadow: 0 0 5px var(--suad-primary);
+    margin-top: 5px !important;
+}
+
+.form-text small {
+    color: var(--suad-accent) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Form Select Elements - Command Style */
+.form-select {
+    background: var(--suad-dark) !important;
+    border: 2px solid var(--suad-primary) !important;
+    color: var(--suad-white) !important;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.4s ease;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23FF6600' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+}
+
+.form-select:focus {
+    background: var(--suad-charcoal) !important;
+    border-color: var(--suad-white) !important;
+    box-shadow: 
+        0 0 20px rgba(255, 102, 0, 0.6) !important,
+        inset 0 2px 4px rgba(0,0,0,0.3);
+    color: var(--suad-white) !important;
+    transform: scale(1.02);
+}
+
+.form-select option {
+    background: var(--suad-dark) !important;
+    color: var(--suad-white) !important;
+    padding: 10px;
+}
+
+/* Form Check Elements - Command Style */
+.form-check-input {
+    background-color: var(--suad-dark) !important;
+    border: 2px solid var(--suad-primary) !important;
+    transition: all 0.3s ease;
+}
+
+.form-check-input:checked {
+    background-color: var(--suad-primary) !important;
+    border-color: var(--suad-white) !important;
+    box-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
+}
+
+.form-check-input:focus {
+    border-color: var(--suad-white) !important;
+    box-shadow: 0 0 15px rgba(255, 102, 0, 0.4) !important;
+}
+
+.form-check-label {
+    color: var(--suad-white) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* Loading States - Action in Progress */
@@ -493,7 +565,30 @@ h1::before {
 }
 
 .card-header [data-feather] {
+    color: var(--suad-white) !important;
+    filter: drop-shadow(0 0 5px var(--suad-primary));
+}
+
+/* Text Color Fixes */
+.text-muted {
     color: var(--suad-accent) !important;
+}
+
+/* Button Outline Styles */
+.btn-outline-primary {
+    border: 2px solid var(--suad-primary) !important;
+    color: var(--suad-primary) !important;
+    background: transparent !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-outline-primary:hover {
+    background: var(--suad-primary) !important;
+    border-color: var(--suad-white) !important;
+    color: var(--suad-white) !important;
+    box-shadow: 0 0 20px rgba(255, 102, 0, 0.5);
 }
 
 /* Responsive Adjustments */

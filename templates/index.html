@@ -131,7 +131,7 @@
                         <label for="agent_sign_description" class="form-label">Agent Sign Description</label>
                         <textarea class="form-control" id="agent_sign_description" name="agent_sign_description" rows="2" 
                                   placeholder="Enter agent sign description"></textarea>
-                        <div class="form-text">This will be saved and displayed for future removes at this address</div>
+                        <div class="form-text">AGENT SIGN INTEL - STORED FOR REMOVAL OPERATIONS</div>
                     </div>
                     
                     <div class="mb-3">
@@ -166,13 +166,13 @@
                                 Manual timestamp override
                             </label>
                         </div>
-                        <div class="form-text">Check to manually set the entry timestamp for priority ordering</div>
+                        <div class="form-text">OVERRIDE TIMESTAMP - MANUAL PRIORITY CONTROL</div>
                     </div>
                     
                     <div class="mb-3" id="manual_timestamp_group" style="display: none;">
                         <label for="manual_timestamp" class="form-label">Manual Entry Timestamp</label>
                         <input type="datetime-local" class="form-control" id="manual_timestamp" name="manual_timestamp">
-                        <div class="form-text">This timestamp determines priority order (earlier = higher priority)</div>
+                        <div class="form-text">EARLIER TIMESTAMP = HIGHER MISSION PRIORITY</div>
                     </div>
                     
                     <div class="mb-3">
@@ -373,7 +373,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <i data-feather="route" class="text-muted" style="width: 48px; height: 48px;"></i>
+                    <i data-feather="map" class="text-muted" style="width: 48px; height: 48px;"></i>
                     <p class="text-muted mt-2">No routes generated yet. Add stops and generate routes above.</p>
                 </div>
                 {% endif %}
@@ -389,7 +389,7 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="route"></i>
+                    <i data-feather="navigation"></i>
                     Optimized Routes (TSP Algorithm)
                 </h5>
             </div>
