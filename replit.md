@@ -158,6 +158,13 @@ Preferred communication style: Simple, everyday language.
 - **3 Drivers**: 2+1+1 stops distribution (90+60+60 minutes)
 - **4 Drivers**: 1 stop each (60 minutes each)
 
+### Driver Count Preservation System
+- **Session Storage**: Driver count saved to Flask session on route generation
+- **Form Value Persistence**: Template renders saved driver count from session
+- **Update Routes Button**: AJAX button preserves count with visual feedback
+- **LocalStorage Backup**: JavaScript stores driver count locally during updates
+- **Auto-Refresh**: Page refreshes with preserved driver count after route generation
+
 ### Technical Improvements
 - **Offline Operation**: System works without external geocoding dependencies
 - **Database Integration**: Routes properly saved and displayed with accurate time calculations

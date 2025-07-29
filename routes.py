@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from datetime import datetime, date, timedelta
 from models import Stop, Route, AgentSignHistory, DriverDepartureAddress, TrafficData, db
 from tsp_solver import TSPSolver
@@ -32,6 +32,10 @@ def index():
     # Use fixed departure address  
     departure_address_str = get_fixed_departure_address()
     
+    # Preserve driver count from session or calculate from current routes
+    current_driver_count = len(set(route.driver_number for route in routes)) if routes else 1
+    saved_driver_count = session.get('last_driver_count', current_driver_count)
+    
     return render_template('index.html', 
                          stops=stops, 
                          routes=routes, 
@@ -39,7 +43,8 @@ def index():
                          datetime=datetime,
                          total_stops=total_stops,
                          stops_next_7_days=stops_next_7_days,
-                         departure_address=departure_address_str)
+                         departure_address=departure_address_str,
+                         current_driver_count=saved_driver_count)
 
 @main.route('/add_stop', methods=['POST'])
 def add_stop():
@@ -194,9 +199,10 @@ def generate_routes():
     start_processing_time = time.time()
     
     try:
-        # Get form data
+        # Get form data and save driver count to session
         num_drivers = int(request.form.get('num_drivers', 1))
         start_time = request.form.get('start_time', '07:00')
+        session['last_driver_count'] = num_drivers
         
         # Get all stops
         stops = Stop.query.all()

@@ -93,6 +93,9 @@
             const startTime = document.getElementById('start_time').value;
             const updateBtn = document.getElementById('updateDriverBtn');
             
+            // Save driver count to localStorage as backup
+            localStorage.setItem('lastDriverCount', numDrivers);
+            
             // Update button state
             updateBtn.innerHTML = '<i data-feather="clock"></i> Updating...';
             updateBtn.disabled = true;
