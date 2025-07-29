@@ -266,8 +266,8 @@ def generate_routes():
         # Sort scheduled stops by required date
         scheduled_stops.sort(key=lambda x: x.required_date or datetime.max)
         
-        # Use geographic clustering for optimal route distribution
-        logging.info(f"Starting geographic route optimization for {len(stops)} stops")
+        # Use geographic clustering for optimal route distribution with fuel efficiency
+        logging.info(f"Starting geographic route optimization for {len(stops)} stops (Toyota Tundra fuel analysis)")
         
         # Convert all stops to format for geographic clustering
         all_stops_data = []
@@ -363,11 +363,24 @@ def generate_routes():
                 
                 total_time = service_time + drive_time_between_stops + departure_to_first + last_to_departure
                 
-                logging.info(f"Driver {driver_num} route time breakdown ({traffic_description}): "
-                           f"Service: {service_time}min, "
-                           f"Between stops: {drive_time_between_stops}min, "
-                           f"Departure trips: {departure_to_first + last_to_departure}min, "
-                           f"Total: {total_time}min")
+                # Calculate fuel cost for this route using Toyota Tundra efficiency
+                from fuel_efficiency import TundraFuelCalculator
+                fuel_calc = TundraFuelCalculator()
+                
+                route_stops_for_fuel = [{'address': stop['address']} for stop in route_stops]
+                fuel_data = fuel_calc.calculate_route_fuel_efficiency(
+                    route_stops_for_fuel, departure_address, int(start_time.split(':')[0])
+                )
+                
+                fuel_cost = fuel_data.get('total_fuel_cost', 0)
+                estimated_miles = fuel_data.get('total_distance_miles', 0)
+                cost_per_hour = fuel_cost / (total_time / 60) if total_time > 0 else 0
+                
+                logging.info(f"Driver {driver_num} route breakdown ({traffic_description}): "
+                           f"Service: {service_time}min, Drive: {drive_time_between_stops}min, "
+                           f"Departure: {departure_to_first + last_to_departure}min, "
+                           f"Total: {total_time}min, Distance: {estimated_miles:.1f}mi, "
+                           f"Fuel: ${fuel_cost:.2f} (${cost_per_hour:.2f}/hr, 2004-2006 Tundra)")
             else:
                 total_time = 0
             
