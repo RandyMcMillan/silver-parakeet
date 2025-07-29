@@ -42,7 +42,7 @@
             <div class="card-header">
                 <h5 class="card-title mb-0">
                     <i data-feather="flag"></i>
-                    COMMAND CENTER
+                    Departure Address
                 </h5>
             </div>
             <div class="card-body">
@@ -50,7 +50,7 @@
                     <div class="d-flex align-items-center">
                         <i data-feather="flag" class="me-2"></i>
                         <div>
-                            <strong>MISSION HQ:</strong><br>
+                            <strong>Base Location:</strong><br>
                             183 DeKalb Industrial Way, Decatur, GA 30030
                         </div>
                     </div>
@@ -66,8 +66,8 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="target"></i>
-                    ADD MISSION TARGET
+                    <i data-feather="plus-circle"></i>
+                    Add New Stop
                 </h5>
             </div>
             <div class="card-body">
@@ -131,7 +131,7 @@
                         <label for="agent_sign_description" class="form-label">Agent Sign Description</label>
                         <textarea class="form-control" id="agent_sign_description" name="agent_sign_description" rows="2" 
                                   placeholder="Enter agent sign description"></textarea>
-                        <div class="form-text">AGENT SIGN INTEL - STORED FOR REMOVAL OPERATIONS</div>
+                        <div class="form-text">Agent sign details stored for removal operations</div>
                     </div>
                     
                     <div class="mb-3">
@@ -166,13 +166,13 @@
                                 Manual timestamp override
                             </label>
                         </div>
-                        <div class="form-text">OVERRIDE TIMESTAMP - MANUAL PRIORITY CONTROL</div>
+                        <div class="form-text">Override timestamp for manual priority control</div>
                     </div>
                     
                     <div class="mb-3" id="manual_timestamp_group" style="display: none;">
                         <label for="manual_timestamp" class="form-label">Manual Entry Timestamp</label>
                         <input type="datetime-local" class="form-control" id="manual_timestamp" name="manual_timestamp">
-                        <div class="form-text">EARLIER TIMESTAMP = HIGHER MISSION PRIORITY</div>
+                        <div class="form-text">Earlier timestamp = higher priority</div>
                     </div>
                     
                     <div class="mb-3">
@@ -205,8 +205,8 @@
                     </div>
                     
                     <button type="submit" class="btn btn-primary" id="addStopBtn">
-                        <i data-feather="crosshair"></i>
-                        <span class="btn-text">LOCK TARGET</span>
+                        <i data-feather="plus"></i>
+                        <span class="btn-text">Add Stop</span>
                         <span class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
                     </button>
                 </form>
@@ -219,14 +219,14 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="zap"></i>
-                    DEPLOY DRIVERS
+                    <i data-feather="users"></i>
+                    Generate Routes
                 </h5>
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('main.generate_routes') }}" onsubmit="handleRouteGeneration(document.getElementById('generateRoutesBtn')); return true;">
                     <div class="mb-3">
-                        <label for="num_drivers" class="form-label">DRIVER UNITS</label>
+                        <label for="num_drivers" class="form-label">Number of Drivers</label>
                         <div class="input-group">
                             <input type="number" class="form-control" id="num_drivers" name="num_drivers" 
                                    min="1" max="20" value="{{ current_driver_count|default(1) }}" required>
@@ -235,23 +235,23 @@
                                 Update Routes
                             </button>
                         </div>
-                        <div class="form-text">DEPLOY DRIVER UNITS - NO DOWNTIME, MAXIMUM COVERAGE</div>
+                        <div class="form-text">Assign stops to available drivers</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="start_time" class="form-label">MISSION START</label>
+                        <label for="start_time" class="form-label">Start Time</label>
                         <input type="time" class="form-control" id="start_time" name="start_time" 
                                value="07:00" required>
-                        <div class="form-text">MISSION START TIME - BEAT THE TRAFFIC</div>
+                        <div class="form-text">Daily route start time</div>
                     </div>
                     
                     <div class="d-grid">
                         <button type="submit" class="btn btn-success" id="generateRoutesBtn">
-                            <i data-feather="zap"></i>
-                            EXECUTE MISSION
+                            <i data-feather="route"></i>
+                            Generate Routes
                         </button>
                         <div class="form-text mt-2 text-center">
-                            <small>PREVIOUS MISSIONS CLEARED - FRESH DEPLOYMENT</small>
+                            <small>Previous routes will be cleared and regenerated</small>
                         </div>
                     </div>
                 </form>
