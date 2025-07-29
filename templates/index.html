@@ -430,13 +430,13 @@
                                             </span>
                                             
                                             {% if route.total_time_minutes < 480 %}
-                                                <small class="text-danger">⚠ Under 8h: -{{ (undertime_minutes // 60) }}h {{ (undertime_minutes % 60) }}m</small>
+                                                <small class="text-danger"><strong>🚨 CRITICAL: Driver needs {{ (undertime_minutes // 60) }}h {{ (undertime_minutes % 60) }}m more work for 8h minimum</strong></small>
                                             {% elif route.total_time_minutes <= 540 %}
-                                                <small class="text-success">✓ Good: 8h+ with {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m OT</small>
+                                                <small class="text-success"><strong>✓ EXCELLENT: 8h minimum met + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m</strong></small>
                                             {% elif route.total_time_minutes <= 600 %}
-                                                <small class="text-warning">⚠ High OT: +{{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m</small>
+                                                <small class="text-info">✓ Good: 8h minimum + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m overtime</small>
                                             {% else %}
-                                                <small class="text-danger">⚠ Excessive OT: +{{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m</small>
+                                                <small class="text-warning">✓ Acceptable: 8h minimum + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m overtime</small>
                                             {% endif %}
                                         </h6>
                                         <i data-feather="chevron-down" class="ms-auto collapse-icon"></i>
