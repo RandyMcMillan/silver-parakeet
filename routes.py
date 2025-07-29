@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from datetime import datetime, date, timedelta
-from models import Stop, Route, AgentSignHistory, DriverDepartureAddress, TrafficData, db
+from models import Stop, Route, AgentSignHistory, DriverDepartureAddress, TrafficData, TrafficSnapshot, db
 from tsp_solver import TSPSolver
 from traffic_scraper import TrafficDataScraper
+from traffic_scheduler import traffic_scheduler
 from security_enhancements import SecurityValidator, require_rate_limit
 import json
 import logging
@@ -269,6 +270,24 @@ def generate_routes():
         if not stops:
             flash('No stops available to route', 'error')
             return redirect(url_for('main.index'))
+        
+        # Update traffic data for route segments (monthly snapshots with variance detection)
+        stop_addresses = [stop.address for stop in stops]
+        traffic_updates = traffic_scheduler.update_route_traffic_data(stop_addresses)
+        
+        # Log traffic data update results
+        if traffic_updates['updates_performed'] > 0:
+            logging.info(f"Updated traffic data for {traffic_updates['updates_performed']} route segments")
+        
+        if traffic_updates['construction_detected']:
+            logging.warning(f"Construction detected on {len(traffic_updates['construction_detected'])} route segments")
+            for alert in traffic_updates['construction_detected']:
+                flash(f"Construction detected: {alert['origin']} to {alert['destination']} (+{alert['variance_minutes']:.1f} min)", 'warning')
+        
+        if traffic_updates['variance_alerts']:
+            logging.info(f"Traffic variance detected on {len(traffic_updates['variance_alerts'])} route segments")
+            for alert in traffic_updates['variance_alerts']:
+                flash(f"Traffic change: {alert['origin']} to {alert['destination']} (+{alert['variance_minutes']:.1f} min)", 'info')
         
         if num_drivers < 1:
             flash('Number of drivers must be at least 1', 'error')

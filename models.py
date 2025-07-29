@@ -1,6 +1,6 @@
 from app import db
 from datetime import datetime, date
-from sqlalchemy import DateTime, String, Integer, Boolean, Text
+from sqlalchemy import DateTime, String, Integer, Boolean, Text, Float
 from sqlalchemy.orm import Mapped, mapped_column
 
 class Stop(db.Model):
@@ -63,3 +63,32 @@ class TrafficData(db.Model):
     
     def __repr__(self):
         return f'<TrafficData {self.id}: {self.from_address} to {self.to_address}>'
+
+class TrafficSnapshot(db.Model):
+    """Store monthly traffic snapshots with variance tracking"""
+    __tablename__ = 'traffic_snapshots'
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    snapshot_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    route_hash: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    origin_address: Mapped[str] = mapped_column(String(500), nullable=False)
+    destination_address: Mapped[str] = mapped_column(String(500), nullable=False)
+    
+    # Traffic timing data (in minutes)
+    morning_rush_time: Mapped[float | None] = mapped_column(Float, nullable=True)  # 7-10 AM average
+    midday_time: Mapped[float | None] = mapped_column(Float, nullable=True)        # 10 AM - 4 PM average
+    evening_rush_time: Mapped[float | None] = mapped_column(Float, nullable=True)  # 4-8 PM average
+    off_peak_time: Mapped[float | None] = mapped_column(Float, nullable=True)      # 8 PM - 7 AM average
+    
+    # Variance tracking
+    variance_score: Mapped[float] = mapped_column(Float, default=0.0)  # 0-100 scale
+    construction_flag: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    last_weekly_check: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+    
+    # Metadata
+    data_source: Mapped[str] = mapped_column(String(100), default='Google Maps API')
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<TrafficSnapshot {self.id}: {self.origin_address} to {self.destination_address}>'
