@@ -27,6 +27,8 @@ class Route(db.Model):
     start_time: Mapped[str] = mapped_column(String(10), nullable=False, default='07:00')
     route_date: Mapped[date] = mapped_column(db.Date, nullable=False, default=lambda: date.today())
     google_maps_data: Mapped[str] = mapped_column(Text, nullable=True)  # JSON string of drive time data
+    overtime_approved: Mapped[bool] = mapped_column(Boolean, default=False)  # Overtime with 8-week lead time
+    lead_time_weeks: Mapped[int] = mapped_column(Integer, nullable=True)  # Weeks of advance notice
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     def __repr__(self):
@@ -63,6 +65,19 @@ class TrafficData(db.Model):
     
     def __repr__(self):
         return f'<TrafficData {self.id}: {self.from_address} to {self.to_address}>'
+
+class OvertimePolicy(db.Model):
+    """Manages overtime approval policies with lead time requirements"""
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    minimum_lead_time_weeks: Mapped[int] = mapped_column(Integer, nullable=False, default=8)
+    max_overtime_hours_daily: Mapped[int] = mapped_column(Integer, nullable=False, default=12)
+    overtime_rate_multiplier: Mapped[float] = mapped_column(Float, nullable=False, default=1.5)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<OvertimePolicy {self.id}: {self.minimum_lead_time_weeks} weeks lead time>'
 
 class TrafficSnapshot(db.Model):
     """Store monthly traffic snapshots with variance tracking"""

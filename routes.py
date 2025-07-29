@@ -440,6 +440,24 @@ def generate_routes():
                 'data_source': traffic_description
             }
             
+            # Calculate lead time in weeks from today to route date
+            from datetime import datetime, date
+            today = date.today()
+            days_ahead = (route_date - today).days
+            lead_time_weeks = max(0, days_ahead // 7)  # Convert days to weeks
+            
+            # Check overtime approval using TSP solver logic
+            from tsp_solver import TSPSolver
+            tsp_solver = TSPSolver()
+            overtime_approved, overtime_reason = tsp_solver.check_overtime_approval(
+                total_time, lead_time_weeks, allow_overtime=True
+            )
+            
+            # Log overtime information
+            if total_time > 480:  # Over 8 hours
+                overtime_hours = (total_time - 480) / 60
+                logging.info(f"Driver {driver_num} overtime: {overtime_hours:.1f} hours, {overtime_reason}")
+            
             route = Route()
             route.driver_number = driver_num
             route.stop_sequence = stop_sequence
@@ -447,6 +465,8 @@ def generate_routes():
             route.start_time = start_time
             route.route_date = route_date
             route.google_maps_data = json.dumps(google_maps_data)
+            route.overtime_approved = overtime_approved
+            route.lead_time_weeks = lead_time_weeks
             
             db.session.add(route)
             routes_created += 1

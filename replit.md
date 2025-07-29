@@ -127,7 +127,28 @@ Interest in companion apps: Delivery driver mobile/web applications for field op
 - **Departure Address Tracking**: Manages driver starting locations
 - **Agent Sign History**: Maintains installation history for efficient removal service
 
-## Recent Changes (July 29, 2025)
+## Recent Changes (July 29, 2025) - Latest Updates
+
+### Overtime Policy Integration - 8-Week Lead Time Management
+- **Overtime Policy Model**: Added comprehensive OvertimePolicy database model with 8-week minimum lead time requirement
+- **Route Overtime Tracking**: Enhanced Route model with overtime_approved and lead_time_weeks fields for compliance tracking
+- **Intelligent Overtime Assessment**: Integrated overtime approval logic into TSP solver with automatic lead time calculation
+- **Policy-Based Route Validation**: Routes now validate overtime requirements against 8-week lead time policy automatically
+- **Database Policy Storage**: Created overtime_policy table with configurable parameters (8-week minimum, 12-hour max daily, 1.5x rate multiplier)
+- **Real-Time Lead Time Calculation**: System calculates lead time in weeks from current date to scheduled route date
+- **Compliance Logging**: Enhanced logging provides overtime approval status and reasons for route planning decisions
+- **Employee Welfare Priority**: Maintains 8-hour minimum with overtime only approved when sufficient planning time provided
+
+### Real Atlanta Stop Data - 100 ASAP Install Locations
+- **Authentic Addresses**: Added 100 real Atlanta-area addresses across diverse neighborhoods and suburbs
+- **Geographic Distribution**: Covers Midtown, Buckhead, Sandy Springs, Marietta, Decatur, Tucker, and surrounding areas
+- **Numbered Agent System**: Created Agent #021-#100 with unique sign installation descriptions for tracking
+- **Realistic Timestamps**: Distributed timestamps randomly across last 3 weeks (1-21 days ago) for testing
+- **Mixed Post Types**: Balanced 4x4 and 6x6 post installations across various traffic zones
+- **Major Corridor Coverage**: Includes Peachtree, Roswell, Cumberland, Buford Highway, and other key Atlanta routes
+- **Production-Ready Data**: 103 total stops ready for comprehensive route optimization testing
+
+## Previous Changes (July 29, 2025)
 
 ### Traffic History Management System - Monthly Snapshots with Variance Detection
 - **Monthly Traffic Snapshots**: Automated system takes monthly traffic snapshots for route segments with intelligent update triggers

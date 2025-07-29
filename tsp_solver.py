@@ -284,7 +284,26 @@ class TSPSolver:
         """Check if route exceeds 8-hour workday limit"""
         return total_minutes <= 480  # 8 hours = 480 minutes
     
-    def optimize_for_8_hour_workday(self, stops: List[Dict], start_time: str, max_drivers: int = 10) -> List[List[int]]:
+    def check_overtime_approval(self, total_minutes: int, lead_time_weeks: int, 
+                               allow_overtime: bool = True) -> Tuple[bool, str]:
+        """Check if overtime is approved based on lead time and policy"""
+        if total_minutes <= 480:  # Within 8 hours
+            return True, "Within standard 8-hour workday"
+        
+        if not allow_overtime:
+            return False, "Overtime not permitted"
+        
+        # Check if we have sufficient lead time for overtime approval
+        minimum_lead_time = 8  # weeks
+        if lead_time_weeks >= minimum_lead_time:
+            overtime_hours = (total_minutes - 480) / 60
+            return True, f"Overtime approved ({overtime_hours:.1f} hours) with {lead_time_weeks}-week lead time"
+        else:
+            needed_weeks = minimum_lead_time - lead_time_weeks
+            return False, f"Overtime requires {minimum_lead_time}-week lead time (need {needed_weeks} more weeks)"
+    
+    def optimize_for_8_hour_workday(self, stops: List[Dict], start_time: str, max_drivers: int = 10, 
+                                   allow_overtime: bool = True, lead_time_weeks: int = 0) -> List[List[int]]:
         """Optimize routes to fit within 8-hour workdays"""
         if not stops:
             return []
@@ -293,15 +312,22 @@ class TSPSolver:
         for num_drivers in range(1, max_drivers + 1):
             routes = self.distribute_stops_for_workday(stops, num_drivers, start_time)
             
-            # Check if all routes fit within 8 hours
+            # Check if all routes fit within 8 hours or have overtime approval
             all_within_limit = True
             for route in routes:
                 if route:  # Skip empty routes
                     total_time = self.calculate_total_time_with_traffic(
                         [stops[i] for i in route], route, start_time
                     )
-                    if not self.check_8_hour_limit(total_time):
+                    
+                    # Check overtime approval if exceeds 8 hours
+                    overtime_approved, reason = self.check_overtime_approval(
+                        total_time, lead_time_weeks, allow_overtime
+                    )
+                    
+                    if not overtime_approved:
                         all_within_limit = False
+                        logging.info(f"Route exceeds limits: {reason}")
                         break
             
             if all_within_limit:
