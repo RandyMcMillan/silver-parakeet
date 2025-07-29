@@ -128,12 +128,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 29, 2025)
 
-### Route Generation and Drive Time Improvements
-- **Atlanta Traffic-Aware Drive Times**: Dynamic calculations based on real Atlanta traffic patterns
-  - **Rush Hour (6-10am, 4-7pm)**: 12 min between stops, 18 min to/from base
-  - **Mid-Day Optimal (10am-4pm)**: 8 min between stops, 12 min to/from base  
-  - **Off-Peak Hours**: 10 min between stops, 15 min to/from base
-- **Real-World Accuracy**: Based on Atlanta metro area traffic research with city driving speeds of 15-30 mph
+### Google Maps API Integration and Real-Time Drive Times
+- **Google Maps Distance Matrix API**: Live traffic-aware drive time calculations between actual addresses
+- **Real-Time Traffic Data**: Uses "duration_in_traffic" for current road conditions and congestion
+- **Fallback System**: Automatic fallback to Atlanta traffic estimates if API unavailable
+- **Visual Indicators**: Routes display "(real-time)" tags when using live Google Maps data
+- **API Efficiency**: Optimized calls to minimize usage while maximizing accuracy
 - **Auto-Clear Route System**: Routes automatically cleared and regenerated each time "Generate Routes" is pressed
 - **Cache-Busting Redirects**: Added timestamp parameters to force browser refresh after route generation
 - **Enhanced Logging**: Detailed time breakdown logging for each driver route (service time, drive time, departure trips)

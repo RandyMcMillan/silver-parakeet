@@ -292,34 +292,44 @@ def generate_routes():
             valid_indices = [i for i in route_indices if i < len(all_stops_data)]
             route_stops = [all_stops_data[i] for i in valid_indices]
             
-            # Calculate estimated time with Atlanta traffic-aware drive times
+            # Calculate estimated time with Google Maps API or fallback estimates
             if route_stops:
                 # Service time: 10 minutes per stop (install/pickup/removal)
                 service_time = len(route_stops) * 10
                 
-                # Time-based traffic factors for Atlanta metro area
-                # Use the start_time hour instead of current time for scheduling accuracy
-                start_hour = datetime.strptime(start_time, '%H:%M').hour
+                # Get real drive times using Google Maps API
+                from google_maps_service import GoogleMapsService
+                maps_service = GoogleMapsService()
                 
-                # Rush hour periods: 6-10am and 4-7pm
-                if (6 <= start_hour <= 10) or (16 <= start_hour <= 19):
-                    # Rush hour: slower city driving, more congestion
-                    drive_time_between_stops = (len(route_stops) - 1) * 12 if len(route_stops) > 1 else 0
-                    departure_to_first = 18
-                    last_to_departure = 18
-                    traffic_description = "rush hour"
-                elif (10 < start_hour < 16):
-                    # Mid-day: optimal driving conditions
-                    drive_time_between_stops = (len(route_stops) - 1) * 8 if len(route_stops) > 1 else 0
-                    departure_to_first = 12
-                    last_to_departure = 12
-                    traffic_description = "mid-day optimal"
-                else:
-                    # Off-peak: moderate traffic
-                    drive_time_between_stops = (len(route_stops) - 1) * 10 if len(route_stops) > 1 else 0
-                    departure_to_first = 15
-                    last_to_departure = 15
-                    traffic_description = "off-peak"
+                # Extract addresses from route stops
+                stop_addresses = [stop['address'] for stop in route_stops]
+                departure_address = get_fixed_departure_address()
+                
+                # Get drive times from Google Maps or fallback estimates
+                try:
+                    drive_times_list, departure_to_first, last_to_departure = maps_service.get_route_drive_times(
+                        departure_address, stop_addresses
+                    )
+                    
+                    # If Google Maps API failed, use fallback estimates
+                    if departure_to_first == 0 and last_to_departure == 0 and not drive_times_list:
+                        drive_times_list, departure_to_first, last_to_departure = maps_service.get_fallback_drive_times(
+                            departure_address, stop_addresses, start_time
+                        )
+                        traffic_description = "fallback estimates"
+                    else:
+                        traffic_description = "Google Maps real-time"
+                        
+                    drive_time_between_stops = sum(drive_times_list) if drive_times_list else 0
+                    
+                except Exception as e:
+                    logging.warning(f"Google Maps service error: {e}, using fallback estimates")
+                    # Use fallback estimates if Google Maps fails
+                    drive_times_list, departure_to_first, last_to_departure = maps_service.get_fallback_drive_times(
+                        departure_address, stop_addresses, start_time
+                    )
+                    drive_time_between_stops = sum(drive_times_list) if drive_times_list else 0
+                    traffic_description = "fallback estimates"
                 
                 total_time = service_time + drive_time_between_stops + departure_to_first + last_to_departure
                 
@@ -337,12 +347,22 @@ def generate_routes():
             
             # Create route record
             stop_sequence = json.dumps([all_stops_data[i]['id'] for i in valid_indices])
+            
+            # Store Google Maps drive time data for UI display
+            google_maps_data = {
+                'departure_to_first': departure_to_first,
+                'between_stops': drive_times_list,
+                'last_to_departure': last_to_departure,
+                'data_source': traffic_description
+            }
+            
             route = Route()
             route.driver_number = driver_num
             route.stop_sequence = stop_sequence
             route.total_time_minutes = total_time
             route.start_time = start_time
-            route.route_date = route_date  # Add route date to database
+            route.route_date = route_date
+            route.google_maps_data = json.dumps(google_maps_data)
             
             db.session.add(route)
             routes_created += 1

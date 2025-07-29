@@ -26,6 +26,7 @@ class Route(db.Model):
     total_time_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     start_time: Mapped[str] = mapped_column(String(10), nullable=False, default='07:00')
     route_date: Mapped[date] = mapped_column(db.Date, nullable=False, default=lambda: date.today())
+    google_maps_data: Mapped[str] = mapped_column(Text, nullable=True)  # JSON string of drive time data
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     def __repr__(self):

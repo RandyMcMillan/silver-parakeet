@@ -365,6 +365,7 @@
             <div class="card-body">
                 <div class="row">
                     {% for route in routes %}
+                    {% set google_maps_data = route.google_maps_data|from_json if route.google_maps_data else None %}
                     <div class="col-lg-6 mb-4">
                         <div class="card">
                             <div class="card-header">
@@ -411,7 +412,7 @@
                                         <li class="mb-1 text-center">
                                             <small class="text-muted">
                                                 <i data-feather="navigation" style="width: 12px; height: 12px;"></i>
-                                                Drive to first stop: ~12-18 minutes (varies by traffic)
+                                                Drive to first stop: ~{{ google_maps_data.departure_to_first if google_maps_data else '12-18' }} minutes{% if google_maps_data and google_maps_data.data_source == 'Google Maps real-time' %} <small class="text-success">(real-time)</small>{% endif %}
                                             </small>
                                         </li>
                                         {% endif %}
@@ -461,7 +462,7 @@
                                             <li class="mb-1 text-center">
                                                 <small class="text-muted">
                                                     <i data-feather="navigation" style="width: 12px; height: 12px;"></i>
-                                                    Drive to next stop: ~8-12 minutes (varies by traffic)
+                                                    Drive to next stop: ~{{ google_maps_data.between_stops[loop.index0] if google_maps_data and google_maps_data.between_stops and loop.index0 < google_maps_data.between_stops|length else '8-12' }} minutes{% if google_maps_data and google_maps_data.data_source == 'Google Maps real-time' %} <small class="text-success">(real-time)</small>{% endif %}
                                                 </small>
                                             </li>
                                             {% endif %}
@@ -473,7 +474,7 @@
                                         <li class="mb-1 text-center">
                                             <small class="text-muted">
                                                 <i data-feather="navigation" style="width: 12px; height: 12px;"></i>
-                                                Drive back to base: ~12-18 minutes (varies by traffic)
+                                                Drive back to base: ~{{ google_maps_data.last_to_departure if google_maps_data else '12-18' }} minutes{% if google_maps_data and google_maps_data.data_source == 'Google Maps real-time' %} <small class="text-success">(real-time)</small>{% endif %}
                                             </small>
                                         </li>
                                         {% endif %}
