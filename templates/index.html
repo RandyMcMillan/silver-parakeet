@@ -381,7 +381,7 @@
                             }) %}
                         {% endif %}
                     {% endfor %}
-                    <div class="col-lg-6 mb-4" data-route-id="{{ route.driver_number }}" data-stops-data="{{ route_stops|tojson|e }}" data-departure-address="{{ departure_address }}">
+                    <div class="col-lg-6 mb-4" data-route-id="{{ route.driver_number }}" data-departure-address="{{ departure_address }}">
                         <div class="card">
                             <div class="card-header">
                                 <div class="d-flex justify-content-between align-items-center">
@@ -410,6 +410,8 @@
                             <!-- Map container (initially hidden) -->
                             <div id="map-container-{{ route.driver_number }}" style="display: none;" class="card-body p-0">
                                 <div id="map-{{ route.driver_number }}" style="height: 400px; width: 100%;"></div>
+                                <!-- Route data stored in script tag to avoid HTML attribute issues -->
+                                <script type="application/json" id="route-data-{{ route.driver_number }}">{{ route_stops|tojson }}</script>
                             </div>
                             
                             <div class="card-body">

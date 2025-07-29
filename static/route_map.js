@@ -230,12 +230,14 @@ function toggleRouteMap(routeId) {
             const routeCard = document.querySelector(`[data-route-id="${routeId}"]`);
             if (routeCard) {
                 try {
-                    const stopsDataRaw = routeCard.dataset.stopsData || '[]';
-                    console.log(`Raw stops data for route ${routeId}:`, stopsDataRaw);
+                    // Get route data from script tag instead of data attribute
+                    const routeDataScript = document.getElementById(`route-data-${routeId}`);
+                    if (!routeDataScript) {
+                        console.error(`Route data script not found for route ${routeId}`);
+                        return;
+                    }
                     
-                    // Decode HTML entities and parse JSON
-                    const decodedData = stopsDataRaw.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-                    const stopsData = JSON.parse(decodedData);
+                    const stopsData = JSON.parse(routeDataScript.textContent);
                     const departureAddress = routeCard.dataset.departureAddress;
                     
                     console.log(`Initializing map for route ${routeId} with ${stopsData.length} stops:`, stopsData);
@@ -248,7 +250,6 @@ function toggleRouteMap(routeId) {
                     }
                 } catch (error) {
                     console.error(`Failed to parse stops data for route ${routeId}:`, error);
-                    console.error('Raw data:', routeCard.dataset.stopsData);
                 }
             }
         } else {
