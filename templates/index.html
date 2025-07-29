@@ -453,8 +453,8 @@
                                 </div>
                             </div>
                             
-                            <!-- Map container (initially hidden) -->
-                            <div id="map-container-{{ route.driver_number }}" style="display: none;" class="card-body p-0">
+                            <!-- Map container (initially hidden, completely removed from layout) -->
+                            <div id="map-container-{{ route.driver_number }}" style="display: none; position: absolute; visibility: hidden; height: 0; overflow: hidden;" class="card-body p-0">
                                 <div id="map-{{ route.driver_number }}" style="height: 400px; width: 100%;"></div>
                                 <!-- Route data stored in script tag to avoid HTML attribute issues -->
                                 <script type="application/json" id="route-data-{{ route.driver_number }}">{{ route_stops|tojson }}</script>

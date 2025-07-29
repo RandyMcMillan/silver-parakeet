@@ -268,7 +268,14 @@ function toggleRouteMap(routeId) {
     const toggleBtn = document.getElementById(`map-toggle-${routeId}`);
     
     if (mapContainer.style.display === 'none') {
+        // Show map with proper layout restoration
         mapContainer.style.display = 'block';
+        mapContainer.style.position = 'static';
+        mapContainer.style.visibility = 'visible';
+        mapContainer.style.height = 'auto';
+        mapContainer.style.width = '100%';
+        mapContainer.style.overflow = 'visible';
+        mapContainer.style.zIndex = 'auto';
         toggleBtn.innerHTML = '<i data-feather="eye-off" style="width: 14px; height: 14px;"></i> Hide Map';
         
         // Initialize the map if it hasn't been created yet
@@ -301,7 +308,14 @@ function toggleRouteMap(routeId) {
         // Update icons
         feather.replace();
     } else {
+        // Hide map completely from layout
         mapContainer.style.display = 'none';
+        mapContainer.style.position = 'absolute';
+        mapContainer.style.visibility = 'hidden';
+        mapContainer.style.height = '0';
+        mapContainer.style.width = '0';
+        mapContainer.style.overflow = 'hidden';
+        mapContainer.style.zIndex = '-1';
         toggleBtn.innerHTML = '<i data-feather="map" style="width: 14px; height: 14px;"></i> Show Map';
         feather.replace();
     }

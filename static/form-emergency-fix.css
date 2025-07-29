@@ -250,3 +250,52 @@ input::placeholder, textarea::placeholder {
     padding: 1rem !important;
     border: none !important;
 }
+
+/* Map containers should not interfere with layout when hidden */
+div[id^="map-container-"]:not([style*="display: block"]) {
+    display: none !important;
+    position: absolute !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    z-index: -1 !important;
+}
+
+/* When map is shown, restore normal layout */
+div[id^="map-container-"][style*="display: block"] {
+    position: static !important;
+    visibility: visible !important;
+    height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+    z-index: auto !important;
+}
+
+/* Fix map container space allocation */
+#map-container-1, #map-container-2, #map-container-3, #map-container-4, #map-container-5 {
+    height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* When map is shown, allocate proper space */
+#map-container-1[style*="block"], 
+#map-container-2[style*="block"], 
+#map-container-3[style*="block"], 
+#map-container-4[style*="block"], 
+#map-container-5[style*="block"] {
+    height: auto !important;
+    padding: 0 !important;
+}
+
+/* Ensure route cards don't have unwanted spacing */
+.card .collapse {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.card .collapse .card-body {
+    margin: 0 !important;
+}
