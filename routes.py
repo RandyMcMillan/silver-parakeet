@@ -190,6 +190,9 @@ def get_fixed_departure_address():
 @main.route('/generate_routes', methods=['POST'])
 def generate_routes():
     """Generate optimized routes for specified number of drivers with 8-hour workday goals"""
+    import time
+    start_processing_time = time.time()
+    
     try:
         # Get form data
         num_drivers = int(request.form.get('num_drivers', 1))
@@ -331,12 +334,14 @@ def generate_routes():
         flash(f'Error generating routes: {str(e)}', 'error')
         db.session.rollback()
     
-    # Force browser refresh with strong cache-busting
+    # Force immediate browser redirect with aggressive cache-busting
     from flask import make_response
-    response = make_response(redirect(url_for('main.index', v=int(datetime.now().timestamp()))))
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    timestamp = int(time.time() * 1000)  # Milliseconds for uniqueness
+    response = make_response(redirect(url_for('main.index', refresh='routes', v=timestamp)))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
+    response.headers['Last-Modified'] = datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')
     return response
 
 @main.route('/delete_stop/<int:stop_id>')

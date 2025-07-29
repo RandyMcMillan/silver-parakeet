@@ -66,15 +66,27 @@
     <script>
         feather.replace();
         
-        // Check if page was redirected after route generation and force refresh
+        // Handle route generation refresh with aggressive cache-busting
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('v')) {
-            // Remove the cache-busting parameter and force a complete page reload
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, document.title, newUrl);
-            // Force a hard refresh to bypass any browser caching
+        const isRouteRefresh = urlParams.get('refresh') === 'routes';
+        
+        if (isRouteRefresh && !sessionStorage.getItem('routes_refreshed_' + urlParams.get('v'))) {
+            // Mark this specific refresh as handled
+            sessionStorage.setItem('routes_refreshed_' + urlParams.get('v'), 'true');
+            
+            // Clean URL immediately
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // Force complete page reload with cache bypass
             setTimeout(() => {
-                window.location.reload(true);
+                // Clear the refresh marker after use
+                Object.keys(sessionStorage).forEach(key => {
+                    if (key.startsWith('routes_refreshed_')) {
+                        sessionStorage.removeItem(key);
+                    }
+                });
+                // Hard reload to ensure fresh data
+                window.location.href = window.location.href + '?_=' + Date.now();
             }, 100);
         }
     </script>
