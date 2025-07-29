@@ -7,7 +7,7 @@
             <i data-feather="truck"></i>
             Shut Up and Drive Dashboard
         </h1>
-        <p class="lead">Get your drivers on the road with optimized routes and fuel-efficient scheduling</p>
+        <p class="lead">NO EXCUSES. NO DELAYS. JUST OPTIMIZED ROUTES AND MAXIMUM EFFICIENCY.</p>
         
         <!-- Stop Counters -->
         <div class="row mb-4">
@@ -41,16 +41,16 @@
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="home"></i>
-                    Driver Departure Address
+                    <i data-feather="flag"></i>
+                    COMMAND CENTER
                 </h5>
             </div>
             <div class="card-body">
                 <div class="alert alert-info mb-0">
                     <div class="d-flex align-items-center">
-                        <i data-feather="map-pin" class="me-2"></i>
+                        <i data-feather="flag" class="me-2"></i>
                         <div>
-                            <strong>Fixed Start Location:</strong><br>
+                            <strong>MISSION HQ:</strong><br>
                             183 DeKalb Industrial Way, Decatur, GA 30030
                         </div>
                     </div>
@@ -66,8 +66,8 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="plus-circle"></i>
-                    Add New Stop
+                    <i data-feather="target"></i>
+                    ADD MISSION TARGET
                 </h5>
             </div>
             <div class="card-body">
@@ -205,8 +205,8 @@
                     </div>
                     
                     <button type="submit" class="btn btn-primary" id="addStopBtn">
-                        <i data-feather="plus"></i>
-                        <span class="btn-text">Add Stop</span>
+                        <i data-feather="crosshair"></i>
+                        <span class="btn-text">LOCK TARGET</span>
                         <span class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
                     </button>
                 </form>
@@ -219,14 +219,14 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="users"></i>
-                    Route Generation
+                    <i data-feather="zap"></i>
+                    DEPLOY DRIVERS
                 </h5>
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('main.generate_routes') }}" onsubmit="handleRouteGeneration(document.getElementById('generateRoutesBtn')); return true;">
                     <div class="mb-3">
-                        <label for="num_drivers" class="form-label">Number of Drivers</label>
+                        <label for="num_drivers" class="form-label">DRIVER UNITS</label>
                         <div class="input-group">
                             <input type="number" class="form-control" id="num_drivers" name="num_drivers" 
                                    min="1" max="20" value="{{ current_driver_count|default(1) }}" required>
@@ -235,23 +235,23 @@
                                 Update Routes
                             </button>
                         </div>
-                        <div class="form-text">Enter number of drivers and click "Update Routes" to redistribute stops</div>
+                        <div class="form-text">DEPLOY DRIVER UNITS - NO DOWNTIME, MAXIMUM COVERAGE</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="start_time" class="form-label">Route Start Time</label>
+                        <label for="start_time" class="form-label">MISSION START</label>
                         <input type="time" class="form-control" id="start_time" name="start_time" 
                                value="07:00" required>
-                        <div class="form-text">Default start time for all routes (used for traffic calculations)</div>
+                        <div class="form-text">MISSION START TIME - BEAT THE TRAFFIC</div>
                     </div>
                     
                     <div class="d-grid">
                         <button type="submit" class="btn btn-success" id="generateRoutesBtn">
-                            <i data-feather="navigation"></i>
-                            Generate Optimized Routes
+                            <i data-feather="zap"></i>
+                            EXECUTE MISSION
                         </button>
                         <div class="form-text mt-2 text-center">
-                            <small>Previous routes will be automatically cleared and replaced</small>
+                            <small>PREVIOUS MISSIONS CLEARED - FRESH DEPLOYMENT</small>
                         </div>
                     </div>
                 </form>

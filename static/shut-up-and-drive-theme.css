@@ -1,0 +1,295 @@
+/* Shut Up and Drive - Aggressive Action-Oriented Theme */
+
+:root {
+    --suad-primary: #FF4500;      /* Orange Red - High energy */
+    --suad-secondary: #DC143C;    /* Crimson - Urgency */
+    --suad-accent: #FFD700;       /* Gold - Success/Completion */
+    --suad-dark: #1a1a1a;         /* Deep Black */
+    --suad-warning: #FF6B35;      /* Burnt Orange */
+    --suad-success: #32CD32;      /* Lime Green - Go signal */
+    --suad-danger: #FF1744;       /* Bright Red - Stop/Alert */
+}
+
+/* Navbar - Command Center Feel */
+.navbar {
+    background: linear-gradient(135deg, var(--suad-dark) 0%, #2d2d2d 100%) !important;
+    border-bottom: 3px solid var(--suad-primary);
+    box-shadow: 0 4px 15px rgba(255, 69, 0, 0.3);
+}
+
+.navbar-brand {
+    font-weight: 900 !important;
+    font-size: 1.5rem !important;
+    color: var(--suad-primary) !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+.navbar-brand:hover {
+    color: var(--suad-accent) !important;
+    transform: scale(1.05);
+    transition: all 0.3s ease;
+}
+
+/* Dashboard Header - Bold and Commanding */
+h1 {
+    color: var(--suad-primary) !important;
+    font-weight: 900 !important;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.7);
+    border-bottom: 4px solid var(--suad-accent);
+    padding-bottom: 15px;
+    margin-bottom: 25px !important;
+}
+
+.lead {
+    color: var(--suad-accent) !important;
+    font-weight: 600 !important;
+    font-size: 1.3rem !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+/* Action Buttons - High Impact */
+.btn-primary {
+    background: linear-gradient(135deg, var(--suad-primary) 0%, var(--suad-secondary) 100%) !important;
+    border: 2px solid var(--suad-primary) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(255, 69, 0, 0.4);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--suad-secondary) 0%, var(--suad-primary) 100%) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 69, 0, 0.6);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--suad-success) 0%, #228B22 100%) !important;
+    border: 2px solid var(--suad-success) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(50, 205, 50, 0.4);
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #228B22 0%, var(--suad-success) 100%) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(50, 205, 50, 0.6);
+}
+
+/* Cards - Command Module Style */
+.card {
+    background: linear-gradient(145deg, #2d2d2d 0%, #1a1a1a 100%) !important;
+    border: 2px solid var(--suad-primary) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 35px rgba(255, 69, 0, 0.3);
+    border-color: var(--suad-accent) !important;
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--suad-primary) 0%, var(--suad-secondary) 100%) !important;
+    border-bottom: 3px solid var(--suad-accent) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.card-title {
+    color: white !important;
+    margin: 0 !important;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+/* Stop Counters - Mission Critical Display */
+.card.bg-primary {
+    background: linear-gradient(135deg, var(--suad-primary) 0%, var(--suad-secondary) 100%) !important;
+    border: 3px solid var(--suad-accent) !important;
+    animation: pulse-glow 2s infinite;
+}
+
+.card.bg-info {
+    background: linear-gradient(135deg, var(--suad-accent) 0%, #FFA500 100%) !important;
+    border: 3px solid var(--suad-primary) !important;
+    color: var(--suad-dark) !important;
+}
+
+.card.bg-info .card-title,
+.card.bg-info h2,
+.card.bg-info small {
+    color: var(--suad-dark) !important;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.3);
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 69, 0, 0.5); }
+    50% { box-shadow: 0 0 30px rgba(255, 69, 0, 0.8); }
+}
+
+/* Route Cards - High Visibility */
+.route-card {
+    background: linear-gradient(145deg, #333333 0%, #1f1f1f 100%) !important;
+    border-left: 6px solid var(--suad-primary) !important;
+    border-radius: 8px !important;
+    margin-bottom: 20px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+}
+
+.route-card h5 {
+    color: var(--suad-accent) !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Form Controls - Mission Input */
+.form-control {
+    background: #2d2d2d !important;
+    border: 2px solid #444 !important;
+    color: white !important;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    background: #333 !important;
+    border-color: var(--suad-primary) !important;
+    box-shadow: 0 0 15px rgba(255, 69, 0, 0.4) !important;
+    color: white !important;
+}
+
+.form-label {
+    color: var(--suad-accent) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
+}
+
+/* Alerts - Command Feedback */
+.alert-success {
+    background: linear-gradient(135deg, var(--suad-success) 0%, #228B22 100%) !important;
+    border: 2px solid var(--suad-success) !important;
+    color: white !important;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, var(--suad-danger) 0%, #CC0000 100%) !important;
+    border: 2px solid var(--suad-danger) !important;
+    color: white !important;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, var(--suad-warning) 0%, #FF8C00 100%) !important;
+    border: 2px solid var(--suad-warning) !important;
+    color: white !important;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Departure Address - Command Central */
+.alert-info {
+    background: linear-gradient(135deg, var(--suad-dark) 0%, #2d2d2d 100%) !important;
+    border: 3px solid var(--suad-accent) !important;
+    color: var(--suad-accent) !important;
+    font-weight: 700 !important;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Loading States - Action in Progress */
+.btn.loading {
+    animation: loading-pulse 1s infinite;
+}
+
+@keyframes loading-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Tables - Data Command Center */
+.table-dark {
+    background: linear-gradient(145deg, #2d2d2d 0%, #1a1a1a 100%) !important;
+    border: 2px solid var(--suad-primary);
+}
+
+.table-dark th {
+    background: linear-gradient(135deg, var(--suad-primary) 0%, var(--suad-secondary) 100%) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-color: var(--suad-accent) !important;
+}
+
+.table-dark td {
+    border-color: var(--suad-primary) !important;
+    color: white !important;
+    font-weight: 500;
+}
+
+/* Icons - Command Symbols */
+[data-feather] {
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.8));
+    transition: all 0.3s ease;
+}
+
+.card-header [data-feather] {
+    color: var(--suad-accent) !important;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2rem !important;
+        letter-spacing: 1px;
+    }
+    
+    .navbar-brand {
+        font-size: 1.2rem !important;
+    }
+    
+    .card {
+        margin-bottom: 15px;
+    }
+}
+
+/* High Contrast Focus for Accessibility */
+.btn:focus,
+.form-control:focus,
+.card:focus {
+    outline: 3px solid var(--suad-accent) !important;
+    outline-offset: 2px;
+}
+
+/* Custom Animation for Route Generation */
+.generating-routes {
+    animation: route-generation 2s infinite;
+}
+
+@keyframes route-generation {
+    0%, 100% { 
+        background: linear-gradient(135deg, var(--suad-success) 0%, #228B22 100%);
+        transform: scale(1);
+    }
+    50% { 
+        background: linear-gradient(135deg, #228B22 0%, var(--suad-success) 100%);
+        transform: scale(1.02);
+    }
+}
