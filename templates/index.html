@@ -159,6 +159,22 @@
                     </div>
                     
                     <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="manual_timestamp_override" name="manual_timestamp_override" onchange="toggleManualTimestamp()">
+                            <label class="form-check-label" for="manual_timestamp_override">
+                                Manual timestamp override
+                            </label>
+                        </div>
+                        <div class="form-text">Check to manually set the entry timestamp for priority ordering</div>
+                    </div>
+                    
+                    <div class="mb-3" id="manual_timestamp_group" style="display: none;">
+                        <label for="manual_timestamp" class="form-label">Manual Entry Timestamp</label>
+                        <input type="datetime-local" class="form-control" id="manual_timestamp" name="manual_timestamp">
+                        <div class="form-text">This timestamp determines priority order (earlier = higher priority)</div>
+                    </div>
+                    
+                    <div class="mb-3">
                         <label class="form-label">Address</label>
                         <div class="row">
                             <div class="col-md-8 mb-2">

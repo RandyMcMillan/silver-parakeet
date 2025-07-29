@@ -148,6 +148,26 @@
                 window.location.reload(true);
             }, 100);
         }
+        
+        // Toggle manual timestamp field visibility
+        function toggleManualTimestamp() {
+            const checkbox = document.getElementById('manual_timestamp_override');
+            const timestampGroup = document.getElementById('manual_timestamp_group');
+            const timestampInput = document.getElementById('manual_timestamp');
+            
+            if (checkbox.checked) {
+                timestampGroup.style.display = 'block';
+                timestampInput.required = true;
+                // Set default to current date and time
+                const now = new Date();
+                const localISOTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+                timestampInput.value = localISOTime;
+            } else {
+                timestampGroup.style.display = 'none';
+                timestampInput.required = false;
+                timestampInput.value = '';
+            }
+        }
     </script>
 </body>
 </html>

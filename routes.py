@@ -79,6 +79,21 @@ def add_stop():
         riders_toppers_description = request.form.get('riders_toppers_description', '').strip()
         has_shelter = request.form.get('has_shelter') == 'on'
         
+        # Handle manual timestamp override
+        manual_timestamp_override = request.form.get('manual_timestamp_override') == 'on'
+        manual_timestamp = None
+        if manual_timestamp_override:
+            manual_timestamp_str = request.form.get('manual_timestamp')
+            if manual_timestamp_str:
+                try:
+                    manual_timestamp = datetime.strptime(manual_timestamp_str, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    flash('Invalid timestamp format', 'error')
+                    return redirect(url_for('main.index'))
+            else:
+                flash('Manual timestamp is required when override is checked', 'error')
+                return redirect(url_for('main.index'))
+        
         # Handle post type and notes based on service type
         post_type = None
         post_type_notes = None
@@ -138,6 +153,10 @@ def add_stop():
         stop.has_riders_toppers = has_riders_toppers
         stop.riders_toppers_description = riders_toppers_description if has_riders_toppers else None
         stop.has_shelter = has_shelter
+        
+        # Set manual timestamp if provided, otherwise use default (current time)
+        if manual_timestamp:
+            stop.created_at = manual_timestamp
         
         db.session.add(stop)
         
