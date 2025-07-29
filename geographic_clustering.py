@@ -17,23 +17,18 @@ class GeographicClusterer:
         if address in self.geocache:
             return self.geocache[address]
             
+        # Skip external geocoding to prevent timeouts, use area-based coordinates
         try:
-            # Use shorter timeout to prevent worker crashes
-            location = self.geocoder.geocode(address, timeout=2)
-            if location:
-                coords = (location.latitude, location.longitude)
-                self.geocache[address] = coords
-                return coords
-            else:
-                logging.warning(f"Could not geocode address: {address}")
-                fallback = self.get_area_fallback_coordinates(address)
-                self.geocache[address] = fallback
-                return fallback
-        except Exception as e:
-            logging.error(f"Geocoding error for {address}: {e}")
             fallback = self.get_area_fallback_coordinates(address)
             self.geocache[address] = fallback
+            logging.info(f"Using area-based coordinates for {address}: {fallback}")
             return fallback
+        except Exception as e:
+            logging.error(f"Fallback coordinate error for {address}: {e}")
+            # Default Atlanta center
+            default = (33.7490, -84.3880)
+            self.geocache[address] = default
+            return default
     
     def calculate_distance(self, addr1: str, addr2: str) -> float:
         """Calculate distance between two addresses in miles"""
@@ -161,9 +156,85 @@ class GeographicClusterer:
         
         return clusters
     
+    def calculate_route_workload_time(self, stop_indices: List[int], stops: List[Dict], departure_address: str = "183 DeKalb Industrial Way, Decatur, GA 30030") -> int:
+        """Calculate total workload time in minutes for a route including service and drive time"""
+        if not stop_indices:
+            return 0
+        
+        # Time estimates
+        service_time_per_stop = 60  # 60 minutes per stop for installations/removals
+        drive_time_between_stops = 20  # 20 minutes average between stops
+        drive_time_to_first = 25  # 25 minutes from departure to first stop
+        drive_time_back = 25  # 25 minutes back to departure
+        
+        total_time = 0
+        
+        # Service time for all stops
+        total_time += len(stop_indices) * service_time_per_stop
+        
+        # Drive time from departure to first stop
+        total_time += drive_time_to_first
+        
+        # Drive time between stops
+        if len(stop_indices) > 1:
+            total_time += (len(stop_indices) - 1) * drive_time_between_stops
+        
+        # Drive time back to departure
+        total_time += drive_time_back
+        
+        return total_time
+
+    def balance_workload_for_8_hours(self, stop_distribution: List[List[int]], stops: List[Dict], target_minutes: int = 480) -> List[List[int]]:
+        """Balance workload distribution to target 8-hour (480 minute) workdays"""
+        if not stop_distribution:
+            return stop_distribution
+        
+        # Calculate current workloads
+        workloads = []
+        for i, route_indices in enumerate(stop_distribution):
+            workload_time = self.calculate_route_workload_time(route_indices, stops)
+            workloads.append({
+                'driver_index': i,
+                'route_indices': route_indices.copy(),
+                'workload_minutes': workload_time
+            })
+            logging.info(f"Driver {i+1} initial workload: {workload_time} minutes ({workload_time/60:.1f} hours)")
+        
+        # Balance workloads by moving stops from overloaded to underloaded drivers
+        max_iterations = 20
+        for iteration in range(max_iterations):
+            # Find most overloaded and most underloaded drivers
+            overloaded = max(workloads, key=lambda x: x['workload_minutes'])
+            underloaded = min(workloads, key=lambda x: x['workload_minutes'])
+            
+            # If difference is small or overloaded is close to target, we're done
+            workload_diff = overloaded['workload_minutes'] - underloaded['workload_minutes']
+            if workload_diff < 60 or overloaded['workload_minutes'] <= target_minutes + 60:
+                break
+            
+            # Move one stop from overloaded to underloaded
+            if overloaded['route_indices']:
+                stop_to_move = overloaded['route_indices'].pop()
+                underloaded['route_indices'].append(stop_to_move)
+                
+                # Recalculate workloads
+                overloaded['workload_minutes'] = self.calculate_route_workload_time(overloaded['route_indices'], stops)
+                underloaded['workload_minutes'] = self.calculate_route_workload_time(underloaded['route_indices'], stops)
+                
+                logging.debug(f"Iteration {iteration+1}: Moved stop from driver {overloaded['driver_index']+1} to driver {underloaded['driver_index']+1}")
+        
+        # Extract balanced routes and log final workloads
+        balanced_distribution = []
+        for workload in sorted(workloads, key=lambda x: x['driver_index']):
+            balanced_distribution.append(workload['route_indices'])
+            hours = workload['workload_minutes'] / 60
+            logging.info(f"Driver {workload['driver_index']+1} final workload: {workload['workload_minutes']} minutes ({hours:.1f} hours)")
+        
+        return balanced_distribution
+
     def get_optimized_stop_distribution(self, stops: List[Dict], num_drivers: int) -> List[List[int]]:
         """
-        Get stop distribution optimized for geographic proximity
+        Get stop distribution optimized for 8-hour workdays and geographic proximity
         
         Args:
             stops: List of stop dictionaries
@@ -173,7 +244,7 @@ class GeographicClusterer:
             List of lists containing stop indices for each driver
         """
         try:
-            # Cluster stops by proximity
+            # Start with geographic clustering for efficiency
             clusters = self.cluster_stops_by_proximity(stops, num_drivers)
             
             # Convert clusters to stop indices
@@ -188,17 +259,24 @@ class GeographicClusterer:
                             break
                 stop_distribution.append(indices)
             
-            # Log cluster information
-            for i, cluster_indices in enumerate(stop_distribution):
-                cluster_stops = [stops[idx]['address'] for idx in cluster_indices]
-                logging.info(f"Driver {i+1} cluster: {len(cluster_indices)} stops in proximity")
-                for addr in cluster_stops:
-                    logging.debug(f"  - {addr}")
+            # Balance workloads for 8-hour target
+            logging.info("Balancing workloads for 8-hour target...")
+            balanced_distribution = self.balance_workload_for_8_hours(stop_distribution, stops)
             
-            return stop_distribution
+            # Log final cluster information
+            for i, cluster_indices in enumerate(balanced_distribution):
+                cluster_stops = [stops[idx]['address'] for idx in cluster_indices]
+                workload_time = self.calculate_route_workload_time(cluster_indices, stops)
+                logging.info(f"Driver {i+1} final route: {len(cluster_indices)} stops, {workload_time} minutes ({workload_time/60:.1f} hours)")
+                for addr in cluster_stops[:3]:  # Show first 3 addresses
+                    logging.debug(f"  - {addr}")
+                if len(cluster_stops) > 3:
+                    logging.debug(f"  ... and {len(cluster_stops)-3} more")
+            
+            return balanced_distribution
             
         except Exception as e:
-            logging.error(f"Geographic clustering failed: {e}, falling back to simple distribution")
+            logging.error(f"Optimized distribution failed: {e}, falling back to simple distribution")
             # Fallback to simple distribution
             stops_per_driver = len(stops) // num_drivers
             remainder = len(stops) % num_drivers
