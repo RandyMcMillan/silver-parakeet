@@ -422,34 +422,39 @@
                                             {% if stop %}
                                             <li class="mb-2">
                                                 <div class="d-flex justify-content-between">
-                                                    <div>
-                                                        <strong>{{ stop.post_type }}</strong>
-                                                        <br>
-                                                        <small class="text-muted">{{ stop.address }}</small>
-                                                        <br>
-                                                        <span class="badge bg-{{ 'primary' if stop.service_type == 'install' else 'warning' if stop.service_type == 'deliver' else 'secondary' }}">
-                                                            {{ stop.service_type|title }}
-                                                        </span>
-                                                        {% if stop.is_asap %}
-                                                            <span class="badge bg-warning">ASAP</span>
-                                                        {% else %}
-                                                            <span class="badge bg-info">
-                                                                {{ stop.required_date.strftime('%m/%d') if stop.required_date else 'No date' }}
+                                                    <div class="d-flex">
+                                                        <div class="me-3">
+                                                            <span class="badge bg-primary rounded-circle" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold;">{{ loop.index }}</span>
+                                                        </div>
+                                                        <div>
+                                                            <strong>{{ stop.post_type }}</strong>
+                                                            <br>
+                                                            <small class="text-muted">{{ stop.address }}</small>
+                                                            <br>
+                                                            <span class="badge bg-{{ 'primary' if stop.service_type == 'install' else 'warning' if stop.service_type == 'deliver' else 'secondary' }}">
+                                                                {{ stop.service_type|title }}
                                                             </span>
-                                                        {% endif %}
-                                                        {% if stop.has_shelter %}
-                                                            <br><small class="text-warning"><i data-feather="home"></i> Install Shelter Homes Directional</small>
-                                                        {% endif %}
-                                                        {% if stop.has_riders_toppers and stop.riders_toppers_description %}
-                                                            <br><small class="text-info"><i data-feather="layers"></i> Riders/Toppers: {{ stop.riders_toppers_description }}</small>
-                                                        {% endif %}
-                                                        {% if stop.service_type == 'remove' and stop.address %}
-                                                            {% for sign in agent_signs %}
-                                                                {% if sign.address == stop.address %}
-                                                                    <br><small class="text-success"><i data-feather="tag"></i> Previous Sign: {{ sign.sign_description }}</small>
-                                                                {% endif %}
-                                                            {% endfor %}
-                                                        {% endif %}
+                                                            {% if stop.is_asap %}
+                                                                <span class="badge bg-warning">ASAP</span>
+                                                            {% else %}
+                                                                <span class="badge bg-info">
+                                                                    {{ stop.required_date.strftime('%m/%d') if stop.required_date else 'No date' }}
+                                                                </span>
+                                                            {% endif %}
+                                                            {% if stop.has_shelter %}
+                                                                <br><small class="text-warning"><i data-feather="home"></i> Install Shelter Homes Directional</small>
+                                                            {% endif %}
+                                                            {% if stop.has_riders_toppers and stop.riders_toppers_description %}
+                                                                <br><small class="text-info"><i data-feather="layers"></i> Riders/Toppers: {{ stop.riders_toppers_description }}</small>
+                                                            {% endif %}
+                                                            {% if stop.service_type == 'remove' and stop.address %}
+                                                                {% for sign in agent_signs %}
+                                                                    {% if sign.address == stop.address %}
+                                                                        <br><small class="text-success"><i data-feather="tag"></i> Previous Sign: {{ sign.sign_description }}</small>
+                                                                    {% endif %}
+                                                                {% endfor %}
+                                                            {% endif %}
+                                                        </div>
                                                     </div>
                                                     <div class="text-end">
                                                         <small class="text-muted">~10 min service</small>
