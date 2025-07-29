@@ -128,10 +128,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (July 29, 2025)
 
-### Google Maps API Integration and Real-Time Drive Times
+### Google Maps API Integration and Geographic Clustering
 - **Google Maps Distance Matrix API**: Live traffic-aware drive time calculations between actual addresses
 - **Real-Time Traffic Data**: Uses "duration_in_traffic" for current road conditions and congestion
-- **Fallback System**: Automatic fallback to Atlanta traffic estimates if API unavailable
+- **Geographic Clustering**: Intelligent grouping of nearby stops using proximity algorithms before driver assignment
+- **Proximity Intelligence**: Nearby addresses (like 1808 and 1809 Neely Ave) automatically grouped to same driver
+- **Distance-Based Optimization**: Uses geodesic distance calculations to cluster stops within geographic regions
 - **Visual Indicators**: Routes display "(real-time)" tags when using live Google Maps data
 - **API Efficiency**: Optimized calls to minimize usage while maximizing accuracy
 - **Auto-Clear Route System**: Routes automatically cleared and regenerated each time "Generate Routes" is pressed

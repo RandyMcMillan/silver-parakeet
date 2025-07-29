@@ -240,10 +240,10 @@ def generate_routes():
         # Sort scheduled stops by required date
         scheduled_stops.sort(key=lambda x: x.required_date or datetime.max)
         
-        # Use lightweight route generation for low-resource environments
-        logging.info(f"Starting lightweight route generation for {len(stops)} stops")
+        # Use geographic clustering for optimal route distribution
+        logging.info(f"Starting geographic route optimization for {len(stops)} stops")
         
-        # Convert all stops to format for TSP solver
+        # Convert all stops to format for geographic clustering
         all_stops_data = []
         for stop in stops:
             stop_data = {
@@ -256,30 +256,34 @@ def generate_routes():
             }
             all_stops_data.append(stop_data)
         
-        # Fast route distribution optimized for low resources
-        logging.info(f"Distributing {len(all_stops_data)} stops among {num_drivers} drivers")
-        
         if len(all_stops_data) == 0:
             flash('No active stops found to generate routes.', 'warning')
             return redirect(url_for('main.index'))
         
-        # Distribute stops evenly among drivers
-        stops_per_driver = len(all_stops_data) // num_drivers
-        remainder = len(all_stops_data) % num_drivers
+        # Use geographic clustering to group nearby stops
+        from geographic_clustering import GeographicClusterer
+        clusterer = GeographicClusterer()
         
-        optimized_routes = []
-        current_index = 0
-        
-        for driver in range(num_drivers):
-            driver_stops = stops_per_driver + (1 if driver < remainder else 0)
-            if driver_stops > 0:
-                route = list(range(current_index, current_index + driver_stops))
-                optimized_routes.append(route)
-                current_index += driver_stops
-            else:
-                optimized_routes.append([])  # Empty route for excess drivers
-        
-        logging.info(f"Generated {len([r for r in optimized_routes if r])} non-empty routes")
+        try:
+            optimized_routes = clusterer.get_optimized_stop_distribution(all_stops_data, num_drivers)
+            logging.info(f"Generated {len([r for r in optimized_routes if r])} geographically optimized routes")
+        except Exception as e:
+            logging.error(f"Geographic clustering failed: {e}, using simple distribution")
+            # Fallback to simple distribution
+            stops_per_driver = len(all_stops_data) // num_drivers
+            remainder = len(all_stops_data) % num_drivers
+            
+            optimized_routes = []
+            current_index = 0
+            
+            for driver in range(num_drivers):
+                driver_stops = stops_per_driver + (1 if driver < remainder else 0)
+                if driver_stops > 0:
+                    route = list(range(current_index, current_index + driver_stops))
+                    optimized_routes.append(route)
+                    current_index += driver_stops
+                else:
+                    optimized_routes.append([])  # Empty route for excess drivers
         
         # Create route records for each driver (skip empty routes)
         routes_created = 0
