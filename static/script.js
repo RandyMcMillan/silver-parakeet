@@ -168,6 +168,40 @@ function hideAgentSignInfo() {
     }
 }
 
+function toggleManualTimestamp() {
+    const manualTimestampCheckbox = document.getElementById('manual_timestamp_override');
+    const manualTimestampGroup = document.getElementById('manual_timestamp_group');
+    const manualTimestampInput = document.getElementById('manual_timestamp');
+    
+    if (manualTimestampCheckbox.checked) {
+        manualTimestampGroup.style.display = 'block';
+        manualTimestampInput.required = true;
+    } else {
+        manualTimestampGroup.style.display = 'none';
+        manualTimestampInput.required = false;
+        manualTimestampInput.value = '';
+    }
+}
+
+function handleZipCodeInput(input) {
+    // Auto-format ZIP code and validate
+    let value = input.value.replace(/\D/g, ''); // Remove non-digits
+    
+    if (value.length > 5) {
+        value = value.substring(0, 5) + '-' + value.substring(5, 9);
+    }
+    
+    input.value = value;
+    
+    // Validate ZIP code format
+    const zipPattern = /^\d{5}(-\d{4})?$/;
+    if (value && !zipPattern.test(value)) {
+        input.setCustomValidity('Please enter a valid ZIP code (12345 or 12345-6789)');
+    } else {
+        input.setCustomValidity('');
+    }
+}
+
 function handlePostTypeChange() {
     const postTypeSelect = document.getElementById('post_type');
     const postTypeNotesGroup = document.getElementById('post_type_notes_group');

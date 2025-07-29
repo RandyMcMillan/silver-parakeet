@@ -83,8 +83,33 @@ label, .form-label {
     position: relative !important;
 }
 
-/* Remove all hiding mechanisms */
-[style*="display: none"] {
+/* CONDITIONAL FORM LOGIC - ALLOW DYNAMIC HIDING */
+/* These specific fields should be able to hide/show based on JavaScript logic */
+#post_type_group[style*="display: none"],
+#deliver_notes_group[style*="display: none"],
+#agent_sign_group[style*="display: none"],
+#post_type_notes_group[style*="display: none"],
+#riders_toppers_group[style*="display: none"],
+#manual_timestamp_group[style*="display: none"],
+#required_date_group[style*="display: none"] {
+    display: none !important;
+}
+
+/* But when they should be visible, make sure they are */
+#post_type_group:not([style*="display: none"]),
+#deliver_notes_group:not([style*="display: none"]),
+#agent_sign_group:not([style*="display: none"]),
+#post_type_notes_group:not([style*="display: none"]),
+#riders_toppers_group:not([style*="display: none"]),
+#manual_timestamp_group:not([style*="display: none"]),
+#required_date_group:not([style*="display: none"]) {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* For other elements, prevent hiding */
+:not(#post_type_group):not(#deliver_notes_group):not(#agent_sign_group):not(#post_type_notes_group):not(#riders_toppers_group):not(#manual_timestamp_group):not(#required_date_group)[style*="display: none"] {
     display: block !important;
 }
 
