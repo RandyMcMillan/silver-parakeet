@@ -229,11 +229,27 @@ function toggleRouteMap(routeId) {
         if (!routeMapper.maps[routeId]) {
             const routeCard = document.querySelector(`[data-route-id="${routeId}"]`);
             if (routeCard) {
-                const stopsData = JSON.parse(routeCard.dataset.stopsData || '[]');
-                const departureAddress = routeCard.dataset.departureAddress;
-                
-                console.log(`Initializing map for route ${routeId} with ${stopsData.length} stops`);
-                routeMapper.initializeMap(routeId, stopsData, departureAddress);
+                try {
+                    const stopsDataRaw = routeCard.dataset.stopsData || '[]';
+                    console.log(`Raw stops data for route ${routeId}:`, stopsDataRaw);
+                    
+                    // Decode HTML entities and parse JSON
+                    const decodedData = stopsDataRaw.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+                    const stopsData = JSON.parse(decodedData);
+                    const departureAddress = routeCard.dataset.departureAddress;
+                    
+                    console.log(`Initializing map for route ${routeId} with ${stopsData.length} stops:`, stopsData);
+                    console.log(`Departure address: ${departureAddress}`);
+                    
+                    if (typeof google !== 'undefined' && google.maps) {
+                        routeMapper.initializeMap(routeId, stopsData, departureAddress);
+                    } else {
+                        console.error('Google Maps API not available');
+                    }
+                } catch (error) {
+                    console.error(`Failed to parse stops data for route ${routeId}:`, error);
+                    console.error('Raw data:', routeCard.dataset.stopsData);
+                }
             }
         } else {
             // Trigger resize for existing map
