@@ -292,23 +292,38 @@ def generate_routes():
             valid_indices = [i for i in route_indices if i < len(all_stops_data)]
             route_stops = [all_stops_data[i] for i in valid_indices]
             
-            # Calculate estimated time with realistic drive times
+            # Calculate estimated time with Atlanta traffic-aware drive times
             if route_stops:
-                # Service time: 10 minutes per stop
+                # Service time: 10 minutes per stop (install/pickup/removal)
                 service_time = len(route_stops) * 10
                 
-                # Drive time between stops: 20 minutes average (city driving)
-                drive_time_between_stops = (len(route_stops) - 1) * 20 if len(route_stops) > 1 else 0
+                # Time-based traffic factors for Atlanta metro area
+                # Use the start_time hour instead of current time for scheduling accuracy
+                start_hour = datetime.strptime(start_time, '%H:%M').hour
                 
-                # Drive time from departure to first stop: 25 minutes average
-                departure_to_first = 25
-                
-                # Drive time from last stop back to departure: 25 minutes average  
-                last_to_departure = 25
+                # Rush hour periods: 6-10am and 4-7pm
+                if (6 <= start_hour <= 10) or (16 <= start_hour <= 19):
+                    # Rush hour: slower city driving, more congestion
+                    drive_time_between_stops = (len(route_stops) - 1) * 12 if len(route_stops) > 1 else 0
+                    departure_to_first = 18
+                    last_to_departure = 18
+                    traffic_description = "rush hour"
+                elif (10 < start_hour < 16):
+                    # Mid-day: optimal driving conditions
+                    drive_time_between_stops = (len(route_stops) - 1) * 8 if len(route_stops) > 1 else 0
+                    departure_to_first = 12
+                    last_to_departure = 12
+                    traffic_description = "mid-day optimal"
+                else:
+                    # Off-peak: moderate traffic
+                    drive_time_between_stops = (len(route_stops) - 1) * 10 if len(route_stops) > 1 else 0
+                    departure_to_first = 15
+                    last_to_departure = 15
+                    traffic_description = "off-peak"
                 
                 total_time = service_time + drive_time_between_stops + departure_to_first + last_to_departure
                 
-                logging.info(f"Driver {driver_num} route time breakdown: "
+                logging.info(f"Driver {driver_num} route time breakdown ({traffic_description}): "
                            f"Service: {service_time}min, "
                            f"Between stops: {drive_time_between_stops}min, "
                            f"Departure trips: {departure_to_first + last_to_departure}min, "

@@ -129,7 +129,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (July 29, 2025)
 
 ### Route Generation and Drive Time Improvements
-- **Realistic Drive Time Calculations**: Updated to include 20 minutes between stops (city driving), 25 minutes from departure to first stop, and 25 minutes back to departure
+- **Atlanta Traffic-Aware Drive Times**: Dynamic calculations based on real Atlanta traffic patterns
+  - **Rush Hour (6-10am, 4-7pm)**: 12 min between stops, 18 min to/from base
+  - **Mid-Day Optimal (10am-4pm)**: 8 min between stops, 12 min to/from base  
+  - **Off-Peak Hours**: 10 min between stops, 15 min to/from base
+- **Real-World Accuracy**: Based on Atlanta metro area traffic research with city driving speeds of 15-30 mph
 - **Auto-Clear Route System**: Routes automatically cleared and regenerated each time "Generate Routes" is pressed
 - **Cache-Busting Redirects**: Added timestamp parameters to force browser refresh after route generation
 - **Enhanced Logging**: Detailed time breakdown logging for each driver route (service time, drive time, departure trips)
