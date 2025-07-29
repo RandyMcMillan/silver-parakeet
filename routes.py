@@ -220,9 +220,8 @@ def generate_routes():
         # Sort scheduled stops by required date
         scheduled_stops.sort(key=lambda x: x.required_date or datetime.max)
         
-        # Initialize TSP solver and traffic scraper
-        tsp_solver = TSPSolver()
-        traffic_scraper = TrafficDataScraper()
+        # Use lightweight route generation for low-resource environments
+        logging.info(f"Starting lightweight route generation for {len(stops)} stops")
         
         # Convert all stops to format for TSP solver
         all_stops_data = []
@@ -237,7 +236,13 @@ def generate_routes():
             }
             all_stops_data.append(stop_data)
         
-        # Simple route distribution without external geocoding
+        # Fast route distribution optimized for low resources
+        logging.info(f"Distributing {len(all_stops_data)} stops among {num_drivers} drivers")
+        
+        if len(all_stops_data) == 0:
+            flash('No active stops found to generate routes.', 'warning')
+            return redirect(url_for('main.index'))
+        
         # Distribute stops evenly among drivers
         stops_per_driver = len(all_stops_data) // num_drivers
         remainder = len(all_stops_data) % num_drivers
@@ -247,13 +252,20 @@ def generate_routes():
         
         for driver in range(num_drivers):
             driver_stops = stops_per_driver + (1 if driver < remainder else 0)
-            route = list(range(current_index, current_index + driver_stops))
-            optimized_routes.append(route)
-            current_index += driver_stops
+            if driver_stops > 0:
+                route = list(range(current_index, current_index + driver_stops))
+                optimized_routes.append(route)
+                current_index += driver_stops
+            else:
+                optimized_routes.append([])  # Empty route for excess drivers
         
-        # Create route records for each driver
+        logging.info(f"Generated {len([r for r in optimized_routes if r])} non-empty routes")
+        
+        # Create route records for each driver (skip empty routes)
+        routes_created = 0
         for driver_num, route_indices in enumerate(optimized_routes, 1):
             if not route_indices:
+                logging.info(f"Skipping empty route for driver {driver_num}")
                 continue
             
             # Get stops for this route (ensure indices are valid)
@@ -297,10 +309,14 @@ def generate_routes():
             route.start_time = start_time
             
             db.session.add(route)
+            routes_created += 1
+            logging.info(f"Created route for driver {driver_num}: {len(valid_indices)} stops, {total_time} minutes")
         
         db.session.commit()
-        total_routes = len([r for r in optimized_routes if r])
-        flash(f'Routes generated successfully for {total_routes} driver(s). Previous routes cleared and replaced.', 'success')
+        processing_time = time.time() - start_processing_time
+        total_routes = routes_created
+        flash(f'Routes generated successfully for {total_routes} driver(s) in {processing_time:.1f} seconds. Previous routes cleared and replaced.', 'success')
+        logging.info(f"Route generation completed in {processing_time:.2f} seconds")
         
         # Add logging to verify routes were created
         final_routes = Route.query.all()
