@@ -123,14 +123,23 @@ label, .form-label {
 
 /* Checkboxes special handling - Orange Theme */
 input[type="checkbox"] {
-    width: 20px !important;
-    height: 20px !important;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    max-width: 18px !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
     display: inline-block !important;
     margin-right: 10px !important;
     background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%) !important;
     border: 2px solid #FF6600 !important;
-    border-radius: 4px !important;
+    border-radius: 3px !important;
     position: relative !important;
+    vertical-align: middle !important;
+    flex-shrink: 0 !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
 }
 
 input[type="checkbox"]:checked {
@@ -150,6 +159,27 @@ input[type="checkbox"]:focus {
     font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.5px !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin-left: 5px !important;
+}
+
+/* Form check containers */
+.form-check {
+    display: flex !important;
+    align-items: center !important;
+    margin-bottom: 10px !important;
+}
+
+.form-check-input {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    max-width: 18px !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
+    margin: 0 10px 0 0 !important;
+    flex-shrink: 0 !important;
 }
 
 /* Focus states - Enhanced Orange Glow */
