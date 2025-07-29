@@ -268,6 +268,7 @@
                                     <th>Address</th>
                                     <th>Service</th>
                                     <th>Priority</th>
+                                    <th>Entry Date</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -289,6 +290,11 @@
                                                 {{ stop.required_date.strftime('%m/%d') if stop.required_date else 'No date' }}
                                             </span>
                                         {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ stop.created_at.strftime('%m/%d %H:%M') if stop.created_at else 'Unknown' }}
+                                        </small>
                                     </td>
                                     <td>
                                         <a href="{{ url_for('main.delete_stop', stop_id=stop.id) }}" 

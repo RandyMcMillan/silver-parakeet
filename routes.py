@@ -12,7 +12,11 @@ main = Blueprint('main', __name__)
 @main.route('/')
 def index():
     """Main page with route optimization interface"""
-    stops = Stop.query.all()
+    # Order stops by FIFO priority: ASAP stops by created_at (oldest first), then scheduled stops
+    stops = Stop.query.order_by(
+        Stop.is_asap.desc(),  # ASAP stops first
+        Stop.created_at.asc()  # Then by entry date (FIFO)
+    ).all()
     routes = Route.query.all()
     agent_signs = AgentSignHistory.query.all()
     
