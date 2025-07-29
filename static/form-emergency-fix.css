@@ -1,13 +1,20 @@
 /* EMERGENCY FORM VISIBILITY - ABSOLUTE PRIORITY */
 
-/* Strip all animations and transforms */
+/* Strip all animations and transforms - BUT allow Bootstrap collapse */
 *, *::before, *::after {
     animation: none !important;
-    transition: none !important;
-    transform: none !important;
     -webkit-transform: none !important;
     -moz-transform: none !important;
     -ms-transform: none !important;
+}
+
+/* Allow Bootstrap collapse transitions */
+.collapse {
+    transition: height 0.35s ease !important;
+}
+
+.collapsing {
+    transition: height 0.35s ease !important;
 }
 
 /* Force all form elements to be visible - Orange/Black Theme */
@@ -215,4 +222,31 @@ input::placeholder, textarea::placeholder {
     letter-spacing: 0.5px !important;
     text-shadow: 0 0 5px #FF6600 !important;
     margin-top: 5px !important;
+}
+
+/* Bootstrap Collapse Fix - Prevent interference with route sections */
+.collapse:not(.show) {
+    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+.collapse.show {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+.collapsing {
+    height: 0 !important;
+    overflow: hidden !important;
+    transition: height 0.35s ease !important;
+}
+
+/* Route cards should not be affected by form CSS */
+.card .collapse .card-body {
+    background: var(--bs-body-bg) !important;
+    color: var(--bs-body-color) !important;
+    padding: 1rem !important;
+    border: none !important;
 }
