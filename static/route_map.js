@@ -243,18 +243,19 @@ function toggleRouteMap(routeId) {
                     console.log(`Initializing map for route ${routeId} with ${stopsData.length} stops:`, stopsData);
                     console.log(`Departure address: ${departureAddress}`);
                     
-                    if (typeof google !== 'undefined' && google.maps) {
-                        routeMapper.initializeMap(routeId, stopsData, departureAddress);
+                    // Use Leaflet for map visualization instead of Google Maps
+                    if (typeof leafletRouteMapper !== 'undefined') {
+                        leafletRouteMapper.initializeMap(routeId, stopsData, departureAddress);
                     } else {
-                        console.error('Google Maps API not available');
+                        console.error('Leaflet route mapper not available');
                     }
                 } catch (error) {
                     console.error(`Failed to parse stops data for route ${routeId}:`, error);
                 }
             }
         } else {
-            // Trigger resize for existing map
-            setTimeout(() => routeMapper.resizeMap(routeId), 100);
+            // Trigger resize for existing Leaflet map
+            setTimeout(() => leafletRouteMapper.resizeMap(routeId), 100);
         }
         
         // Update icons
