@@ -8,7 +8,12 @@ class RouteMapper {
 
     async initializeMap(routeId, stops, departureAddress) {
         const mapContainer = document.getElementById(`map-${routeId}`);
-        if (!mapContainer) return;
+        if (!mapContainer) {
+            console.error(`Map container not found: map-${routeId}`);
+            return;
+        }
+
+        console.log(`Creating map for route ${routeId} with stops:`, stops);
 
         // Initialize Google Map
         const map = new google.maps.Map(mapContainer, {
@@ -218,11 +223,28 @@ function toggleRouteMap(routeId) {
     
     if (mapContainer.style.display === 'none') {
         mapContainer.style.display = 'block';
-        toggleBtn.textContent = 'Hide Map';
-        // Trigger resize after showing
-        setTimeout(() => routeMapper.resizeMap(routeId), 100);
+        toggleBtn.innerHTML = '<i data-feather="eye-off" style="width: 14px; height: 14px;"></i> Hide Map';
+        
+        // Initialize the map if it hasn't been created yet
+        if (!routeMapper.maps[routeId]) {
+            const routeCard = document.querySelector(`[data-route-id="${routeId}"]`);
+            if (routeCard) {
+                const stopsData = JSON.parse(routeCard.dataset.stopsData || '[]');
+                const departureAddress = routeCard.dataset.departureAddress;
+                
+                console.log(`Initializing map for route ${routeId} with ${stopsData.length} stops`);
+                routeMapper.initializeMap(routeId, stopsData, departureAddress);
+            }
+        } else {
+            // Trigger resize for existing map
+            setTimeout(() => routeMapper.resizeMap(routeId), 100);
+        }
+        
+        // Update icons
+        feather.replace();
     } else {
         mapContainer.style.display = 'none';
-        toggleBtn.textContent = 'Show Route Map';
+        toggleBtn.innerHTML = '<i data-feather="map" style="width: 14px; height: 14px;"></i> Show Map';
+        feather.replace();
     }
 }

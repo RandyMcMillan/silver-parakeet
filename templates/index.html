@@ -548,19 +548,9 @@
 // Initialize Google Maps callback
 function initMaps() {
     console.log('Google Maps API loaded');
-    // Initialize route maps if routes exist
-    const routeCards = document.querySelectorAll('[data-route-id]');
-    routeCards.forEach(card => {
-        const routeId = card.dataset.routeId;
-        const stopsData = JSON.parse(card.dataset.stopsData || '[]');
-        const departureAddress = card.dataset.departureAddress;
-        
-        if (stopsData.length > 0) {
-            setTimeout(() => {
-                initializeRouteMap(routeId, stopsData, departureAddress);
-            }, 500); // Small delay to ensure DOM is ready
-        }
-    });
+    // Don't initialize maps immediately - wait for user to click Show Map
+    // This prevents loading maps that may not be viewed
+    console.log('Maps will be initialized when "Show Map" is clicked');
 }
 </script>
 {% endif %}
