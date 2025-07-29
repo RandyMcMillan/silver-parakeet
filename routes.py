@@ -302,6 +302,12 @@ def generate_routes():
         total_routes = len([r for r in optimized_routes if r])
         flash(f'Routes generated successfully for {total_routes} driver(s). Previous routes cleared and replaced.', 'success')
         
+        # Add logging to verify routes were created
+        final_routes = Route.query.all()
+        logging.info(f"Final route count after generation: {len(final_routes)}")
+        for route in final_routes:
+            logging.info(f"Route {route.driver_number}: {len(route.stop_sequence) if route.stop_sequence else 0} stops, {route.total_time_minutes} minutes")
+        
     except Exception as e:
         import traceback
         logging.error(f"Error generating routes: {e}")
@@ -309,7 +315,8 @@ def generate_routes():
         flash(f'Error generating routes: {str(e)}', 'error')
         db.session.rollback()
     
-    return redirect(url_for('main.index'))
+    # Add cache-busting parameter to force browser refresh
+    return redirect(url_for('main.index', refresh=True, t=int(datetime.now().timestamp())))
 
 @main.route('/delete_stop/<int:stop_id>')
 def delete_stop(stop_id):

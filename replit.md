@@ -126,7 +126,28 @@ Preferred communication style: Simple, everyday language.
 - **Departure Address Tracking**: Manages driver starting locations
 - **Agent Sign History**: Maintains installation history for efficient removal service
 
-## Recent Changes (July 27, 2025)
+## Recent Changes (July 29, 2025)
+
+### Route Generation and Drive Time Improvements
+- **Realistic Drive Time Calculations**: Updated to include 20 minutes between stops (city driving), 25 minutes from departure to first stop, and 25 minutes back to departure
+- **Auto-Clear Route System**: Routes automatically cleared and regenerated each time "Generate Routes" is pressed
+- **Cache-Busting Redirects**: Added timestamp parameters to force browser refresh after route generation
+- **Enhanced Logging**: Detailed time breakdown logging for each driver route (service time, drive time, departure trips)
+- **UI Improvements**: Removed redundant "Clear Routes" button since routes auto-clear on generation
+- **Fixed Address Typo**: Corrected departure address from "DeCalb" to "DeKalb" Industrial Way
+
+### Route Distribution Verification
+- **1 Driver**: All 4 stops assigned (150 minutes total)
+- **2 Drivers**: 2 stops each (90 minutes each)
+- **3 Drivers**: 2+1+1 stops distribution (90+60+60 minutes)
+- **4 Drivers**: 1 stop each (60 minutes each)
+
+### Technical Improvements
+- **Offline Operation**: System works without external geocoding dependencies
+- **Database Integration**: Routes properly saved and displayed with accurate time calculations
+- **Error Handling**: Improved error logging and graceful degradation when network unavailable
+
+## Previous Changes (July 27, 2025)
 
 ### Fixed Departure Address Implementation
 - **Departure Address System**: Changed from user-configurable to fixed address "183 DeCalb Industrial Way, Decatur, GA 30030"
