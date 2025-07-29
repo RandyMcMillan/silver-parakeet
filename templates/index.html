@@ -206,7 +206,7 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('main.generate_routes') }}">
+                <form method="POST" action="{{ url_for('main.generate_routes') }}" onsubmit="handleRouteGeneration(document.getElementById('generateRoutesBtn')); return true;">
                     <div class="mb-3">
                         <label for="num_drivers" class="form-label">Number of Drivers</label>
                         <input type="number" class="form-control" id="num_drivers" name="num_drivers" 
@@ -222,7 +222,7 @@
                     </div>
                     
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-success" onclick="this.innerHTML='<i data-feather=\'clock\'></i> Generating...'; this.disabled=true; setTimeout(() => { if(this.disabled) { this.innerHTML='<i data-feather=\'alert-circle\'></i> Timeout - Try Again'; this.disabled=false; } }, 15000);">
+                        <button type="submit" class="btn btn-success" id="generateRoutesBtn">
                             <i data-feather="navigation"></i>
                             Generate Optimized Routes
                         </button>

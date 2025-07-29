@@ -66,28 +66,37 @@
     <script>
         feather.replace();
         
-        // Handle route generation refresh with aggressive cache-busting
-        const urlParams = new URLSearchParams(window.location.search);
-        const isRouteRefresh = urlParams.get('refresh') === 'routes';
+        // Handle route generation with direct UI refresh
+        function handleRouteGeneration(button) {
+            // Update button state
+            button.innerHTML = '<i data-feather="clock"></i> Generating...';
+            button.disabled = true;
+            
+            // Set timeout fallback
+            const timeout = setTimeout(() => {
+                if (button.disabled) {
+                    button.innerHTML = '<i data-feather="alert-circle"></i> Timeout - Try Again';
+                    button.disabled = false;
+                    feather.replace();
+                }
+            }, 15000);
+            
+            // Clear timeout when page starts to redirect
+            window.addEventListener('beforeunload', () => {
+                clearTimeout(timeout);
+            });
+        }
         
-        if (isRouteRefresh && !sessionStorage.getItem('routes_refreshed_' + urlParams.get('v'))) {
-            // Mark this specific refresh as handled
-            sessionStorage.setItem('routes_refreshed_' + urlParams.get('v'), 'true');
-            
-            // Clean URL immediately
+        // Immediate route refresh detection and reload
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('refresh') === 'routes') {
+            console.log('Route refresh detected, forcing reload...');
+            // Clear URL history immediately  
             window.history.replaceState({}, document.title, window.location.pathname);
-            
-            // Force complete page reload with cache bypass
+            // Force hard reload to bypass all caching
             setTimeout(() => {
-                // Clear the refresh marker after use
-                Object.keys(sessionStorage).forEach(key => {
-                    if (key.startsWith('routes_refreshed_')) {
-                        sessionStorage.removeItem(key);
-                    }
-                });
-                // Hard reload to ensure fresh data
-                window.location.href = window.location.href + '?_=' + Date.now();
-            }, 100);
+                window.location.href = window.location.pathname + '?bust=' + Date.now();
+            }, 50);
         }
     </script>
 </body>
