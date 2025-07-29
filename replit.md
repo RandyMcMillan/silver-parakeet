@@ -7,6 +7,7 @@ This is a Flask-based web application that optimizes delivery routes for field s
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Interest in companion apps: Delivery driver mobile/web applications for field operations.
 
 ## System Architecture
 
