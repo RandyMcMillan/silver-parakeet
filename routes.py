@@ -441,7 +441,6 @@ def generate_routes():
             }
             
             # Calculate lead time in weeks from today to route date
-            from datetime import datetime, date
             today = date.today()
             days_ahead = (route_date - today).days
             lead_time_weeks = max(0, days_ahead // 7)  # Convert days to weeks
