@@ -389,6 +389,20 @@
                                 {% set stop_ids = route.stop_sequence|from_json %}
                                 {% if stop_ids %}
                                     <ol class="route-list">
+                                        <!-- Starting point -->
+                                        <li class="mb-2 bg-light p-2 rounded">
+                                            <div class="d-flex justify-content-between">
+                                                <div>
+                                                    <strong class="text-success">
+                                                        <i data-feather="home" style="width: 16px; height: 16px;"></i>
+                                                        START: Departure
+                                                    </strong>
+                                                    <br>
+                                                    <small class="text-muted">{{ departure_address }}</small>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        
                                         {% for stop_id in stop_ids %}
                                             {% set stop = stops|selectattr('id', 'equalto', stop_id)|first %}
                                             {% if stop %}
@@ -430,6 +444,23 @@
                                             </li>
                                             {% endif %}
                                         {% endfor %}
+                                        
+                                        <!-- Return to start -->
+                                        <li class="mb-2 bg-light p-2 rounded">
+                                            <div class="d-flex justify-content-between">
+                                                <div>
+                                                    <strong class="text-primary">
+                                                        <i data-feather="arrow-left-circle" style="width: 16px; height: 16px;"></i>
+                                                        RETURN: Back to Base
+                                                    </strong>
+                                                    <br>
+                                                    <small class="text-muted">{{ departure_address }}</small>
+                                                </div>
+                                                <div class="text-end">
+                                                    <small class="text-muted">~25 min</small>
+                                                </div>
+                                            </div>
+                                        </li>
                                     </ol>
                                 {% else %}
                                     <p class="text-muted">No stops assigned</p>
