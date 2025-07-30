@@ -363,6 +363,8 @@ def generate_routes():
         if num_drivers < min_drivers_needed:
             logging.error(f"INSUFFICIENT DRIVERS: {num_drivers} requested, but {min_drivers_needed} required to stay under 9-hour limit")
             flash(f"ERROR: Need at least {min_drivers_needed} drivers for {len(all_stops_data)} stops to stay under 9-hour limit. You requested only {num_drivers} drivers.", 'error')
+            # Ensure database transaction is committed before redirect
+            db.session.commit()
             return redirect(url_for('main.index'))
         
         # Calculate optimal drivers for 8.5-hour target
@@ -464,9 +466,19 @@ def generate_routes():
             else:
                 total_time = 0
             
-            # Check if route exceeds 8.5-hour target and 9-hour limit
+            # ABSOLUTE BLOCK: Do not create routes exceeding 9-hour limit
             if total_time > 540:  # 9 hours = 540 minutes - hard limit
-                flash(f'ALERT: Driver {driver_num} route exceeds 9-hour limit ({total_time//60}h {total_time%60}m) - Need more drivers!', 'error')
+                hours_actual = total_time / 60
+                hours_exceeded = (total_time - 540) / 60
+                
+                logging.error(f"ROUTE CREATION BLOCKED: Driver {driver_num} would work {hours_actual:.1f} hours (exceeds 9-hour limit by {hours_exceeded:.1f}h)")
+                
+                # Delete any routes already created and abort
+                Route.query.delete()
+                db.session.rollback()
+                
+                flash(f"ERROR: Route generation blocked! Driver {driver_num} would work {hours_actual:.1f} hours (exceeds 9-hour limit by {hours_exceeded:.1f}h). Need at least {min_drivers_needed} drivers for {len(all_stops_data)} stops.", 'error')
+                return redirect(url_for('main.index'))
             elif total_time > 510:  # 8.5 hours = 510 minutes - target limit
                 flash(f'Warning: Driver {driver_num} route exceeds 8.5-hour target ({total_time//60}h {total_time%60}m)', 'warning')
             
