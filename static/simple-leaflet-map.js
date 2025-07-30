@@ -207,18 +207,13 @@ function loadSimpleRouteData(map, routeId) {
     returnMarker.bindPopup('<strong>END</strong><br>Return to Departure');
     simpleMarkers[routeId].push(returnMarker);
     
-    // Draw route lines
+    // Draw street-following route lines
     if (allCoords.length > 1) {
-        const polyline = L.polyline(allCoords, {
-            color: '#007bff',
-            weight: 3,
-            opacity: 0.7
-        }).addTo(map);
-        
-        simpleMarkers[routeId].push(polyline);
+        addStreetRouteLines(map, routeId, allCoords);
         
         // Fit map to show all markers
-        map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+        const group = new L.featureGroup(simpleMarkers[routeId]);
+        map.fitBounds(group.getBounds(), { padding: [20, 20] });
     }
     
     console.log(`Added ${stopsData.length} stop markers and route line for route ${routeId}`);
@@ -247,6 +242,119 @@ function getAtlantaCoordinates(address) {
         baseCoords[0] + (Math.random() - 0.5) * offset,
         baseCoords[1] + (Math.random() - 0.5) * offset
     ];
+}
+
+// Function to add street-following route lines using OSRM
+async function addStreetRouteLines(map, routeId, allCoords) {
+    console.log(`Adding street route lines for route ${routeId}`);
+    
+    // Add route segments between consecutive stops
+    for (let i = 0; i < allCoords.length - 1; i++) {
+        try {
+            const routeGeometry = await getOSRMRoute(allCoords[i], allCoords[i + 1]);
+            
+            if (routeGeometry && routeGeometry.length > 0) {
+                // Use OSRM route geometry
+                const routeLine = L.polyline(routeGeometry, {
+                    color: '#007bff',
+                    weight: 3,
+                    opacity: 0.7
+                }).addTo(map);
+                
+                simpleMarkers[routeId].push(routeLine);
+            } else {
+                // Fallback to straight line
+                const straightLine = L.polyline([allCoords[i], allCoords[i + 1]], {
+                    color: '#007bff',
+                    weight: 3,
+                    opacity: 0.7,
+                    dashArray: '5, 5'  // Dashed to indicate fallback
+                }).addTo(map);
+                
+                simpleMarkers[routeId].push(straightLine);
+            }
+        } catch (error) {
+            console.warn(`OSRM routing failed for segment ${i}, using straight line:`, error);
+            
+            // Fallback to straight line
+            const straightLine = L.polyline([allCoords[i], allCoords[i + 1]], {
+                color: '#007bff',
+                weight: 3,
+                opacity: 0.7,
+                dashArray: '5, 5'  // Dashed to indicate fallback
+            }).addTo(map);
+            
+            simpleMarkers[routeId].push(straightLine);
+        }
+    }
+    
+    // Add return route from last stop to departure
+    try {
+        const returnGeometry = await getOSRMRoute(allCoords[allCoords.length - 1], allCoords[0]);
+        
+        if (returnGeometry && returnGeometry.length > 0) {
+            const returnLine = L.polyline(returnGeometry, {
+                color: '#6c757d',
+                weight: 2,
+                opacity: 0.5,
+                dashArray: '10, 5'
+            }).addTo(map);
+            
+            simpleMarkers[routeId].push(returnLine);
+        } else {
+            // Fallback straight return line
+            const returnLine = L.polyline([allCoords[allCoords.length - 1], allCoords[0]], {
+                color: '#6c757d',
+                weight: 2,
+                opacity: 0.5,
+                dashArray: '5, 5'
+            }).addTo(map);
+            
+            simpleMarkers[routeId].push(returnLine);
+        }
+    } catch (error) {
+        console.warn(`OSRM return routing failed, using straight line:`, error);
+        
+        // Fallback straight return line
+        const returnLine = L.polyline([allCoords[allCoords.length - 1], allCoords[0]], {
+            color: '#6c757d',
+            weight: 2,
+            opacity: 0.5,
+            dashArray: '5, 5'
+        }).addTo(map);
+        
+        simpleMarkers[routeId].push(returnLine);
+    }
+    
+    console.log(`Street routing completed for route ${routeId}`);
+}
+
+// Function to get route geometry from OSRM
+async function getOSRMRoute(startCoords, endCoords) {
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startCoords[1]},${startCoords[0]};${endCoords[1]},${endCoords[0]}?geometries=geojson`;
+    
+    try {
+        const response = await fetch(osrmUrl, { 
+            method: 'GET',
+            timeout: 5000  // 5 second timeout
+        });
+        
+        if (!response.ok) {
+            throw new Error(`OSRM API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.routes && data.routes.length > 0 && data.routes[0].geometry) {
+            // Convert GeoJSON coordinates to Leaflet format [lat, lng]
+            return data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+        }
+        
+        return null;
+    } catch (error) {
+        console.warn('OSRM routing request failed:', error);
+        return null;
+    }
 }
 
 // Function to toggle simple map display
