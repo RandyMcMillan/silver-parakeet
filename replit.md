@@ -103,7 +103,8 @@ Interest in companion apps: Delivery driver mobile/web applications for field op
 - **TSP Algorithm**: Optimizes stop order for minimum travel time with traffic-aware routing
 - **8-Hour Workday Goal**: Automatically balances workloads to meet 8-hour daily targets
 - **Traffic Integration**: Real-time traffic data scraping for accurate time estimates
-- **Scheduling Priority**: Scheduled stops take precedence over ASAP
+- **ASAP Priority**: ASAP orders prioritized by submission timestamp (oldest first)
+- **Scheduling Priority**: ASAP stops processed first, then scheduled stops by date/time
 - **Load Balancing**: Distributes stops across available drivers intelligently
 - **Departure Address**: Configurable starting point for all driver routes
 

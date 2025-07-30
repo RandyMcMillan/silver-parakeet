@@ -310,8 +310,10 @@ def generate_routes():
         # Use geographic clustering for optimal route distribution with fuel efficiency
         logging.info(f"Starting geographic route optimization for {len(stops)} stops (Toyota Tundra fuel analysis)")
         
-        # Convert all stops to format for geographic clustering
-        all_stops_data = []
+        # Prioritize ASAP stops by submission timestamp, then scheduled stops
+        asap_stops = []
+        scheduled_stops = []
+        
         for stop in stops:
             stop_data = {
                 'id': stop.id,
@@ -319,9 +321,25 @@ def generate_routes():
                 'post_type': stop.post_type,
                 'service_type': stop.service_type,
                 'is_asap': stop.is_asap,
-                'required_date': stop.required_date
+                'required_date': stop.required_date,
+                'created_at': stop.created_at  # Used for ASAP timestamp priority
             }
-            all_stops_data.append(stop_data)
+            
+            if stop.is_asap:
+                asap_stops.append(stop_data)
+            else:
+                scheduled_stops.append(stop_data)
+        
+        # Sort ASAP stops by submission timestamp (oldest first gets priority)
+        asap_stops.sort(key=lambda x: x['created_at'] or datetime.min)
+        
+        # Sort scheduled stops by required date
+        scheduled_stops.sort(key=lambda x: x['required_date'] or datetime.max)
+        
+        # Combine: ASAP stops first (by timestamp priority), then scheduled stops
+        all_stops_data = asap_stops + scheduled_stops
+        
+        logging.info(f"Stop prioritization: {len(asap_stops)} ASAP stops (by timestamp), {len(scheduled_stops)} scheduled stops")
         
         if len(all_stops_data) == 0:
             flash('No active stops found to generate routes.', 'warning')
