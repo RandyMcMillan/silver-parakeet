@@ -71,7 +71,7 @@ def add_stop():
         is_pickup_reinstall = request.form.get('is_pickup_reinstall') == 'on'
         
         if is_pickup_reinstall:
-            # Handle pickup/reinstall addresses
+            # Handle pickup/reinstall addresses - pickup uses the main form fields when checkbox is checked
             pickup_street = SecurityValidator.sanitize_input(request.form.get('pickup_street_address', '').strip())
             pickup_apt = SecurityValidator.sanitize_input(request.form.get('pickup_apt_unit', '').strip())
             pickup_city = SecurityValidator.sanitize_input(request.form.get('pickup_city', '').strip())

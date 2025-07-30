@@ -191,72 +191,40 @@
                         <div class="form-text">Earlier timestamp = higher priority</div>
                     </div>
                     
-                    <!-- Regular Address (for single stops) -->
-                    <div class="mb-3" id="single_address_group">
-                        <label class="form-label">Address</label>
-                        <div class="row">
-                            <div class="col-md-8 mb-2">
-                                <input type="text" class="form-control" id="street_address" name="street_address" 
-                                       placeholder="Street Address" required autocomplete="new-password">
-                            </div>
-                            <div class="col-md-4 mb-2">
-                                <input type="text" class="form-control" id="apt_unit" name="apt_unit" 
-                                       placeholder="Apt/Unit (optional)" autocomplete="new-password">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-2">
-                                <input type="text" class="form-control" id="city" name="city" 
-                                       placeholder="City" required autocomplete="new-password">
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <input type="text" class="form-control" id="state" name="state" 
-                                       placeholder="State" required autocomplete="new-password">
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <input type="text" class="form-control" id="zip_code" name="zip_code" 
-                                       placeholder="ZIP Code" required autocomplete="new-password"
-                                       oninput="handleZipCodeInput(this)">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Pickup/Reinstall Addresses (for paired stops) -->
-                    <div class="mb-3" id="pickup_reinstall_addresses" style="display: none;">
-                        <!-- Pickup Address -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                <i data-feather="arrow-down-circle" style="width: 16px; height: 16px;"></i>
-                                Pickup Address (Stop 1)
-                            </label>
+                    <!-- Address Section (toggles between single and pickup/reinstall) -->
+                    <div class="mb-3">
+                        <!-- Single Address Fields -->
+                        <div id="address_section">
+                            <label class="form-label" id="address_label">Address</label>
                             <div class="row">
                                 <div class="col-md-8 mb-2">
-                                    <input type="text" class="form-control" id="pickup_street_address" name="pickup_street_address" 
-                                           placeholder="Pickup Street Address" autocomplete="new-password">
+                                    <input type="text" class="form-control" id="street_address" name="street_address" 
+                                           placeholder="Street Address" required autocomplete="new-password">
                                 </div>
                                 <div class="col-md-4 mb-2">
-                                    <input type="text" class="form-control" id="pickup_apt_unit" name="pickup_apt_unit" 
+                                    <input type="text" class="form-control" id="apt_unit" name="apt_unit" 
                                            placeholder="Apt/Unit (optional)" autocomplete="new-password">
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-2">
-                                    <input type="text" class="form-control" id="pickup_city" name="pickup_city" 
-                                           placeholder="City" autocomplete="new-password">
+                                    <input type="text" class="form-control" id="city" name="city" 
+                                           placeholder="City" required autocomplete="new-password">
                                 </div>
                                 <div class="col-md-3 mb-2">
-                                    <input type="text" class="form-control" id="pickup_state" name="pickup_state" 
-                                           placeholder="State" autocomplete="new-password">
+                                    <input type="text" class="form-control" id="state" name="state" 
+                                           placeholder="State" required autocomplete="new-password">
                                 </div>
                                 <div class="col-md-3 mb-2">
-                                    <input type="text" class="form-control" id="pickup_zip_code" name="pickup_zip_code" 
-                                           placeholder="ZIP Code" autocomplete="new-password">
+                                    <input type="text" class="form-control" id="zip_code" name="zip_code" 
+                                           placeholder="ZIP Code" required autocomplete="new-password"
+                                           oninput="handleZipCodeInput(this)">
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Reinstall Address -->
-                        <div class="mb-3">
+                        <!-- Reinstall Address (only shown when pickup/reinstall is checked) -->
+                        <div id="reinstall_address_section" style="display: none;">
                             <label class="form-label">
                                 <i data-feather="arrow-up-circle" style="width: 16px; height: 16px;"></i>
                                 Reinstall Address (Stop 2)

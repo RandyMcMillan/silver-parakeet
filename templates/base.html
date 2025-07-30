@@ -195,50 +195,64 @@
         // Toggle pickup/reinstall address fields
         function togglePickupReinstall() {
             const checkbox = document.getElementById('is_pickup_reinstall');
-            const singleAddressGroup = document.getElementById('single_address_group');
-            const pickupReinstallGroup = document.getElementById('pickup_reinstall_addresses');
+            const addressLabel = document.getElementById('address_label');
+            const reinstallSection = document.getElementById('reinstall_address_section');
             
             if (checkbox.checked) {
-                singleAddressGroup.style.display = 'none';
-                pickupReinstallGroup.style.display = 'block';
+                // Change first address label to "Pickup Address"
+                addressLabel.innerHTML = '<i data-feather="arrow-down-circle" style="width: 16px; height: 16px;"></i> Pickup Address (Stop 1)';
                 
-                // Remove required attribute from single address fields
-                document.getElementById('street_address').required = false;
-                document.getElementById('city').required = false;
-                document.getElementById('state').required = false;
-                document.getElementById('zip_code').required = false;
+                // Show reinstall address section
+                reinstallSection.style.display = 'block';
                 
-                // Add required attribute to pickup address fields
-                document.getElementById('pickup_street_address').required = true;
-                document.getElementById('pickup_city').required = true;
-                document.getElementById('pickup_state').required = true;
-                document.getElementById('pickup_zip_code').required = true;
+                // Update placeholders for pickup
+                document.getElementById('street_address').placeholder = 'Pickup Street Address';
+                document.getElementById('city').placeholder = 'Pickup City';
+                document.getElementById('state').placeholder = 'Pickup State';
+                document.getElementById('zip_code').placeholder = 'Pickup ZIP Code';
                 
-                // Add required attribute to reinstall address fields
+                // Make reinstall fields required
                 document.getElementById('reinstall_street_address').required = true;
                 document.getElementById('reinstall_city').required = true;
                 document.getElementById('reinstall_state').required = true;
                 document.getElementById('reinstall_zip_code').required = true;
+                
+                // Use pickup fields for form data
+                document.getElementById('street_address').name = 'pickup_street_address';
+                document.getElementById('apt_unit').name = 'pickup_apt_unit';
+                document.getElementById('city').name = 'pickup_city';
+                document.getElementById('state').name = 'pickup_state';
+                document.getElementById('zip_code').name = 'pickup_zip_code';
+                
             } else {
-                singleAddressGroup.style.display = 'block';
-                pickupReinstallGroup.style.display = 'none';
+                // Change back to regular address
+                addressLabel.innerHTML = 'Address';
                 
-                // Add required attribute back to single address fields
-                document.getElementById('street_address').required = true;
-                document.getElementById('city').required = true;
-                document.getElementById('state').required = true;
-                document.getElementById('zip_code').required = true;
+                // Hide reinstall address section
+                reinstallSection.style.display = 'none';
                 
-                // Remove required attribute from pickup/reinstall fields
-                document.getElementById('pickup_street_address').required = false;
-                document.getElementById('pickup_city').required = false;
-                document.getElementById('pickup_state').required = false;
-                document.getElementById('pickup_zip_code').required = false;
+                // Restore original placeholders
+                document.getElementById('street_address').placeholder = 'Street Address';
+                document.getElementById('city').placeholder = 'City';
+                document.getElementById('state').placeholder = 'State';
+                document.getElementById('zip_code').placeholder = 'ZIP Code';
+                
+                // Remove required from reinstall fields
                 document.getElementById('reinstall_street_address').required = false;
                 document.getElementById('reinstall_city').required = false;
                 document.getElementById('reinstall_state').required = false;
                 document.getElementById('reinstall_zip_code').required = false;
+                
+                // Restore original field names
+                document.getElementById('street_address').name = 'street_address';
+                document.getElementById('apt_unit').name = 'apt_unit';
+                document.getElementById('city').name = 'city';
+                document.getElementById('state').name = 'state';
+                document.getElementById('zip_code').name = 'zip_code';
             }
+            
+            // Refresh feather icons
+            feather.replace();
         }
     </script>
 </body>
