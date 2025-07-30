@@ -327,6 +327,37 @@ def generate_routes():
             flash('No active stops found to generate routes.', 'warning')
             return redirect(url_for('main.index'))
         
+        # Calculate optimal number of drivers based on workload limits
+        # Each stop = 10min service + 20min average travel = 30min total per stop
+        # Plus 50min departure/return time per driver
+        # Target: 8.5 hours (510 min), Max: 9 hours (540 min)
+        
+        minutes_per_stop = 30  # Service + travel time
+        base_time_per_driver = 50  # Departure + return
+        max_minutes_per_driver = 540  # 9 hours
+        target_minutes_per_driver = 510  # 8.5 hours
+        
+        # Calculate minimum drivers needed to stay under 9-hour limit
+        available_minutes_per_driver = max_minutes_per_driver - base_time_per_driver
+        stops_per_driver_max = available_minutes_per_driver // minutes_per_stop
+        min_drivers_needed = (len(all_stops_data) + stops_per_driver_max - 1) // stops_per_driver_max
+        
+        if num_drivers < min_drivers_needed:
+            logging.error(f"INSUFFICIENT DRIVERS: {num_drivers} requested, but {min_drivers_needed} required to stay under 9-hour limit")
+            flash(f"ERROR: Need at least {min_drivers_needed} drivers for {len(all_stops_data)} stops to stay under 9-hour limit. You requested only {num_drivers} drivers.", 'error')
+            return redirect(url_for('main.index'))
+        
+        # Calculate optimal drivers for 8.5-hour target
+        target_available_minutes = target_minutes_per_driver - base_time_per_driver
+        stops_per_driver_target = target_available_minutes // minutes_per_stop
+        optimal_drivers = (len(all_stops_data) + stops_per_driver_target - 1) // stops_per_driver_target
+        
+        if num_drivers < optimal_drivers:
+            logging.warning(f"SUBOPTIMAL: {num_drivers} drivers will exceed 8.5h target. Optimal: {optimal_drivers} drivers")
+            flash(f"Warning: {num_drivers} drivers will exceed 8.5-hour target. Recommend {optimal_drivers} drivers for optimal workload.", 'warning')
+        
+        logging.info(f"Workload analysis: {len(all_stops_data)} stops, {num_drivers} drivers requested, {min_drivers_needed} minimum needed, {optimal_drivers} optimal")
+        
         # Use geographic clustering to group nearby stops
         from geographic_clustering import GeographicClusterer
         clusterer = GeographicClusterer()
@@ -336,7 +367,7 @@ def generate_routes():
             logging.info(f"Generated {len([r for r in optimized_routes if r])} geographically optimized routes")
         except Exception as e:
             logging.error(f"Geographic clustering failed: {e}, using simple distribution")
-            # Fallback to simple distribution
+            # Fallback to simple distribution with balanced workload
             stops_per_driver = len(all_stops_data) // num_drivers
             remainder = len(all_stops_data) % num_drivers
             

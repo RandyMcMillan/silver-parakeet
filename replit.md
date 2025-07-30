@@ -129,13 +129,13 @@ Interest in companion apps: Delivery driver mobile/web applications for field op
 
 ## Recent Changes (July 30, 2025) - Latest Updates
 
-### 8.5-Hour Target with 9-Hour Hard Limit Implementation
-- **8.5-Hour Target**: Changed from 9-hour targeting to 8.5-hour ideal workday to avoid overtime
-- **9-Hour Hard Limit**: Strict 9-hour maximum prevents excessive driver fatigue and maintains work-life balance
-- **Enhanced UI Warnings**: Color-coded badges show Perfect (≤8.5h), Warning (8.5-9h), Critical (>9h) with hiring alerts
-- **Overtime Policy Update**: Routes under 8.5h = success, 8.5-9h = acceptable warning, >9h = critical error requiring more drivers
-- **Intelligent Route Distribution**: System optimizes for 8.5-hour target while respecting 9-hour absolute maximum
-- **Driver Welfare Priority**: Maintains quality of life standards while meeting operational demands efficiently
+### 8.5-Hour Target with 9-Hour Hard Limit Implementation - ENFORCED
+- **Automatic Driver Calculation**: System calculates minimum drivers needed to prevent exceeding 9-hour limit
+- **Hard Limit Enforcement**: Routes rejected if insufficient drivers provided, prevents overwork
+- **8.5-Hour Optimization**: System recommends optimal driver count for 8.5-hour target workdays
+- **Workload Validation**: Pre-validates driver count against total stops before route generation
+- **Driver Protection**: Cannot generate routes that would exceed 9-hour maximum per driver
+- **Smart Recommendations**: Displays exact driver count needed for both compliance and optimization
 
 ### Map Display SUCCESS - Hybrid Mapping Solution Working
 - **Map Functionality Confirmed**: Maps display correctly with OpenStreetMap tiles and blue route lines
