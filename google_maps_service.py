@@ -12,7 +12,7 @@ class GoogleMapsService:
         self.base_url = "https://maps.googleapis.com/maps/api/distancematrix/json"
         
     def get_drive_times(self, origins: List[str], destinations: List[str], 
-                       departure_time: Optional[str] = None) -> Dict:
+                       departure_time: Optional[str] = None) -> Optional[Dict]:
         """
         Get drive times between multiple origins and destinations using Google Maps API
         
@@ -39,7 +39,7 @@ class GoogleMapsService:
         }
         
         try:
-            response = requests.get(self.base_url, params=params, timeout=10)
+            response = requests.get(self.base_url, params=params, timeout=15)
             response.raise_for_status()
             data = response.json()
             
@@ -49,6 +49,9 @@ class GoogleMapsService:
                 
             return data
             
+        except requests.Timeout as e:
+            logging.warning(f"Google Maps API timeout after 15s: {e}")
+            return None
         except requests.RequestException as e:
             logging.error(f"Google Maps API request failed: {e}")
             return None
@@ -82,21 +85,26 @@ class GoogleMapsService:
                 elif element.get('status') == 'OK' and 'duration' in element:
                     departure_to_first = element['duration']['value'] // 60  # Fallback to duration without traffic
         
-        # Get drive times between consecutive stops
+        # Get drive times between consecutive stops with retry logic
         if len(stop_addresses) > 1:
             for i in range(len(stop_addresses) - 1):
-                data = self.get_drive_times([stop_addresses[i]], [stop_addresses[i + 1]])
-                if data and data.get('rows'):
-                    element = data['rows'][0]['elements'][0]
-                    if element.get('status') == 'OK' and 'duration_in_traffic' in element:
-                        drive_time = element['duration_in_traffic']['value'] // 60
-                    elif element.get('status') == 'OK' and 'duration' in element:
-                        drive_time = element['duration']['value'] // 60
+                # Try API call with timeout handling
+                try:
+                    data = self.get_drive_times([stop_addresses[i]], [stop_addresses[i + 1]])
+                    if data and data.get('rows'):
+                        element = data['rows'][0]['elements'][0]
+                        if element.get('status') == 'OK' and 'duration_in_traffic' in element:
+                            drive_time = element['duration_in_traffic']['value'] // 60
+                        elif element.get('status') == 'OK' and 'duration' in element:
+                            drive_time = element['duration']['value'] // 60
+                        else:
+                            drive_time = 12  # Atlanta area estimate
+                        drive_times_between_stops.append(drive_time)
                     else:
-                        drive_time = 10  # Fallback estimate
-                    drive_times_between_stops.append(drive_time)
-                else:
-                    drive_times_between_stops.append(10)  # Fallback estimate
+                        drive_times_between_stops.append(12)  # Atlanta area estimate
+                except Exception as e:
+                    logging.warning(f"API call failed for stops {i}-{i+1}: {e}")
+                    drive_times_between_stops.append(12)  # Atlanta area estimate
         
         # Get drive time from last stop back to departure
         if len(stop_addresses) > 0:

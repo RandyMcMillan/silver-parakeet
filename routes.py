@@ -382,26 +382,40 @@ def generate_routes():
                 last_to_departure = 25
                 traffic_description = "fallback estimates"
                 
-                # Get drive times from Google Maps or fallback estimates
+                # Get drive times from Google Maps or fallback estimates with timeout protection
                 try:
-                    drive_times_list, departure_to_first, last_to_departure = maps_service.get_route_drive_times(
-                        departure_address, stop_addresses
-                    )
+                    # Add timeout protection for entire route calculation
+                    import signal
                     
-                    # If Google Maps API failed, use fallback estimates
-                    if departure_to_first == 0 and last_to_departure == 0 and not drive_times_list:
-                        drive_times_list, departure_to_first, last_to_departure = maps_service.get_fallback_drive_times(
-                            departure_address, stop_addresses, start_time
+                    def timeout_handler(signum, frame):
+                        raise TimeoutError("Route calculation timeout")
+                    
+                    signal.signal(signal.SIGALRM, timeout_handler)
+                    signal.alarm(30)  # 30 second timeout for entire route calculation
+                    
+                    try:
+                        drive_times_list, departure_to_first, last_to_departure = maps_service.get_route_drive_times(
+                            departure_address, stop_addresses
                         )
-                        traffic_description = "fallback estimates"
-                    else:
-                        traffic_description = "Google Maps real-time"
                         
-                    drive_time_between_stops = sum(drive_times_list) if drive_times_list else 0
+                        # If Google Maps API failed, use fallback estimates
+                        if departure_to_first == 0 and last_to_departure == 0 and not drive_times_list:
+                            drive_times_list, departure_to_first, last_to_departure = maps_service.get_fallback_drive_times(
+                                departure_address, stop_addresses, start_time
+                            )
+                            traffic_description = "fallback estimates"
+                        else:
+                            traffic_description = "Google Maps real-time"
+                            
+                        drive_time_between_stops = sum(drive_times_list) if drive_times_list else 0
+                        
+                    finally:
+                        signal.alarm(0)  # Cancel timeout
                     
-                except Exception as e:
-                    logging.warning(f"Google Maps service error: {e}, using fallback estimates")
-                    # Use fallback estimates if Google Maps fails
+                except (Exception, TimeoutError) as e:
+                    signal.alarm(0)  # Cancel timeout
+                    logging.warning(f"Google Maps service error/timeout: {e}, using fallback estimates")
+                    # Use fallback estimates if Google Maps fails or times out
                     drive_times_list, departure_to_first, last_to_departure = maps_service.get_fallback_drive_times(
                         departure_address, stop_addresses, start_time
                     )
