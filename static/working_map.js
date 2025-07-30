@@ -59,6 +59,12 @@ function toggleRouteMap(routeId) {
 function initializeWorkingMap(routeId) {
     console.log(`Initializing working map for route ${routeId}`);
     
+    // Check if Leaflet is loaded
+    if (typeof L === 'undefined') {
+        console.error('Leaflet library not loaded');
+        return;
+    }
+    
     const mapElement = document.getElementById(`map-${routeId}`);
     if (!mapElement) {
         console.error(`Map element not found: map-${routeId}`);
@@ -66,14 +72,29 @@ function initializeWorkingMap(routeId) {
     }
     
     try {
-        // Create Leaflet map
-        const map = L.map(mapElement).setView([33.7490, -84.3880], 11);
+        // Ensure map container has proper dimensions
+        mapElement.style.height = '400px';
+        mapElement.style.width = '100%';
+        
+        // Create Leaflet map with proper initialization
+        const map = L.map(mapElement, {
+            center: [33.7490, -84.3880],
+            zoom: 11,
+            zoomControl: true,
+            attributionControl: true
+        });
         
         // Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
+        
+        // Force map to resize after DOM is ready
+        setTimeout(() => {
+            map.invalidateSize();
+            console.log(`Map resized for route ${routeId}`);
+        }, 250);
         
         // Store map reference
         workingMaps[routeId] = map;
@@ -128,18 +149,23 @@ function initializeWorkingMap(routeId) {
                 console.log(`All markers added for route ${routeId}:`, results);
                 console.log(`Total markers for route ${routeId}:`, mapMarkers[routeId].length);
                 
-                // Fit map to show all markers
-                if (mapMarkers[routeId] && mapMarkers[routeId].length > 0) {
-                    const group = new L.featureGroup(mapMarkers[routeId]);
-                    map.fitBounds(group.getBounds().pad(0.1));
+                // Ensure map is properly sized before fitting bounds
+                setTimeout(() => {
+                    map.invalidateSize();
                     
-                    // Draw simple connecting lines
-                    drawConnectingLines(map, routeId);
-                    console.log(`Map bounds fitted and lines drawn for route ${routeId}`);
-                } else {
-                    console.warn(`No markers found for route ${routeId}, adding fallback`);
-                    addFallbackMarker(map, routeId);
-                }
+                    // Fit map to show all markers
+                    if (mapMarkers[routeId] && mapMarkers[routeId].length > 0) {
+                        const group = new L.featureGroup(mapMarkers[routeId]);
+                        map.fitBounds(group.getBounds().pad(0.1));
+                        
+                        // Draw simple connecting lines
+                        drawConnectingLines(map, routeId);
+                        console.log(`Map bounds fitted and lines drawn for route ${routeId}`);
+                    } else {
+                        console.warn(`No markers found for route ${routeId}, adding fallback`);
+                        addFallbackMarker(map, routeId);
+                    }
+                }, 500);
             })
             .catch(error => {
                 console.error(`Error setting up map for route ${routeId}:`, error);

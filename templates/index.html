@@ -460,8 +460,8 @@
                             </div>
                             
                             <!-- Map container (initially hidden) -->
-                            <div id="map-container-{{ route.driver_number }}" style="display: none;" class="card-body p-0">
-                                <div id="map-{{ route.driver_number }}" style="height: 400px; width: 100%; min-height: 400px;"></div>
+                            <div id="map-container-{{ route.driver_number }}" style="display: none; height: 420px;" class="card-body p-2">
+                                <div id="map-{{ route.driver_number }}" style="height: 400px; width: 100%; border: 1px solid #dee2e6; border-radius: 8px;"></div>
                                 <!-- Route data stored in script tag to avoid HTML attribute issues -->
                                 <script type="application/json" id="route-data-{{ route.driver_number }}">{{ route_stops|tojson }}</script>
                             </div>
