@@ -101,15 +101,22 @@ function initializeWorkingMap(routeId) {
         const departureAddress = routeCard ? routeCard.dataset.departureAddress : "183 DeKalb Industrial Way, Decatur, GA 30030";
         
         console.log(`Route ${routeId}: Loading ${stopsData.length} stops`);
+        console.log(`Route ${routeId} stops data:`, stopsData);
         
         // Add departure marker first
+        console.log(`Adding departure marker for: ${departureAddress}`);
         geocodeAndAddMarker(map, routeId, departureAddress, 'S', '#28a745', 'START: Departure')
-            .then(() => {
+            .then((coords) => {
+                console.log(`Departure marker added at:`, coords);
+                
                 // Add stop markers
-                const promises = stopsData.map((stop, index) => {
+                const promises = stopsData.map(async (stop, index) => {
                     const stopNumber = index + 1;
                     const label = `Stop ${stopNumber}: ${stop.post_type}`;
-                    return geocodeAndAddMarker(map, routeId, stop.address, stopNumber.toString(), '#007bff', label);
+                    console.log(`Adding stop ${stopNumber} marker for: ${stop.address}`);
+                    const result = await geocodeAndAddMarker(map, routeId, stop.address, stopNumber.toString(), '#007bff', label);
+                    console.log(`Stop ${stopNumber} marker result:`, result);
+                    return result;
                 });
                 
                 // Add return marker
@@ -117,7 +124,10 @@ function initializeWorkingMap(routeId) {
                 
                 return Promise.all(promises);
             })
-            .then(() => {
+            .then((results) => {
+                console.log(`All markers added for route ${routeId}:`, results);
+                console.log(`Total markers for route ${routeId}:`, mapMarkers[routeId].length);
+                
                 // Fit map to show all markers
                 if (mapMarkers[routeId] && mapMarkers[routeId].length > 0) {
                     const group = new L.featureGroup(mapMarkers[routeId]);
@@ -125,6 +135,10 @@ function initializeWorkingMap(routeId) {
                     
                     // Draw simple connecting lines
                     drawConnectingLines(map, routeId);
+                    console.log(`Map bounds fitted and lines drawn for route ${routeId}`);
+                } else {
+                    console.warn(`No markers found for route ${routeId}, adding fallback`);
+                    addFallbackMarker(map, routeId);
                 }
             })
             .catch(error => {
@@ -206,7 +220,10 @@ async function geocodeAddress(address) {
 
 // Function to provide approximate coordinates for Atlanta area addresses
 function getAtlantaAreaCoords(address) {
+    if (!address) return null;
+    
     const lowerAddress = address.toLowerCase();
+    console.log(`Looking up coordinates for: ${address}`);
     
     // Atlanta area coordinate mappings for common areas
     const areaCoords = {
@@ -221,20 +238,34 @@ function getAtlantaAreaCoords(address) {
         'tucker': [33.8154, -84.2171],                // Tucker
         'alpharetta': [34.0754, -84.2941],            // Alpharetta
         'dunwoody': [33.9462, -84.3346],              // Dunwoody
-        'atlanta': [33.7490, -84.3880]                // Atlanta center
+        'buford': [34.1208, -84.0052],                // Buford Highway area
+        'clairmont': [33.8084, -84.3068],             // Clairmont Road area  
+        'lenox': [33.8484, -84.3619],                 // Lenox area
+        'piedmont': [33.7847, -84.3884],              // Piedmont Road
+        'west peachtree': [33.7680, -84.3903],        // West Peachtree
+        'century': [33.8234, -84.3373],               // Century Center area
+        'wieuca': [33.8484, -84.3781],                // Wieuca Road (Buckhead)
+        'cascade': [33.7220, -84.4277],               // Cascade Road SW
+        'campbellton': [33.7220, -84.4277],           // Campbellton Road SW
+        'atlanta': [33.7490, -84.3880]                // Atlanta center (fallback)
     };
     
     // Find matching area
     for (const [area, coords] of Object.entries(areaCoords)) {
         if (lowerAddress.includes(area)) {
             // Add slight randomization to spread out markers
-            const lat = coords[0] + (Math.random() - 0.5) * 0.02;
-            const lng = coords[1] + (Math.random() - 0.5) * 0.02;
+            const lat = coords[0] + (Math.random() - 0.5) * 0.01;
+            const lng = coords[1] + (Math.random() - 0.5) * 0.01;
+            console.log(`Found coordinates for ${area}: [${lat}, ${lng}]`);
             return [lat, lng];
         }
     }
     
-    return null;
+    // Default Atlanta area coordinate with randomization
+    const defaultLat = 33.7490 + (Math.random() - 0.5) * 0.05;
+    const defaultLng = -84.3880 + (Math.random() - 0.5) * 0.05;
+    console.log(`Using default Atlanta coordinates: [${defaultLat}, ${defaultLng}]`);
+    return [defaultLat, defaultLng];
 }
 
 // Function to create a custom map icon
