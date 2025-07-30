@@ -179,7 +179,7 @@ async function geocodeAddress(address) {
                 }
             }),
             new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Geocoding timeout')), 8000)
+                setTimeout(() => reject(new Error('Geocoding timeout')), 12000)
             )
         ]);
         
