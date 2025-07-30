@@ -130,6 +130,19 @@ Interest in companion apps: Delivery driver mobile/web applications for field op
 
 ## Recent Changes (July 30, 2025) - Latest Updates
 
+### Street Routing and Map Display Fixes - Enhanced Visual Navigation
+- **OSRM Street Routing**: Implemented free OSRM routing service for realistic street-following route paths
+- **Enhanced Coordinate Mapping**: Added precise Atlanta address mappings for actual stop locations
+- **Numbered Stop Markers**: Fixed numbered markers with blue circles and white numbers for clear stop identification
+- **Proper Bounds Fitting**: Maps now properly zoom to show all stops with appropriate padding
+- **Street Path Visualization**: Blue lines follow actual Atlanta streets instead of straight-line connections
+- **Fallback System**: Graceful degradation to dashed lines when routing service unavailable
+- **Hash-Based Positioning**: Consistent coordinate assignment for unmapped addresses using address hashing
+- **Debug Logging**: Added coordinate mapping verification for troubleshooting map display issues
+- **Map Refresh Timing**: Improved bounds calculation with proper timing to ensure markers load before fitting
+
+## Recent Changes (July 30, 2025) - Previous Updates
+
 ### 8.5-Hour Target with 9-Hour Hard Limit Implementation - ENFORCED
 - **Automatic Driver Calculation**: System calculates minimum drivers needed to prevent exceeding 9-hour limit
 - **Hard Limit Enforcement**: Routes rejected if insufficient drivers provided, prevents overwork

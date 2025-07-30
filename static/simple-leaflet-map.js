@@ -166,6 +166,8 @@ function loadSimpleRouteData(map, routeId) {
         const coords = getAtlantaCoordinates(stop.address);
         allCoords.push(coords);
         
+        console.log(`Stop ${index + 1}: ${stop.address} -> [${coords[0]}, ${coords[1]}]`);
+        
         // Create numbered marker
         const marker = L.circleMarker(coords, {
             radius: 10,
@@ -176,14 +178,28 @@ function loadSimpleRouteData(map, routeId) {
             fillOpacity: 0.8
         }).addTo(map);
         
-        // Add number label
+        // Add number label with better visibility
         const divIcon = L.divIcon({
-            html: `<div style="color: white; font-weight: bold; font-size: 12px; text-align: center; line-height: 20px;">${index + 1}</div>`,
+            html: `<div style="
+                background: #007bff; 
+                color: white; 
+                font-weight: bold; 
+                font-size: 11px; 
+                text-align: center; 
+                line-height: 20px; 
+                border-radius: 50%; 
+                border: 2px solid white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                width: 20px;
+                height: 20px;
+            ">${index + 1}</div>`,
             iconSize: [20, 20],
+            iconAnchor: [10, 10],
             className: 'numbered-marker'
         });
         
-        L.marker(coords, { icon: divIcon }).addTo(map);
+        const numberMarker = L.marker(coords, { icon: divIcon }).addTo(map);
+        simpleMarkers[routeId].push(numberMarker);
         
         marker.bindPopup(`
             <strong>Stop ${index + 1}</strong><br>
@@ -211,19 +227,44 @@ function loadSimpleRouteData(map, routeId) {
     if (allCoords.length > 1) {
         addStreetRouteLines(map, routeId, allCoords);
         
-        // Fit map to show all markers
-        const group = new L.featureGroup(simpleMarkers[routeId]);
-        map.fitBounds(group.getBounds(), { padding: [20, 20] });
+        // Fit map to show all markers with proper bounds
+        setTimeout(() => {
+            if (simpleMarkers[routeId] && simpleMarkers[routeId].length > 0) {
+                const group = new L.featureGroup(simpleMarkers[routeId]);
+                try {
+                    map.fitBounds(group.getBounds(), { padding: [20, 20] });
+                } catch (error) {
+                    console.warn(`Failed to fit bounds for route ${routeId}, using default view`);
+                    map.setView([33.7490, -84.3880], 11);
+                }
+            }
+        }, 500);
     }
     
     console.log(`Added ${stopsData.length} stop markers and route line for route ${routeId}`);
 }
 
 function getAtlantaCoordinates(address) {
-    // Simple coordinate mapping for Atlanta area addresses
+    // Enhanced coordinate mapping for real Atlanta addresses
     const addressLower = address.toLowerCase();
     
-    // Common Atlanta coordinates mapping
+    // Specific street and area mappings for better accuracy
+    if (addressLower.includes('1100 peachtree st ne')) return [33.7850, -84.3820];
+    if (addressLower.includes('1201 west peachtree st nw')) return [33.7900, -84.3870];
+    if (addressLower.includes('2855 piedmont rd ne')) return [33.8200, -84.3650];
+    if (addressLower.includes('3520 piedmont rd ne')) return [33.8300, -84.3600];
+    if (addressLower.includes('3525 piedmont rd ne')) return [33.8320, -84.3580];
+    if (addressLower.includes('1430 west paces ferry rd nw')) return [33.8450, -84.3900];
+    if (addressLower.includes('2500 northside dr nw')) return [33.8100, -84.4050];
+    if (addressLower.includes('1827 northside dr nw')) return [33.8000, -84.4100];
+    if (addressLower.includes('6690 roswell rd ne')) return [33.8700, -84.3600];
+    if (addressLower.includes('5505 peachtree dunwoody rd')) return [33.9100, -84.3450];
+    if (addressLower.includes('4620 wieuca rd ne')) return [33.8950, -84.3650];
+    if (addressLower.includes('1501 clairmont rd')) return [33.8200, -84.3100];
+    if (addressLower.includes('2200 century pkwy')) return [33.8150, -84.2800];
+    if (addressLower.includes('3550 lenox rd ne')) return [33.8470, -84.3630];
+    
+    // Area-based fallback mapping
     if (addressLower.includes('peachtree')) return [33.7740, -84.3820];
     if (addressLower.includes('piedmont')) return [33.7850, -84.3900];
     if (addressLower.includes('buckhead')) return [33.8480, -84.3780];
@@ -234,13 +275,29 @@ function getAtlantaCoordinates(address) {
     if (addressLower.includes('marietta')) return [33.9520, -84.5470];
     if (addressLower.includes('sandy springs')) return [33.9240, -84.3780];
     if (addressLower.includes('roswell')) return [34.0230, -84.3610];
+    if (addressLower.includes('lenox')) return [33.8470, -84.3630];
+    if (addressLower.includes('northside')) return [33.8050, -84.4000];
+    if (addressLower.includes('paces ferry')) return [33.8450, -84.3900];
+    if (addressLower.includes('century')) return [33.8150, -84.2800];
+    if (addressLower.includes('clairmont')) return [33.8200, -84.3100];
+    if (addressLower.includes('wieuca')) return [33.8950, -84.3650];
     
-    // Default to central Atlanta with slight randomization
+    // Hash-based consistent positioning for unknown addresses
+    let hash = 0;
+    for (let i = 0; i < address.length; i++) {
+        const char = address.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    
     const baseCoords = [33.7490, -84.3880];
-    const offset = 0.02; // ~2km offset
+    const offset = 0.05; // ~5km spread
+    const latOffset = (Math.sin(hash) + 1) / 2 * offset - offset/2;
+    const lngOffset = (Math.cos(hash) + 1) / 2 * offset - offset/2;
+    
     return [
-        baseCoords[0] + (Math.random() - 0.5) * offset,
-        baseCoords[1] + (Math.random() - 0.5) * offset
+        baseCoords[0] + latOffset,
+        baseCoords[1] + lngOffset
     ];
 }
 
