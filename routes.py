@@ -355,36 +355,31 @@ def generate_routes():
         max_minutes_per_driver = 540  # 9 hours
         target_minutes_per_driver = 510  # 8.5 hours
         
-        # Calculate minimum drivers needed to stay under 9-hour limit
-        available_minutes_per_driver = max_minutes_per_driver - base_time_per_driver
-        stops_per_driver_max = available_minutes_per_driver // minutes_per_stop
-        min_drivers_needed = (len(all_stops_data) + stops_per_driver_max - 1) // stops_per_driver_max
-        
-        if num_drivers < min_drivers_needed:
-            logging.error(f"INSUFFICIENT DRIVERS: {num_drivers} requested, but {min_drivers_needed} required to stay under 9-hour limit")
-            
-            # Calculate workload details for error message
-            stops_per_driver_actual = len(all_stops_data) / num_drivers
-            minutes_per_driver_actual = (stops_per_driver_actual * minutes_per_stop) + base_time_per_driver
-            hours_per_driver_actual = minutes_per_driver_actual / 60
-            
-            error_msg = (f"⚠️ INSUFFICIENT DRIVERS: You requested {num_drivers} drivers for {len(all_stops_data)} stops. "
-                        f"This would create {hours_per_driver_actual:.1f}-hour shifts (exceeds 9-hour limit). "
-                        f"Need at least {min_drivers_needed} drivers to stay within 9-hour maximum. "
-                        f"Recommend {optimal_drivers} drivers for 8.5-hour target.")
-            
-            flash(error_msg, 'error')
-            
-            # Ensure session is clean before redirect
-            db.session.rollback()
-            return redirect(url_for('main.index'))
-        
         # Calculate optimal drivers for 8.5-hour target
         target_available_minutes = target_minutes_per_driver - base_time_per_driver
         stops_per_driver_target = target_available_minutes // minutes_per_stop
         optimal_drivers = (len(all_stops_data) + stops_per_driver_target - 1) // stops_per_driver_target
         
-        if num_drivers < optimal_drivers:
+        # Calculate minimum drivers needed to stay under 9-hour limit
+        available_minutes_per_driver = max_minutes_per_driver - base_time_per_driver
+        stops_per_driver_max = available_minutes_per_driver // minutes_per_stop
+        min_drivers_needed = (len(all_stops_data) + stops_per_driver_max - 1) // stops_per_driver_max
+        
+        # Calculate maximum stops that can be handled within 9-hour limit with available drivers
+        max_stops_possible = num_drivers * stops_per_driver_max
+        
+        # If we have too many stops for available drivers, limit stops to fit within 9-hour shifts
+        if len(all_stops_data) > max_stops_possible:
+            excess_stops = len(all_stops_data) - max_stops_possible
+            logging.warning(f"Too many stops for {num_drivers} drivers: {len(all_stops_data)} stops, max capacity {max_stops_possible}. {excess_stops} ASAP stops will be ignored (can be scheduled next day).")
+            
+            # Limit stops to what drivers can handle within 9-hour limit
+            # ASAP stops are already sorted by timestamp (oldest first), so we take the first max_stops_possible
+            all_stops_data = all_stops_data[:max_stops_possible]
+            
+            flash(f"Info: {excess_stops} excess ASAP stops ignored (9-hour limit). {num_drivers} drivers handling {max_stops_possible} stops. Excess stops can be scheduled next day.", 'info')
+        
+        if len(all_stops_data) > 0 and num_drivers < optimal_drivers:
             logging.warning(f"SUBOPTIMAL: {num_drivers} drivers will exceed 8.5h target. Optimal: {optimal_drivers} drivers")
             flash(f"Warning: {num_drivers} drivers will exceed 8.5-hour target. Recommend {optimal_drivers} drivers for optimal workload.", 'warning')
         
