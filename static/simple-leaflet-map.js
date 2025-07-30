@@ -35,11 +35,48 @@ function createSimpleMap(routeId) {
             attributionControl: true
         });
         
-        // Add tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // Try multiple tile servers for reliability
+        console.log(`Adding map tiles for route ${routeId}`);
+        
+        // Primary tile layer
+        const tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 18
-        }).addTo(map);
+        });
+        
+        let tilesLoaded = false;
+        
+        tileLayer.on('tileload', function() {
+            if (!tilesLoaded) {
+                tilesLoaded = true;
+                console.log(`OpenStreetMap tiles loaded successfully for route ${routeId}`);
+            }
+        });
+        
+        tileLayer.on('tileerror', function(error) {
+            console.error(`OpenStreetMap tile error for route ${routeId}:`, error);
+            
+            // Try CartoDB tile server as fallback
+            console.log(`Trying CartoDB tiles for route ${routeId}...`);
+            const cartoTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '© CARTO',
+                subdomains: 'abcd',
+                maxZoom: 19
+            });
+            cartoTileLayer.addTo(map);
+            
+            cartoTileLayer.on('tileerror', function() {
+                console.error(`CartoDB tiles also failed for route ${routeId}, using basic background`);
+                mapElement.style.backgroundColor = '#e6e6e6';
+            });
+        });
+        
+        try {
+            tileLayer.addTo(map);
+        } catch (error) {
+            console.error(`Failed to add tile layer for route ${routeId}:`, error);
+            mapElement.style.backgroundColor = '#e6e6e6';
+        }
         
         // Store map reference
         simpleMaps[routeId] = map;
@@ -47,10 +84,24 @@ function createSimpleMap(routeId) {
         
         console.log(`Simple map created successfully for route ${routeId}`);
         
-        // Force resize after creation
+        // Force resize and check tiles after creation
         setTimeout(() => {
             map.invalidateSize();
             console.log(`Map size invalidated for route ${routeId}`);
+            
+            // Force tile refresh if they haven't loaded
+            setTimeout(() => {
+                const hasLoadedTiles = mapElement.querySelector('.leaflet-tile-loaded');
+                if (!hasLoadedTiles) {
+                    console.warn(`No tiles loaded for route ${routeId}, forcing refresh`);
+                    map.eachLayer(function(layer) {
+                        if (layer._url && layer._url.includes('openstreetmap')) {
+                            layer.redraw();
+                        }
+                    });
+                }
+            }, 2000);
+            
         }, 100);
         
         // Load route data and add markers

@@ -1,0 +1,37 @@
+/* Leaflet tile loading fixes */
+
+.leaflet-container {
+    background: #f5f5f5 !important;
+}
+
+.leaflet-tile-container {
+    opacity: 1 !important;
+}
+
+.leaflet-tile {
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+/* Ensure tiles load properly */
+.leaflet-tile-pane {
+    transform: translate3d(0, 0, 0) !important;
+}
+
+/* Fix for missing tile backgrounds */
+.leaflet-container .leaflet-tile {
+    border: none !important;
+    background: white !important;
+}
+
+/* Custom marker styles */
+.numbered-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.numbered-marker div {
+    background: #007bff !important;
+    border-radius: 50% !important;
+    border: 2px solid white !important;
+}
