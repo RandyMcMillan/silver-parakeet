@@ -445,9 +445,11 @@ def generate_routes():
             else:
                 total_time = 0
             
-            # Check if route exceeds 8-hour limit and warn
-            if total_time > 480:  # 8 hours = 480 minutes
-                flash(f'Warning: Driver {driver_num} route exceeds 8 hours ({total_time//60}h {total_time%60}m)', 'warning')
+            # Check if route exceeds 8.5-hour target and 9-hour limit
+            if total_time > 540:  # 9 hours = 540 minutes - hard limit
+                flash(f'ALERT: Driver {driver_num} route exceeds 9-hour limit ({total_time//60}h {total_time%60}m) - Need more drivers!', 'error')
+            elif total_time > 510:  # 8.5 hours = 510 minutes - target limit
+                flash(f'Warning: Driver {driver_num} route exceeds 8.5-hour target ({total_time//60}h {total_time%60}m)', 'warning')
             
             # Create route record
             stop_sequence = json.dumps([all_stops_data[i]['id'] for i in valid_indices])
@@ -472,10 +474,16 @@ def generate_routes():
                 total_time, lead_time_weeks, allow_overtime=True
             )
             
-            # Log overtime information
-            if total_time > 480:  # Over 8 hours
+            # Log overtime information with new 8.5-hour targeting
+            if total_time > 540:  # Over 9 hours - critical
                 overtime_hours = (total_time - 480) / 60
-                logging.info(f"Driver {driver_num} overtime: {overtime_hours:.1f} hours, {overtime_reason}")
+                logging.error(f"Driver {driver_num} CRITICAL: {overtime_hours:.1f} hours overtime, exceeds 9-hour limit! {overtime_reason}")
+            elif total_time > 510:  # Over 8.5 hours - warning
+                overtime_hours = (total_time - 480) / 60
+                logging.warning(f"Driver {driver_num} exceeds 8.5h target: {overtime_hours:.1f} hours overtime, {overtime_reason}")
+            elif total_time > 480:  # Over 8 hours but under 8.5 - acceptable
+                overtime_hours = (total_time - 480) / 60
+                logging.info(f"Driver {driver_num} acceptable: {overtime_hours:.1f} hours overtime (under 8.5h target), {overtime_reason}")
             
             route = Route()
             route.driver_number = driver_num

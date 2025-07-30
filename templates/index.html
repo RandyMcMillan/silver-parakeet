@@ -433,20 +433,20 @@
                                             {% set overtime_minutes = route.total_time_minutes - 480 if route.total_time_minutes > 480 else 0 %}
                                             {% set undertime_minutes = 480 - route.total_time_minutes if route.total_time_minutes < 480 else 0 %}
                                             
-                                            <span class="badge bg-{{ 'danger' if route.total_time_minutes < 480 else 'success' if route.total_time_minutes <= 510 else 'info' if route.total_time_minutes <= 570 else 'warning' }} ms-2">
+                                            <span class="badge bg-{{ 'danger' if route.total_time_minutes < 480 else 'success' if route.total_time_minutes <= 510 else 'warning' if route.total_time_minutes <= 540 else 'danger' }} ms-2">
                                                 {{ hours }}h {{ minutes }}m
                                             </span>
                                             
                                             {% if route.total_time_minutes < 480 %}
                                                 <small class="text-danger"><strong>Under Target: Driver needs {{ (undertime_minutes // 60) }}h {{ (undertime_minutes % 60) }}m more for 8h minimum</strong></small>
                                             {% elif route.total_time_minutes <= 510 %}
-                                                <small class="text-success"><strong>✓ Ideal: 8h minimum + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m as demand allows</strong></small>
+                                                <small class="text-success"><strong>✓ Perfect: 8.5h target achieved ({{ hours }}h {{ minutes }}m)</strong></small>
                                                 <br><small class="text-muted">🚛 Est. fuel cost: $35-45 (2004-2006 Tundra @ $3.14/gal)</small>
-                                            {% elif route.total_time_minutes <= 570 %}
-                                                <small class="text-info">✓ Good: 8h minimum + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m based on workload</small>
+                                            {% elif route.total_time_minutes <= 540 %}
+                                                <small class="text-warning"><strong>⚠ Over Target: {{ hours }}h {{ minutes }}m exceeds 8.5h goal</strong></small>
                                                 <br><small class="text-muted">🚛 Est. fuel cost: $40-55 (2004-2006 Tundra @ $3.14/gal)</small>
                                             {% else %}
-                                                <small class="text-warning">High Overtime: 8h minimum + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m</small>
+                                                <small class="text-danger"><strong>🚨 CRITICAL: {{ hours }}h {{ minutes }}m exceeds 9-hour limit - Need more drivers!</strong></small>
                                                 <br><small class="text-muted">🚛 Est. fuel cost: $55+ (2004-2006 Tundra @ $3.14/gal)</small>
                                             {% endif %}
                                         </h6>

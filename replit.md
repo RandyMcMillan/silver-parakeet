@@ -129,13 +129,13 @@ Interest in companion apps: Delivery driver mobile/web applications for field op
 
 ## Recent Changes (July 30, 2025) - Latest Updates
 
-### 9-Hour Workday Priority System with Hiring Recommendations
-- **9-Hour Target Implementation**: Changed from 8-hour minimum to 9-hour ideal workday targeting
-- **Hiring Alert System**: System now provides clear recommendations when additional drivers needed (>11 hours per driver)
-- **Workload Assessment**: New categories: Underutilized (<7h), Ideal (9h±30min), Acceptable (9-11h), Exceeds Limit (>11h)
-- **Capacity Planning**: Calculates exact number of additional drivers needed based on total excess hours
-- **Real-Time Hiring Alerts**: Prominent logging warnings show hiring recommendations with projected workload reduction
-- **Proven Functionality**: Tests show 1 driver = 40.4 hours (hire 3+ more), 2 drivers = 19-21 hours each (hire 1+ more)
+### 8.5-Hour Target with 9-Hour Hard Limit Implementation
+- **8.5-Hour Target**: Changed from 9-hour targeting to 8.5-hour ideal workday to avoid overtime
+- **9-Hour Hard Limit**: Strict 9-hour maximum prevents excessive driver fatigue and maintains work-life balance
+- **Enhanced UI Warnings**: Color-coded badges show Perfect (≤8.5h), Warning (8.5-9h), Critical (>9h) with hiring alerts
+- **Overtime Policy Update**: Routes under 8.5h = success, 8.5-9h = acceptable warning, >9h = critical error requiring more drivers
+- **Intelligent Route Distribution**: System optimizes for 8.5-hour target while respecting 9-hour absolute maximum
+- **Driver Welfare Priority**: Maintains quality of life standards while meeting operational demands efficiently
 
 ### Map Display SUCCESS - Hybrid Mapping Solution Working
 - **Map Functionality Confirmed**: Maps display correctly with OpenStreetMap tiles and blue route lines

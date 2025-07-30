@@ -286,21 +286,27 @@ class TSPSolver:
     
     def check_overtime_approval(self, total_minutes: int, lead_time_weeks: int, 
                                allow_overtime: bool = True) -> Tuple[bool, str]:
-        """Check if overtime is approved based on lead time and policy"""
-        if total_minutes <= 480:  # Within 8 hours
-            return True, "Within standard 8-hour workday"
+        """Check if overtime is approved based on 8.5-hour target and 9-hour limit policy"""
+        # Target 8.5-hour workday = 510 minutes  
+        # Hard limit 9-hour workday = 540 minutes
+        
+        if total_minutes <= 510:  # Within 8.5-hour target
+            return True, "Within 8.5-hour target workday"
+        
+        if total_minutes <= 540:  # Within 9-hour limit but over target
+            return True, "Acceptable: Under 9-hour limit but exceeds 8.5h target"
         
         if not allow_overtime:
-            return False, "Overtime not permitted"
+            return False, "Exceeds 9-hour limit, overtime not permitted"
         
-        # Check if we have sufficient lead time for overtime approval
+        # Over 9-hour limit - requires special approval with 8-week lead time
         minimum_lead_time = 8  # weeks
         if lead_time_weeks >= minimum_lead_time:
             overtime_hours = (total_minutes - 480) / 60
-            return True, f"Overtime approved ({overtime_hours:.1f} hours) with {lead_time_weeks}-week lead time"
+            return True, f"CRITICAL overtime approved ({overtime_hours:.1f} hours) with {lead_time_weeks}-week lead time"
         else:
             needed_weeks = minimum_lead_time - lead_time_weeks
-            return False, f"Overtime requires {minimum_lead_time}-week lead time (need {needed_weeks} more weeks)"
+            return False, f"Exceeds 9-hour limit, requires {minimum_lead_time}-week lead time (need {needed_weeks} more weeks)"
     
     def optimize_for_8_hour_workday(self, stops: List[Dict], start_time: str, max_drivers: int = 10, 
                                    allow_overtime: bool = True, lead_time_weeks: int = 0) -> List[List[int]]:
