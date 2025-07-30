@@ -14,6 +14,11 @@ class Stop(db.Model):
     has_riders_toppers: Mapped[bool] = mapped_column(Boolean, default=False)
     riders_toppers_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     has_shelter: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Pickup/Reinstall functionality
+    is_pickup_reinstall: Mapped[bool] = mapped_column(Boolean, default=False)  # Whether this is a pickup+reinstall pair
+    pickup_address: Mapped[str | None] = mapped_column(Text, nullable=True)  # Pickup location (first stop)
+    reinstall_address: Mapped[str | None] = mapped_column(Text, nullable=True)  # Reinstall location (second stop)
+    pair_group_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)  # Links paired stops together
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)  # Index for chronological queries
     
     def __repr__(self):

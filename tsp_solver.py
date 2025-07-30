@@ -474,3 +474,179 @@ class TSPSolver:
             total_time += travel_time_minutes
         
         return int(total_time)
+    
+    def group_paired_stops(self, stops: List[Dict]) -> Tuple[List[List[Dict]], List[Dict]]:
+        """
+        Group pickup/reinstall pairs together and return paired groups and single stops
+        """
+        paired_groups = {}
+        single_stops = []
+        
+        for stop in stops:
+            if stop.get('is_pickup_reinstall', False):
+                pair_id = stop.get('pair_group_id')
+                if pair_id:
+                    if pair_id not in paired_groups:
+                        paired_groups[pair_id] = []
+                    paired_groups[pair_id].append(stop)
+                else:
+                    # Fallback: pair by pickup/reinstall addresses
+                    pickup_addr = stop.get('pickup_address', '')
+                    reinstall_addr = stop.get('reinstall_address', '')
+                    pair_key = f"{pickup_addr}|{reinstall_addr}"
+                    
+                    if pair_key not in paired_groups:
+                        paired_groups[pair_key] = []
+                    paired_groups[pair_key].append(stop)
+            else:
+                single_stops.append(stop)
+        
+        # Convert paired groups to list and ensure proper ordering (pickup first, reinstall second)
+        paired_lists = []
+        for group in paired_groups.values():
+            if len(group) == 2:
+                # Sort so pickup comes before reinstall
+                sorted_group = sorted(group, key=lambda x: 0 if x.get('service_type') == 'pickup' else 1)
+                paired_lists.append(sorted_group)
+            else:
+                # If incomplete pair, treat as single stops
+                single_stops.extend(group)
+        
+        return paired_lists, single_stops
+
+    def optimize_routes_with_traffic(self, stops: List[Dict], departure_address: str, num_drivers: int, start_time: str) -> List[Dict]:
+        """
+        Main optimization function that creates routes respecting 9-hour limit and paired stops
+        """
+        if not stops:
+            return []
+        
+        try:
+            logging.info(f"Starting route optimization for {len(stops)} stops with {num_drivers} drivers")
+            
+            # Group paired stops and single stops
+            paired_groups, single_stops = self.group_paired_stops(stops)
+            
+            logging.info(f"Found {len(paired_groups)} pickup/reinstall pairs and {len(single_stops)} single stops")
+            
+            # Calculate maximum capacity considering paired stops count as 2
+            max_stops_per_driver = 16
+            max_total_capacity = num_drivers * max_stops_per_driver
+            
+            # Count total stops including pairs
+            total_stop_count = len(single_stops) + (len(paired_groups) * 2)
+            
+            # Priority sorting for single stops: scheduled first, then ASAP (both by timestamp)
+            scheduled_single = [s for s in single_stops if not s.get('is_asap', False)]
+            asap_single = [s for s in single_stops if s.get('is_asap', False)]
+            
+            # Sort scheduled by required date, ASAP by created timestamp (oldest first) 
+            scheduled_single.sort(key=lambda x: x.get('required_date') or datetime.now())
+            asap_single.sort(key=lambda x: x.get('created_at', datetime.now()))
+            
+            # Priority sorting for paired groups (use pickup stop for sorting)
+            scheduled_pairs = [pair for pair in paired_groups if not pair[0].get('is_asap', False)]
+            asap_pairs = [pair for pair in paired_groups if pair[0].get('is_asap', False)]
+            
+            scheduled_pairs.sort(key=lambda x: x[0].get('required_date') or datetime.now())
+            asap_pairs.sort(key=lambda x: x[0].get('created_at', datetime.now()))
+            
+            # Combine: scheduled first, then ASAP (both pairs and singles interleaved by priority)
+            all_scheduled = scheduled_pairs + [[s] for s in scheduled_single]
+            all_asap = asap_pairs + [[s] for s in asap_single]
+            
+            # Merge scheduled and ASAP maintaining relative order
+            prioritized_work_units = all_scheduled + all_asap
+            
+            # Handle capacity limits - ignore excess work units
+            if total_stop_count > max_total_capacity:
+                # Remove excess work units from the end (lowest priority ASAP)
+                current_count = 0
+                final_work_units = []
+                
+                for work_unit in prioritized_work_units:
+                    unit_size = len(work_unit)  # 1 for single, 2 for pair
+                    if current_count + unit_size <= max_total_capacity:
+                        final_work_units.append(work_unit)
+                        current_count += unit_size
+                    else:
+                        break
+                
+                excess_count = total_stop_count - current_count
+                prioritized_work_units = final_work_units
+                logging.warning(f"Capacity exceeded: ignoring {excess_count} excess stops")
+            
+            logging.info(f"Processing {len(prioritized_work_units)} work units (capacity: {max_total_capacity})")
+            
+            # Distribute work units across drivers using round-robin
+            driver_assignments = [[] for _ in range(num_drivers)]
+            driver_stop_counts = [0] * num_drivers
+            
+            for work_unit in prioritized_work_units:
+                # Find driver with lowest stop count
+                min_count = min(driver_stop_counts)
+                min_driver_idx = driver_stop_counts.index(min_count)
+                
+                # Assign work unit to this driver
+                driver_assignments[min_driver_idx].extend(work_unit)
+                driver_stop_counts[min_driver_idx] += len(work_unit)
+            
+            # Create routes for each driver
+            routes = []
+            for driver_num in range(1, num_drivers + 1):
+                driver_stops = driver_assignments[driver_num - 1]
+                
+                if driver_stops:
+                    route = self.create_route_with_timing(driver_stops, departure_address, driver_num, start_time)
+                    routes.append(route)
+            
+            return routes
+            
+        except Exception as e:
+            logging.error(f"Route optimization error: {e}")
+            return []
+    
+    def create_route_with_timing(self, stops: List[Dict], departure_address: str, driver_num: int, start_time: str) -> Dict:
+        """
+        Create a route with timing information for a driver
+        """
+        if not stops:
+            return {
+                'driver_number': driver_num,
+                'stops': [],
+                'total_time': 0,
+                'departure_address': departure_address,
+                'start_time': start_time
+            }
+        
+        try:
+            # Optimize the order of stops for this driver
+            optimized_indices = self.solve_tsp_with_traffic(stops, start_time)
+            
+            # Create ordered stops list
+            ordered_stops = [stops[i] for i in optimized_indices if i < len(stops)]
+            
+            # Calculate total time
+            total_time = self.calculate_total_time_with_traffic(ordered_stops, list(range(len(ordered_stops))), start_time)
+            
+            # Add departure and return trips (25 minutes each)
+            total_time += 50  # 25 min to first stop + 25 min back from last stop
+            
+            return {
+                'driver_number': driver_num,
+                'stops': ordered_stops,
+                'total_time': total_time,
+                'departure_address': departure_address,
+                'start_time': start_time,
+                'ordered_stop_indices': optimized_indices
+            }
+            
+        except Exception as e:
+            logging.error(f"Error creating route for driver {driver_num}: {e}")
+            return {
+                'driver_number': driver_num,
+                'stops': stops,
+                'total_time': len(stops) * 10 + 50,  # Fallback estimate
+                'departure_address': departure_address,
+                'start_time': start_time
+            }

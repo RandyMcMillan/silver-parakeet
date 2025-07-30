@@ -67,19 +67,53 @@ def add_stop():
                 flash(error, 'error')
             return redirect(url_for('main.index'))
         
-        # Combine address fields into a single address string
-        street_address = SecurityValidator.sanitize_input(request.form.get('street_address', '').strip())
-        apt_unit = SecurityValidator.sanitize_input(request.form.get('apt_unit', '').strip())
-        city = SecurityValidator.sanitize_input(request.form.get('city', '').strip())
-        state = SecurityValidator.sanitize_input(request.form.get('state', '').strip())
-        zip_code = SecurityValidator.sanitize_input(request.form.get('zip_code', '').strip())
+        # Check if this is a pickup/reinstall operation
+        is_pickup_reinstall = request.form.get('is_pickup_reinstall') == 'on'
         
-        # Build full address
-        address_parts = [street_address]
-        if apt_unit:
-            address_parts.append(apt_unit)
-        address_parts.extend([city, state, zip_code])
-        address = ', '.join(part for part in address_parts if part)
+        if is_pickup_reinstall:
+            # Handle pickup/reinstall addresses
+            pickup_street = SecurityValidator.sanitize_input(request.form.get('pickup_street_address', '').strip())
+            pickup_apt = SecurityValidator.sanitize_input(request.form.get('pickup_apt_unit', '').strip())
+            pickup_city = SecurityValidator.sanitize_input(request.form.get('pickup_city', '').strip())
+            pickup_state = SecurityValidator.sanitize_input(request.form.get('pickup_state', '').strip())
+            pickup_zip = SecurityValidator.sanitize_input(request.form.get('pickup_zip_code', '').strip())
+            
+            reinstall_street = SecurityValidator.sanitize_input(request.form.get('reinstall_street_address', '').strip())
+            reinstall_apt = SecurityValidator.sanitize_input(request.form.get('reinstall_apt_unit', '').strip())
+            reinstall_city = SecurityValidator.sanitize_input(request.form.get('reinstall_city', '').strip())
+            reinstall_state = SecurityValidator.sanitize_input(request.form.get('reinstall_state', '').strip())
+            reinstall_zip = SecurityValidator.sanitize_input(request.form.get('reinstall_zip_code', '').strip())
+            
+            # Build pickup address
+            pickup_parts = [pickup_street]
+            if pickup_apt:
+                pickup_parts.append(pickup_apt)
+            pickup_parts.extend([pickup_city, pickup_state, pickup_zip])
+            pickup_address = ', '.join(part for part in pickup_parts if part)
+            
+            # Build reinstall address
+            reinstall_parts = [reinstall_street]
+            if reinstall_apt:
+                reinstall_parts.append(reinstall_apt)
+            reinstall_parts.extend([reinstall_city, reinstall_state, reinstall_zip])
+            reinstall_address = ', '.join(part for part in reinstall_parts if part)
+            
+            # Use pickup address as primary address for compatibility
+            address = pickup_address
+        else:
+            # Handle single address as before
+            street_address = SecurityValidator.sanitize_input(request.form.get('street_address', '').strip())
+            apt_unit = SecurityValidator.sanitize_input(request.form.get('apt_unit', '').strip())
+            city = SecurityValidator.sanitize_input(request.form.get('city', '').strip())
+            state = SecurityValidator.sanitize_input(request.form.get('state', '').strip())
+            zip_code = SecurityValidator.sanitize_input(request.form.get('zip_code', '').strip())
+            
+            # Build full address
+            address_parts = [street_address]
+            if apt_unit:
+                address_parts.append(apt_unit)
+            address_parts.extend([city, state, zip_code])
+            address = ', '.join(part for part in address_parts if part)
         
         service_type = request.form.get('service_type')
         is_asap = request.form.get('is_asap') == 'on'
@@ -128,14 +162,35 @@ def add_stop():
         
         # Validate required fields with specific error messages
         missing_fields = []
-        if not street_address:
-            missing_fields.append('Street Address')
-        if not city:
-            missing_fields.append('City')
-        if not state:
-            missing_fields.append('State')
-        if not zip_code:
-            missing_fields.append('ZIP Code')
+        if is_pickup_reinstall:
+            # Validate pickup/reinstall addresses
+            if not pickup_street:
+                missing_fields.append('Pickup Street Address')
+            if not pickup_city:
+                missing_fields.append('Pickup City')
+            if not pickup_state:
+                missing_fields.append('Pickup State')
+            if not pickup_zip:
+                missing_fields.append('Pickup ZIP Code')
+            if not reinstall_street:
+                missing_fields.append('Reinstall Street Address')
+            if not reinstall_city:
+                missing_fields.append('Reinstall City')
+            if not reinstall_state:
+                missing_fields.append('Reinstall State')
+            if not reinstall_zip:
+                missing_fields.append('Reinstall ZIP Code')
+        else:
+            # Validate single address
+            if not street_address:
+                missing_fields.append('Street Address')
+            if not city:
+                missing_fields.append('City')
+            if not state:
+                missing_fields.append('State')
+            if not zip_code:
+                missing_fields.append('ZIP Code')
+        
         if not service_type:
             missing_fields.append('Service Type')
         
@@ -164,42 +219,104 @@ def add_stop():
                 flash('Invalid date format', 'error')
                 return redirect(url_for('main.index'))
         
-        # Create new stop
-        stop = Stop()
-        stop.post_type = post_type or "Unknown"  # Ensure non-null value
-        stop.address = address
-        stop.service_type = service_type
-        stop.is_asap = is_asap
-        stop.required_date = required_date
-        stop.agent_sign_description = agent_sign_description if service_type == 'install' else None
-        stop.has_riders_toppers = has_riders_toppers
-        stop.riders_toppers_description = riders_toppers_description if has_riders_toppers else None
-        stop.has_shelter = has_shelter
-        
-        # Set manual timestamp if provided, otherwise use default (current time)
-        if manual_timestamp:
-            stop.created_at = manual_timestamp
-        
-        db.session.add(stop)
-        
-        # Save agent sign description to history if this is an install with a sign description
-        if service_type == 'install' and agent_sign_description:
-            # Check if there's already a sign history for this address
-            existing_sign = AgentSignHistory.query.filter_by(address=address).first()
-            if existing_sign:
-                # Update existing record
-                existing_sign.sign_description = agent_sign_description
-                existing_sign.updated_at = datetime.utcnow()
-            else:
-                # Create new record
-                agent_sign_history = AgentSignHistory()
-                agent_sign_history.address = address
-                agent_sign_history.sign_description = agent_sign_description
-                db.session.add(agent_sign_history)
+        if is_pickup_reinstall:
+            # Create paired stops for pickup/reinstall
+            import uuid
+            pair_group_id = str(uuid.uuid4())[:8]  # Short unique ID for the pair
+            
+            # Create pickup stop (first stop)
+            pickup_stop = Stop()
+            pickup_stop.post_type = post_type or "Unknown"
+            pickup_stop.address = pickup_address
+            pickup_stop.service_type = "pickup"  # Modified service type
+            pickup_stop.is_asap = is_asap
+            pickup_stop.required_date = required_date
+            pickup_stop.agent_sign_description = agent_sign_description if service_type == 'install' else None
+            pickup_stop.has_riders_toppers = has_riders_toppers
+            pickup_stop.riders_toppers_description = riders_toppers_description if has_riders_toppers else None
+            pickup_stop.has_shelter = has_shelter
+            pickup_stop.is_pickup_reinstall = True
+            pickup_stop.pickup_address = pickup_address
+            pickup_stop.reinstall_address = reinstall_address
+            pickup_stop.pair_group_id = pair_group_id
+            
+            # Create reinstall stop (second stop)
+            reinstall_stop = Stop()
+            reinstall_stop.post_type = post_type or "Unknown"
+            reinstall_stop.address = reinstall_address
+            reinstall_stop.service_type = "reinstall"  # Modified service type
+            reinstall_stop.is_asap = is_asap
+            reinstall_stop.required_date = required_date
+            reinstall_stop.agent_sign_description = agent_sign_description if service_type == 'install' else None
+            reinstall_stop.has_riders_toppers = has_riders_toppers
+            reinstall_stop.riders_toppers_description = riders_toppers_description if has_riders_toppers else None
+            reinstall_stop.has_shelter = has_shelter
+            reinstall_stop.is_pickup_reinstall = True
+            reinstall_stop.pickup_address = pickup_address
+            reinstall_stop.reinstall_address = reinstall_address
+            reinstall_stop.pair_group_id = pair_group_id
+            
+            # Set manual timestamp if provided
+            if manual_timestamp:
+                pickup_stop.created_at = manual_timestamp
+                reinstall_stop.created_at = manual_timestamp
+            
+            db.session.add(pickup_stop)
+            db.session.add(reinstall_stop)
+            
+            # Save agent sign description to history for both addresses
+            if service_type == 'install' and agent_sign_description:
+                for addr in [pickup_address, reinstall_address]:
+                    existing_sign = AgentSignHistory.query.filter_by(address=addr).first()
+                    if existing_sign:
+                        existing_sign.sign_description = agent_sign_description
+                        existing_sign.updated_at = datetime.utcnow()
+                    else:
+                        agent_sign_history = AgentSignHistory()
+                        agent_sign_history.address = addr
+                        agent_sign_history.sign_description = agent_sign_description
+                        db.session.add(agent_sign_history)
+        else:
+            # Create single stop as before
+            stop = Stop()
+            stop.post_type = post_type or "Unknown"
+            stop.address = address
+            stop.service_type = service_type
+            stop.is_asap = is_asap
+            stop.required_date = required_date
+            stop.agent_sign_description = agent_sign_description if service_type == 'install' else None
+            stop.has_riders_toppers = has_riders_toppers
+            stop.riders_toppers_description = riders_toppers_description if has_riders_toppers else None
+            stop.has_shelter = has_shelter
+            stop.is_pickup_reinstall = False
+            
+            # Set manual timestamp if provided, otherwise use default (current time)
+            if manual_timestamp:
+                stop.created_at = manual_timestamp
+            
+            db.session.add(stop)
+            
+            # Save agent sign description to history if this is an install with a sign description
+            if service_type == 'install' and agent_sign_description:
+                # Check if there's already a sign history for this address
+                existing_sign = AgentSignHistory.query.filter_by(address=address).first()
+                if existing_sign:
+                    # Update existing record
+                    existing_sign.sign_description = agent_sign_description
+                    existing_sign.updated_at = datetime.utcnow()
+                else:
+                    # Create new record
+                    agent_sign_history = AgentSignHistory()
+                    agent_sign_history.address = address
+                    agent_sign_history.sign_description = agent_sign_description
+                    db.session.add(agent_sign_history)
         
         db.session.commit()
         
-        flash('Stop added successfully', 'success')
+        if is_pickup_reinstall:
+            flash('Pickup/Reinstall pair added successfully', 'success')
+        else:
+            flash('Stop added successfully', 'success')
         # Return redirect with both URL parameter and localStorage trigger
         return redirect(url_for('main.index', reset_form='true', form_reset_trigger='true'))
         

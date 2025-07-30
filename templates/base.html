@@ -191,6 +191,55 @@
                 timestampInput.value = '';
             }
         }
+        
+        // Toggle pickup/reinstall address fields
+        function togglePickupReinstall() {
+            const checkbox = document.getElementById('is_pickup_reinstall');
+            const singleAddressGroup = document.getElementById('single_address_group');
+            const pickupReinstallGroup = document.getElementById('pickup_reinstall_addresses');
+            
+            if (checkbox.checked) {
+                singleAddressGroup.style.display = 'none';
+                pickupReinstallGroup.style.display = 'block';
+                
+                // Remove required attribute from single address fields
+                document.getElementById('street_address').required = false;
+                document.getElementById('city').required = false;
+                document.getElementById('state').required = false;
+                document.getElementById('zip_code').required = false;
+                
+                // Add required attribute to pickup address fields
+                document.getElementById('pickup_street_address').required = true;
+                document.getElementById('pickup_city').required = true;
+                document.getElementById('pickup_state').required = true;
+                document.getElementById('pickup_zip_code').required = true;
+                
+                // Add required attribute to reinstall address fields
+                document.getElementById('reinstall_street_address').required = true;
+                document.getElementById('reinstall_city').required = true;
+                document.getElementById('reinstall_state').required = true;
+                document.getElementById('reinstall_zip_code').required = true;
+            } else {
+                singleAddressGroup.style.display = 'block';
+                pickupReinstallGroup.style.display = 'none';
+                
+                // Add required attribute back to single address fields
+                document.getElementById('street_address').required = true;
+                document.getElementById('city').required = true;
+                document.getElementById('state').required = true;
+                document.getElementById('zip_code').required = true;
+                
+                // Remove required attribute from pickup/reinstall fields
+                document.getElementById('pickup_street_address').required = false;
+                document.getElementById('pickup_city').required = false;
+                document.getElementById('pickup_state').required = false;
+                document.getElementById('pickup_zip_code').required = false;
+                document.getElementById('reinstall_street_address').required = false;
+                document.getElementById('reinstall_city').required = false;
+                document.getElementById('reinstall_state').required = false;
+                document.getElementById('reinstall_zip_code').required = false;
+            }
+        }
     </script>
 </body>
 </html>
