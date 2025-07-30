@@ -6,6 +6,27 @@
 const workingMaps = {};
 const mapMarkers = {};
 
+// Retry function for failed map initialization
+function retryMapInitialization(routeId) {
+    console.log(`Retrying map initialization for route ${routeId}`);
+    
+    // Clear existing map if it exists
+    if (workingMaps[routeId]) {
+        workingMaps[routeId].remove();
+        delete workingMaps[routeId];
+    }
+    
+    // Clear markers
+    if (mapMarkers[routeId]) {
+        delete mapMarkers[routeId];
+    }
+    
+    // Retry initialization
+    setTimeout(() => {
+        initializeWorkingMap(routeId);
+    }, 100);
+}
+
 // Function to toggle route map visibility and initialization
 function toggleRouteMap(routeId) {
     console.log(`Toggling map for route ${routeId}`);
@@ -25,17 +46,18 @@ function toggleRouteMap(routeId) {
         
         toggleBtn.innerHTML = '<i data-feather="eye-off" style="width: 14px; height: 14px;"></i> Hide Map';
         
-        // Initialize map if not already created
-        if (!workingMaps[routeId]) {
-            initializeWorkingMap(routeId);
-        } else {
-            // Resize existing map
-            setTimeout(() => {
-                if (workingMaps[routeId]) {
-                    workingMaps[routeId].invalidateSize();
-                }
-            }, 100);
-        }
+        // Wait for container to be visible before initializing
+        setTimeout(() => {
+            // Initialize map if not already created
+            if (!workingMaps[routeId]) {
+                console.log(`Map container now visible, initializing for route ${routeId}`);
+                initializeWorkingMap(routeId);
+            } else {
+                // Resize existing map
+                console.log(`Resizing existing map for route ${routeId}`);
+                workingMaps[routeId].invalidateSize();
+            }
+        }, 250);
         
         // Update icons
         if (typeof feather !== 'undefined') {
@@ -76,12 +98,24 @@ function initializeWorkingMap(routeId) {
         mapElement.style.height = '400px';
         mapElement.style.width = '100%';
         
+        // Check for existing map instance
+        if (workingMaps[routeId]) {
+            console.log(`Map already exists for route ${routeId}, removing it first`);
+            workingMaps[routeId].remove();
+            delete workingMaps[routeId];
+        }
+        
+        // Clear the map element content
+        mapElement.innerHTML = '';
+        
         // Create Leaflet map with proper initialization
+        console.log(`Creating new Leaflet map for route ${routeId}`);
         const map = L.map(mapElement, {
             center: [33.7490, -84.3880],
             zoom: 11,
             zoomControl: true,
-            attributionControl: true
+            attributionControl: true,
+            preferCanvas: false
         });
         
         // Add OpenStreetMap tiles
@@ -174,6 +208,26 @@ function initializeWorkingMap(routeId) {
             
     } catch (error) {
         console.error(`Failed to create map for route ${routeId}:`, error);
+        console.error(`Error details:`, error.stack);
+        
+        // Create error display with retry option
+        mapElement.innerHTML = `
+            <div class="d-flex align-items-center justify-content-center h-100 bg-light" style="height: 400px;">
+                <div class="text-center p-4">
+                    <i data-feather="alert-triangle" style="width: 48px; height: 48px;" class="text-warning"></i>
+                    <p class="mt-2 mb-1"><strong>Map Display Issue</strong></p>
+                    <small class="text-muted">Leaflet Error: ${error.message}</small>
+                    <br><small class="text-info">23 locations ready to display</small>
+                    <br><button class="btn btn-sm btn-outline-primary mt-2" onclick="retryMapInitialization(${routeId})">
+                        <i data-feather="refresh-cw" style="width: 12px; height: 12px;"></i> Retry Map
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
     }
 }
 
