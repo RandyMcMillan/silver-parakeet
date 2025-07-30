@@ -1,0 +1,18 @@
+<!-- Driver Recommendation Helper -->
+<div class="alert alert-info" role="alert">
+    <h5><i data-feather="users"></i> Driver Calculator</h5>
+    <p><strong>For {{ stop_count }} stops:</strong></p>
+    <ul class="mb-0">
+        <li><strong>Minimum:</strong> {{ min_drivers }} drivers (9-hour limit compliance)</li>
+        <li><strong>Optimal:</strong> {{ optimal_drivers }} drivers (8.5-hour target)</li>
+        <li><strong>Current:</strong> {{ current_drivers }} drivers 
+            {% if current_drivers < min_drivers %}
+                <span class="badge bg-danger">Insufficient</span>
+            {% elif current_drivers < optimal_drivers %}
+                <span class="badge bg-warning">Acceptable</span>
+            {% else %}
+                <span class="badge bg-success">Optimal</span>
+            {% endif %}
+        </li>
+    </ul>
+</div>

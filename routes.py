@@ -362,9 +362,21 @@ def generate_routes():
         
         if num_drivers < min_drivers_needed:
             logging.error(f"INSUFFICIENT DRIVERS: {num_drivers} requested, but {min_drivers_needed} required to stay under 9-hour limit")
-            flash(f"ERROR: Need at least {min_drivers_needed} drivers for {len(all_stops_data)} stops to stay under 9-hour limit. You requested only {num_drivers} drivers.", 'error')
-            # Ensure database transaction is committed before redirect
-            db.session.commit()
+            
+            # Calculate workload details for error message
+            stops_per_driver_actual = len(all_stops_data) / num_drivers
+            minutes_per_driver_actual = (stops_per_driver_actual * minutes_per_stop) + base_time_per_driver
+            hours_per_driver_actual = minutes_per_driver_actual / 60
+            
+            error_msg = (f"⚠️ INSUFFICIENT DRIVERS: You requested {num_drivers} drivers for {len(all_stops_data)} stops. "
+                        f"This would create {hours_per_driver_actual:.1f}-hour shifts (exceeds 9-hour limit). "
+                        f"Need at least {min_drivers_needed} drivers to stay within 9-hour maximum. "
+                        f"Recommend {optimal_drivers} drivers for 8.5-hour target.")
+            
+            flash(error_msg, 'error')
+            
+            # Ensure session is clean before redirect
+            db.session.rollback()
             return redirect(url_for('main.index'))
         
         # Calculate optimal drivers for 8.5-hour target
