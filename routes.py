@@ -637,8 +637,11 @@ def generate_routes():
             elif total_time > 510:  # 8.5 hours = 510 minutes - target limit
                 flash(f'Warning: Driver {driver_num} route exceeds 8.5-hour target ({total_time//60}h {total_time%60}m)', 'warning')
             
-            # Create route record
-            stop_sequence = json.dumps([all_stops_data[i]['id'] for i in valid_indices])
+            # Create route record - handle dictionary format from clustering
+            if route_stops and isinstance(route_stops[0], dict):
+                stop_sequence = json.dumps([stop['id'] for stop in route_stops])
+            else:
+                stop_sequence = json.dumps([])
             
             # Store Google Maps drive time data for UI display (ensure variables are defined)
             google_maps_data = {
