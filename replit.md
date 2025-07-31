@@ -3,6 +3,12 @@
 ## Overview
 "Shut Up and Drive" is a Flask-based web application designed to optimize delivery routes for field service teams. It addresses the Traveling Salesman Problem (TSP) to efficiently manage stops, employees, and generate optimized routes. The application aims to get drivers on the road efficiently by considering scheduling priorities, service types, and real-time traffic data, balancing workloads to meet 8-hour daily targets, and integrating with actual street routing. The vision is to provide a robust solution for logistics and field service management, ensuring operational efficiency and cost optimization.
 
+## Recent Changes (July 2025)
+- **Pickup/Reinstall Feature**: Successfully implemented dual-address functionality with dynamic UI toggle
+- **Codebase Health**: Resolved critical circular import issues and variable binding errors
+- **Form Validation**: Enhanced JavaScript-based field visibility and validation controls
+- **Database Schema**: Added pickup/reinstall columns with proper paired stop tracking
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 Interest in companion apps: Delivery driver mobile/web applications for field operations.
