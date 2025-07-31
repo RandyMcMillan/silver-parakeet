@@ -584,11 +584,18 @@ def generate_routes():
                 # Use fast estimated times to prevent API timeouts
                 logging.info(f"Using fast route estimation for route {driver_num} (prevents API timeouts)")
                 
-                # Calculate drive times based on distance estimates
-                drive_times_list = [20] * (len(stop_addresses) - 1) if len(stop_addresses) > 1 else []
+                # Calculate drive times based on reasonable estimates (not per-stop multiplication)
+                if len(stop_addresses) > 1:
+                    # Estimate total drive time based on number of stops (more realistic)
+                    estimated_total_drive_time = min(len(stop_addresses) * 15, 180)  # Max 3 hours drive time
+                    drive_times_list = [estimated_total_drive_time // max(1, len(stop_addresses) - 1)] * max(1, len(stop_addresses) - 1)
+                else:
+                    drive_times_list = []
+                    estimated_total_drive_time = 0
+                
                 departure_to_first = 25  # Fixed departure time
                 last_to_departure = 25   # Fixed return time
-                drive_time_between_stops = sum(drive_times_list) if drive_times_list else 0
+                drive_time_between_stops = estimated_total_drive_time
                 traffic_description = "fast estimates"
                 
                 total_time = service_time + drive_time_between_stops + departure_to_first + last_to_departure
