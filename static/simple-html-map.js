@@ -10,24 +10,62 @@ function createHTMLMap(routeId) {
         return;
     }
     
-    // Clear and create a highly visible container
+    // Clear and create map container with real map tiles
     mapElement.innerHTML = '';
-    mapElement.style.cssText = 'height: 400px; width: 100%; background: linear-gradient(45deg, #e3f2fd, #bbdefb); border: 3px solid #1976d2; position: relative; overflow: hidden;';
+    mapElement.style.cssText = 'height: 400px; width: 100%; background: #f5f5f5; border: 2px solid #1976d2; position: relative; overflow: hidden;';
     
-    // Add title
-    const title = document.createElement('div');
-    title.style.cssText = 'position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: #1976d2; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; z-index: 1000;';
-    title.textContent = `Route ${routeId} - Atlanta Metro Area`;
-    mapElement.appendChild(title);
+    // Create tile layer for Atlanta area (zoom level 10 covers metro area well)
+    const tileContainer = document.createElement('div');
+    tileContainer.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;';
     
-    // Add grid background using divs
-    for (let i = 0; i < 8; i++) {
-        for (let j = 0; j < 10; j++) {
-            const gridCell = document.createElement('div');
-            gridCell.style.cssText = `position: absolute; left: ${j * 10}%; top: ${i * 12.5}%; width: 10%; height: 12.5%; border: 1px solid rgba(25, 118, 210, 0.2); box-sizing: border-box;`;
-            mapElement.appendChild(gridCell);
+    // Atlanta is approximately at tile coordinates (271, 409) at zoom level 10
+    const zoom = 10;
+    const centerTileX = 271;
+    const centerTileY = 409;
+    const tilesWide = 4;
+    const tilesHigh = 3;
+    
+    // Load map tiles in a grid
+    for (let dy = -1; dy <= tilesHigh - 2; dy++) {
+        for (let dx = -1; dx <= tilesWide - 2; dx++) {
+            const tileX = centerTileX + dx;
+            const tileY = centerTileY + dy;
+            
+            const tile = document.createElement('img');
+            tile.style.cssText = `
+                position: absolute;
+                left: ${(dx + 1) * 25}%;
+                top: ${(dy + 1) * 33.33}%;
+                width: 25%;
+                height: 33.33%;
+                opacity: 0.8;
+                z-index: 0;
+            `;
+            tile.src = `https://tile.openstreetmap.org/${zoom}/${tileX}/${tileY}.png`;
+            tile.alt = `Map tile ${tileX},${tileY}`;
+            
+            // Add load event to verify tiles are working
+            tile.onload = function() {
+                console.log(`Map tile loaded successfully: ${this.src}`);
+            };
+            tile.onerror = function() {
+                console.log(`Map tile failed to load: ${this.src}`);
+                // Fallback to a colored background
+                this.style.background = '#e8f4f8';
+                this.style.border = '1px solid #ccc';
+            };
+            
+            tileContainer.appendChild(tile);
         }
     }
+    
+    mapElement.appendChild(tileContainer);
+    
+    // Add title overlay
+    const title = document.createElement('div');
+    title.style.cssText = 'position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(25, 118, 210, 0.9); color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold; z-index: 1000; font-size: 12px;';
+    title.textContent = `Route ${routeId} - Atlanta Metro`;
+    mapElement.appendChild(title);
     
     console.log(`HTML map container created successfully for route ${routeId}`);
     htmlMaps[routeId] = { container: mapElement, markers: [] };
