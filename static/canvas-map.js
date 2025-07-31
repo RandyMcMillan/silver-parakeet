@@ -10,17 +10,18 @@ function createCanvasMap(routeId) {
         return;
     }
     
-    // Clear and set up canvas container
+    // Clear and set up canvas container with highly visible styling
     mapElement.innerHTML = '';
-    mapElement.style.cssText = 'height: 400px; width: 100%; background: #f0f0f0; border: 2px solid #007bff; position: relative;';
+    mapElement.style.cssText = 'height: 400px; width: 100%; background: #ff0000; border: 5px solid #00ff00; position: relative; overflow: visible;';
     
-    // Create canvas element
+    // Create canvas element with explicit dimensions
     const canvas = document.createElement('canvas');
-    canvas.width = mapElement.offsetWidth;
+    const containerWidth = mapElement.offsetWidth || 800; // Fallback width
+    canvas.width = containerWidth;
     canvas.height = 400;
-    canvas.style.width = '100%';
-    canvas.style.height = '400px';
-    canvas.style.display = 'block';
+    canvas.style.cssText = 'width: 100%; height: 400px; display: block; background: #ffffff; border: 2px solid #0000ff;';
+    
+    console.log(`Canvas dimensions: ${canvas.width}x${canvas.height}, container width: ${containerWidth}`);
     
     mapElement.appendChild(canvas);
     
@@ -29,9 +30,15 @@ function createCanvasMap(routeId) {
     // Store canvas reference
     canvasMaps[routeId] = { canvas, ctx, width: canvas.width, height: canvas.height };
     
-    // Draw background
-    ctx.fillStyle = '#e8f4fd';
+    // Draw bright background for visibility test
+    ctx.fillStyle = '#ffff00'; // Bright yellow
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Add "CANVAS WORKING" text for diagnostic
+    ctx.fillStyle = '#ff0000';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('CANVAS MAP WORKING', canvas.width / 2, 50);
     
     // Add grid pattern to simulate map tiles
     drawMapGrid(ctx, canvas.width, canvas.height);
