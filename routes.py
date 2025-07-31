@@ -536,22 +536,31 @@ def generate_routes():
             for driver in range(num_drivers):
                 driver_stops = stops_per_driver + (1 if driver < remainder else 0)
                 if driver_stops > 0:
-                    route = list(range(current_index, current_index + driver_stops))
-                    optimized_routes.append(route)
+                    # Create list of stop dictionaries for fallback consistency
+                    route_stops = all_stops_data[current_index:current_index + driver_stops]
+                    optimized_routes.append(route_stops)
                     current_index += driver_stops
                 else:
                     optimized_routes.append([])  # Empty route for excess drivers
         
         # Create route records for each driver (skip empty routes)
         routes_created = 0
-        for driver_num, route_indices in enumerate(optimized_routes, 1):
-            if not route_indices:
+        for driver_num, route_data in enumerate(optimized_routes, 1):
+            if not route_data:
                 logging.info(f"Skipping empty route for driver {driver_num}")
                 continue
             
-            # Get stops for this route (ensure indices are valid)
-            valid_indices = [i for i in route_indices if i < len(all_stops_data)]
-            route_stops = [all_stops_data[i] for i in valid_indices]
+            # Handle both clustering output (list of dicts) and fallback output (list of indices)
+            if isinstance(route_data, list) and route_data:
+                if isinstance(route_data[0], dict):
+                    # Clustering output: list of stop dictionaries
+                    route_stops = route_data
+                else:
+                    # Fallback output: list of indices
+                    valid_indices = [i for i in route_data if i < len(all_stops_data)]
+                    route_stops = [all_stops_data[i] for i in valid_indices]
+            else:
+                continue
             
             # Calculate estimated time with Google Maps API or fallback estimates
             if route_stops:
