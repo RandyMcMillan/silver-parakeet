@@ -53,7 +53,7 @@ function createFreshMap(routeId) {
     // Completely clear and reset the container
     mapElement.innerHTML = '';
     mapElement.className = '';
-    mapElement.style.cssText = 'height: 400px; width: 100%; background: #ff0000; border: 4px solid #00ff00; position: relative; overflow: visible; z-index: 1000;';
+    mapElement.style.cssText = 'height: 400px; width: 100%; background: #ff0000; border: 4px solid #00ff00; position: relative; overflow: visible; z-index: 1;';
     
     try {
         // Create map with very basic configuration
@@ -85,9 +85,12 @@ function createFreshMap(routeId) {
         
         tileLayer.on('tileload', function(e) {
             console.log(`Fresh tile loaded for route ${routeId}:`, e.tile.src);
-            // Force tile visibility
-            e.tile.style.opacity = '1';
-            e.tile.style.display = 'block';
+            // Force tile visibility with aggressive CSS
+            e.tile.style.opacity = '1 !important';
+            e.tile.style.display = 'block !important';
+            e.tile.style.visibility = 'visible !important';
+            e.tile.style.zIndex = '1 !important';
+            e.tile.style.position = 'absolute !important';
         });
         
         tileLayer.on('tileerror', function(e) {
@@ -99,6 +102,26 @@ function createFreshMap(routeId) {
         
         // Add the tile layer
         tileLayer.addTo(map);
+        
+        // Force CSS fixes for tile visibility
+        setTimeout(() => {
+            const tileContainer = mapElement.querySelector('.leaflet-tile-pane');
+            if (tileContainer) {
+                tileContainer.style.zIndex = '1';
+                tileContainer.style.opacity = '1';
+                tileContainer.style.display = 'block';
+                console.log(`Fixed tile container CSS for route ${routeId}`);
+            }
+            
+            // Force all existing tiles to be visible
+            const tiles = mapElement.querySelectorAll('.leaflet-tile');
+            tiles.forEach(tile => {
+                tile.style.opacity = '1';
+                tile.style.display = 'block';
+                tile.style.visibility = 'visible';
+            });
+            console.log(`Forced visibility for ${tiles.length} tiles in route ${routeId}`);
+        }, 300);
         
         // Store reference
         freshMaps[routeId] = map;
