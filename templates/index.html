@@ -499,7 +499,7 @@
                                         </h6>
                                         <i data-feather="chevron-down" class="ms-auto collapse-icon"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-primary ms-2" id="map-toggle-{{ route.driver_number }}" onclick="toggleFreshMap({{ route.driver_number }})">
+                                    <button class="btn btn-sm btn-outline-primary ms-2" id="map-toggle-{{ route.driver_number }}" onclick="toggleCanvasMap({{ route.driver_number }})">
                                         <i data-feather="map" style="width: 14px; height: 14px;"></i>
                                         Show Map
                                     </button>
@@ -644,12 +644,15 @@
 </div>
 {% endif %}
 
+<!-- Canvas Map Implementation -->
+<script src="{{ url_for('static', filename='canvas-map.js') }}"></script>
+
 <script>
-// Hybrid mapping solution: Google Maps API for routing, Leaflet for visualization
+// Canvas-based mapping solution bypassing CSS issues
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Hybrid mapping ready: Google Maps routing + Leaflet visualization');
+    console.log('Canvas mapping ready: HTML5 Canvas for visual display');
     console.log('Route optimization uses Google Maps API for traffic-aware times');
-    console.log('Map display uses free OpenStreetMap tiles via Leaflet');
+    console.log('Map display uses HTML5 Canvas (no CSS dependencies)');
     console.log('Maps will initialize when "Show Map" is clicked');
 });
 </script>
