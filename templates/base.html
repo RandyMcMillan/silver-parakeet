@@ -11,8 +11,54 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     
-    <!-- Leaflet CSS -->
+    <!-- Leaflet CSS with inline backup -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        /* Essential Leaflet CSS backup for tile display */
+        .leaflet-container {
+            background: #ddd;
+            outline: 0;
+            font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
+        }
+        .leaflet-tile-pane {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        .leaflet-tile {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 256px;
+            height: 256px;
+            border: 0;
+            opacity: 1 !important;
+            display: block !important;
+            visibility: visible !important;
+        }
+        .leaflet-layer {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        .leaflet-map-pane {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        .leaflet-control-container {
+            position: relative;
+        }
+        .leaflet-zoom-box {
+            width: 0;
+            height: 0;
+            box-sizing: border-box;
+            z-index: 800;
+        }
+        .leaflet-tile-container {
+            position: absolute;
+        }
+    </style>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/leaflet-fix.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/leaflet-tile-fix.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/map-debug.css') }}">
