@@ -5,17 +5,21 @@ from geopy.distance import geodesic
 from geopy.geocoders import Nominatim
 import logging
 from datetime import datetime, timedelta
+from distance_cache import distance_cache
+from christofides_tsp import ChristofidesTSPSolver
 
 class TSPSolver:
     def __init__(self):
         self.geolocator = Nominatim(user_agent="route_optimizer")
         self.distance_cache = {}
+        self.christofides_solver = ChristofidesTSPSolver()
+        self.use_advanced_algorithms = True
         
     def geocode_address(self, address: str) -> Tuple[float, float]:
         """Convert address to coordinates with reliable fallback"""
         try:
             # Try online geocoding first with timeout
-            location = self.geolocator.geocode(address, timeout=3.0)
+            location = self.geolocator.geocode(address, timeout=3)
             if location:
                 return (location.latitude, location.longitude)
             else:
@@ -54,7 +58,7 @@ class TSPSolver:
         return (33.7490, -84.3880)
     
     def calculate_distance(self, coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float:
-        """Calculate distance between two coordinates in kilometers"""
+        """Calculate distance between two coordinates in kilometers with advanced caching"""
         cache_key = (coord1, coord2)
         if cache_key in self.distance_cache:
             return self.distance_cache[cache_key]
@@ -67,6 +71,30 @@ class TSPSolver:
             logging.error(f"Distance calculation error: {e}")
             # Fallback to Euclidean distance
             return math.sqrt((coord1[0] - coord2[0])**2 + (coord1[1] - coord2[1])**2) * 111  # Approximate km per degree
+    
+    def calculate_distance_with_cache(self, addr1: str, addr2: str, traffic_hour: float = 12.0) -> Tuple[float, float]:
+        """Calculate distance using database cache for performance optimization"""
+        # Try database cache first
+        cached_result = distance_cache.get_cached_distance(addr1, addr2, traffic_hour)
+        if cached_result:
+            return cached_result  # (distance_km, travel_time_minutes)
+        
+        # Calculate fresh values
+        coord1 = self.geocode_address(addr1)
+        coord2 = self.geocode_address(addr2)
+        distance_km = self.calculate_distance(coord1, coord2)
+        
+        # Base travel time (assuming 30 km/h average in city)
+        base_travel_time = (distance_km / 30) * 60  # minutes
+        
+        # Cache the result
+        distance_cache.cache_distance(addr1, addr2, distance_km, base_travel_time)
+        
+        # Apply traffic multiplier for return value
+        traffic_multiplier = distance_cache._get_traffic_multiplier(traffic_hour)
+        adjusted_time = base_travel_time * traffic_multiplier
+        
+        return (distance_km, adjusted_time)
     
     def create_distance_matrix(self, stops: List[Dict]) -> List[List[float]]:
         """Create distance matrix for all stops"""
@@ -147,14 +175,31 @@ class TSPSolver:
         return best_tour
     
     def solve_tsp(self, stops: List[Dict]) -> List[int]:
-        """Solve TSP for given stops"""
+        """Solve TSP using advanced algorithms for optimal routes"""
         if len(stops) <= 1:
             return list(range(len(stops)))
         
-        # Create distance matrix
-        distance_matrix = self.create_distance_matrix(stops)
+        # Create distance matrix with caching
+        distance_matrix = self.create_distance_matrix_optimized(stops)
         
-        # Solve using nearest neighbor
+        # Choose algorithm based on problem size and settings
+        if self.use_advanced_algorithms and len(stops) >= 4:
+            try:
+                # Use Christofides algorithm for better solutions
+                christofides_tour, christofides_distance = self.christofides_solver.solve_tsp(distance_matrix)
+                logging.info(f"Christofides algorithm: {len(stops)} stops, distance: {christofides_distance:.1f}")
+                
+                # Apply 2-opt improvement to Christofides solution
+                if len(stops) > 6:
+                    improved_tour = self.christofides_solver.two_opt_improvement(christofides_tour, distance_matrix)
+                    return improved_tour
+                
+                return christofides_tour
+                
+            except Exception as e:
+                logging.warning(f"Christofides failed, using nearest neighbor: {e}")
+        
+        # Fallback to nearest neighbor + 2-opt
         tour = self.nearest_neighbor_tsp(distance_matrix)
         
         # Improve with 2-opt
@@ -163,7 +208,39 @@ class TSPSolver:
         
         return tour
     
-    def get_traffic_multiplier(self, start_time: str, elapsed_minutes: int) -> float:
+    def create_distance_matrix_optimized(self, stops: List[Dict]) -> List[List[float]]:
+        """Create distance matrix with database caching for performance"""
+        n = len(stops)
+        matrix = [[0.0] * n for _ in range(n)]
+        
+        cache_hits = 0
+        cache_misses = 0
+        
+        # Calculate distances with caching
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    addr1 = stops[i]['address']
+                    addr2 = stops[j]['address']
+                    
+                    # Use cached distance calculation
+                    distance_km, _ = self.calculate_distance_with_cache(addr1, addr2)
+                    matrix[i][j] = distance_km
+                    
+                    if distance_cache.hit_count > cache_hits:
+                        cache_hits += 1
+                    else:
+                        cache_misses += 1
+        
+        # Log cache performance
+        total_requests = cache_hits + cache_misses
+        if total_requests > 0:
+            hit_rate = (cache_hits / total_requests) * 100
+            logging.info(f"Distance matrix cache performance: {hit_rate:.1f}% hit rate ({cache_hits}/{total_requests})")
+        
+        return matrix
+    
+    def get_traffic_multiplier(self, start_time: str, elapsed_minutes: float) -> float:
         """Get traffic multiplier based on time of day"""
         # Parse start time
         try:
@@ -191,7 +268,7 @@ class TSPSolver:
             return 0.8
     
     def calculate_distance_with_traffic(self, coord1: Tuple[float, float], coord2: Tuple[float, float], 
-                                      start_time: str, elapsed_minutes: int) -> float:
+                                      start_time: str, elapsed_minutes: float) -> float:
         """Calculate distance with traffic consideration"""
         base_distance = self.calculate_distance(coord1, coord2)
         traffic_multiplier = self.get_traffic_multiplier(start_time, elapsed_minutes)

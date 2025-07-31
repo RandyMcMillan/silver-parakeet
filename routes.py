@@ -430,8 +430,8 @@ def generate_routes():
         # Sort scheduled stops by required date
         scheduled_stops.sort(key=lambda x: x.required_date or datetime.max)
         
-        # Use geographic clustering for optimal route distribution with fuel efficiency
-        logging.info(f"Starting geographic route optimization for {len(stops)} stops (Toyota Tundra fuel analysis)")
+        # Use improved geographic clustering for optimal route distribution with fuel efficiency
+        logging.info(f"Starting enhanced route optimization for {len(stops)} stops (Toyota Tundra fuel analysis)")
         
         # Prioritize ASAP stops by submission timestamp, then scheduled stops
         asap_stops = []
@@ -508,15 +508,24 @@ def generate_routes():
         
         logging.info(f"Workload analysis: {len(all_stops_data)} stops, {num_drivers} drivers requested, {min_drivers_needed} minimum needed, {optimal_drivers} optimal")
         
-        # Use geographic clustering to group nearby stops
-        from geographic_clustering import GeographicClusterer
-        clusterer = GeographicClusterer()
+        # Use improved K-means++ clustering to group nearby stops
+        from improved_clustering import ImprovedGeographicClusterer
+        clusterer = ImprovedGeographicClusterer()
         
         try:
-            optimized_routes = clusterer.get_optimized_stop_distribution(all_stops_data, num_drivers)
-            logging.info(f"Generated {len([r for r in optimized_routes if r])} geographically optimized routes")
+            # Get optimized clusters using K-means++ algorithm
+            optimized_clusters = clusterer.get_optimized_clusters(all_stops_data, num_drivers)
+            
+            # Calculate clustering quality metrics
+            quality_metrics = clusterer.calculate_cluster_quality(optimized_clusters)
+            logging.info(f"K-means++ clustering: {quality_metrics['cluster_count']} clusters, "
+                        f"avg intra-distance: {quality_metrics['avg_intra_cluster_distance']:.1f} miles")
+            
+            optimized_routes = optimized_clusters
+            logging.info(f"Generated {len([r for r in optimized_routes if r])} K-means++ optimized routes")
+            
         except Exception as e:
-            logging.error(f"Geographic clustering failed: {e}, using simple distribution")
+            logging.error(f"Improved clustering failed: {e}, using simple distribution")
             # Fallback to simple distribution with balanced workload
             stops_per_driver = len(all_stops_data) // num_drivers
             remainder = len(all_stops_data) % num_drivers
