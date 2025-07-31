@@ -103,37 +103,8 @@ function addHTMLRouteData(routeId, routeData) {
         return [Math.max(5, Math.min(95, x)), Math.max(5, Math.min(95, y))];
     }
     
-    // Draw connections using simple div-based lines
-    for (let i = 0; i < coords.length - 1; i++) {
-        const [x1, y1] = latLngToPercent(coords[i].lat, coords[i].lng);
-        const [x2, y2] = latLngToPercent(coords[i + 1].lat, coords[i + 1].lng);
-        
-        // Calculate distance and angle
-        const deltaX = x2 - x1;
-        const deltaY = y2 - y1;
-        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
-        
-        // Create line as a div
-        const line = document.createElement('div');
-        line.className = 'route-line';
-        line.style.cssText = `
-            position: absolute;
-            left: ${x1}%;
-            top: ${y1}%;
-            width: ${distance}%;
-            height: 2px;
-            background: #1976d2;
-            transform-origin: 0 50%;
-            transform: rotate(${angle}deg);
-            z-index: 1;
-            opacity: 0.7;
-        `;
-        
-        container.appendChild(line);
-        
-        console.log(`Line ${i+1}: (${x1.toFixed(1)}, ${y1.toFixed(1)}) to (${x2.toFixed(1)}, ${y2.toFixed(1)}) - distance: ${distance.toFixed(1)}%, angle: ${angle.toFixed(1)}°`);
-    }
+    // Skip complex line rendering - focus on clear stop visualization
+    console.log('Skipping line rendering - focusing on clear stop markers for route visualization');
     
     // Create markers for all points
     coords.forEach((point, index) => {
@@ -143,14 +114,60 @@ function addHTMLRouteData(routeId, routeData) {
         marker.className = 'route-marker';
         
         if (point.type === 'start') {
-            // Departure marker with enhanced visibility
+            // Large, clear START marker
             marker.style.cssText = `
                 position: absolute;
                 left: ${x}%;
                 top: ${y}%;
-                width: 36px;
-                height: 36px;
+                width: 50px;
+                height: 50px;
                 background: #2e7d32;
+                border: 4px solid #fff;
+                border-radius: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 20;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: bold;
+                font-size: 10px;
+                box-shadow: 0 4px 16px rgba(46, 125, 50, 0.5);
+                cursor: pointer;
+            `;
+            marker.textContent = 'START';
+            marker.title = `DEPARTURE: ${point.address}`;
+            
+            // Add sequence number above start marker
+            const startLabel = document.createElement('div');
+            startLabel.style.cssText = `
+                position: absolute;
+                left: ${x}%;
+                top: ${y - 8}%;
+                transform: translate(-50%, -50%);
+                background: #2e7d32;
+                color: white;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: bold;
+                z-index: 21;
+            `;
+            startLabel.textContent = 'DEPART';
+            container.appendChild(startLabel);
+            
+        } else {
+            // Enhanced stop markers with clear numbering
+            const colors = ['#1976d2', '#f57c00', '#9c27b0', '#4caf50', '#ff5722', '#607d8b'];
+            const colorIndex = (point.index - 1) % colors.length;
+            
+            marker.style.cssText = `
+                position: absolute;
+                left: ${x}%;
+                top: ${y}%;
+                width: 35px;
+                height: 35px;
+                background: ${colors[colorIndex]};
                 border: 3px solid #fff;
                 border-radius: 50%;
                 transform: translate(-50%, -50%);
@@ -160,38 +177,36 @@ function addHTMLRouteData(routeId, routeData) {
                 justify-content: center;
                 color: white;
                 font-weight: bold;
-                font-size: 14px;
-                box-shadow: 0 3px 12px rgba(46, 125, 50, 0.4);
-                cursor: pointer;
-            `;
-            marker.textContent = 'START';
-            marker.style.fontSize = '8px';
-            marker.title = `START: ${point.address}`;
-        } else {
-            // Stop marker with better contrast
-            const isEvenStop = point.index % 2 === 0;
-            marker.style.cssText = `
-                position: absolute;
-                left: ${x}%;
-                top: ${y}%;
-                width: 28px;
-                height: 28px;
-                background: ${isEvenStop ? '#1976d2' : '#f57c00'};
-                border: 2px solid #fff;
-                border-radius: 50%;
-                transform: translate(-50%, -50%);
-                z-index: 20;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-                font-size: 11px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                font-size: 13px;
+                box-shadow: 0 3px 12px rgba(0,0,0,0.4);
                 cursor: pointer;
             `;
             marker.textContent = point.index.toString();
             marker.title = `Stop ${point.index}: ${point.address}\n${point.service_type} - ${point.post_type}`;
+            
+            // Add small direction arrow pointing to next stop if not last
+            if (index < coords.length - 1) {
+                const nextPoint = coords[index + 1];
+                const [nextX, nextY] = latLngToPercent(nextPoint.lat, nextPoint.lng);
+                const deltaX = nextX - x;
+                const deltaY = nextY - y;
+                const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+                
+                const arrow = document.createElement('div');
+                arrow.style.cssText = `
+                    position: absolute;
+                    left: ${x + 3}%;
+                    top: ${y}%;
+                    width: 0;
+                    height: 0;
+                    border-left: 6px solid ${colors[colorIndex]};
+                    border-top: 4px solid transparent;
+                    border-bottom: 4px solid transparent;
+                    transform: translate(-50%, -50%) rotate(${angle}deg);
+                    z-index: 19;
+                `;
+                container.appendChild(arrow);
+            }
         }
         
         container.appendChild(marker);
