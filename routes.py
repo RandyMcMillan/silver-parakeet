@@ -468,25 +468,32 @@ def generate_routes():
             flash('No active stops found to generate routes.', 'warning')
             return redirect(url_for('main.index'))
         
-        # Calculate optimal number of drivers based on workload limits
-        # Each stop = 10min service + 20min average travel = 30min total per stop
-        # Plus 50min departure/return time per driver
+        # Calculate realistic workload limits
+        # Service: 10min per stop, Drive: 6min average (max 120min total), Departure+Return: 50min
         # Target: 8.5 hours (510 min), Max: 9 hours (540 min)
         
-        minutes_per_stop = 30  # Service + travel time
+        service_per_stop = 10      # Service time per stop
+        max_drive_per_route = 120  # Maximum drive time per route (2 hours)
         base_time_per_driver = 50  # Departure + return
         max_minutes_per_driver = 540  # 9 hours
         target_minutes_per_driver = 510  # 8.5 hours
         
-        # Calculate optimal drivers for 8.5-hour target
-        target_available_minutes = target_minutes_per_driver - base_time_per_driver
-        stops_per_driver_target = target_available_minutes // minutes_per_stop
-        optimal_drivers = (len(all_stops_data) + stops_per_driver_target - 1) // stops_per_driver_target
+        # Calculate maximum stops per driver (conservative estimate)
+        # Max time budget = 540 - 50 - 120 = 370 minutes for service
+        max_service_time = max_minutes_per_driver - base_time_per_driver - max_drive_per_route
+        stops_per_driver_max = max_service_time // service_per_stop  # About 37 stops max
         
-        # Calculate minimum drivers needed to stay under 9-hour limit
-        available_minutes_per_driver = max_minutes_per_driver - base_time_per_driver
-        stops_per_driver_max = available_minutes_per_driver // minutes_per_stop
-        min_drivers_needed = (len(all_stops_data) + stops_per_driver_max - 1) // stops_per_driver_max
+        # Calculate optimal stops per driver for 8.5-hour target
+        target_service_time = target_minutes_per_driver - base_time_per_driver - max_drive_per_route
+        stops_per_driver_target = target_service_time // service_per_stop  # About 34 stops optimal
+        
+        # Cap at reasonable limits for safety
+        stops_per_driver_max = min(30, stops_per_driver_max)
+        stops_per_driver_target = min(25, stops_per_driver_target)
+        
+        # Calculate drivers needed
+        optimal_drivers = max(1, (len(all_stops_data) + stops_per_driver_target - 1) // stops_per_driver_target)
+        min_drivers_needed = max(1, (len(all_stops_data) + stops_per_driver_max - 1) // stops_per_driver_max)
         
         # Calculate maximum stops that can be handled within 9-hour limit with available drivers
         max_stops_possible = num_drivers * stops_per_driver_max
@@ -584,11 +591,11 @@ def generate_routes():
                 # Use fast estimated times to prevent API timeouts
                 logging.info(f"Using fast route estimation for route {driver_num} (prevents API timeouts)")
                 
-                # Calculate drive times based on reasonable estimates (not per-stop multiplication)
+                # Calculate realistic drive times - much more conservative estimates
                 if len(stop_addresses) > 1:
-                    # Estimate total drive time based on number of stops (more realistic)
-                    estimated_total_drive_time = min(len(stop_addresses) * 15, 180)  # Max 3 hours drive time
-                    drive_times_list = [estimated_total_drive_time // max(1, len(stop_addresses) - 1)] * max(1, len(stop_addresses) - 1)
+                    # More realistic estimate: ~5-8 minutes average between stops
+                    estimated_total_drive_time = min(len(stop_addresses) * 6, 120)  # Max 2 hours drive time
+                    drive_times_list = [6] * max(1, len(stop_addresses) - 1)  # 6 minutes between stops
                 else:
                     drive_times_list = []
                     estimated_total_drive_time = 0
