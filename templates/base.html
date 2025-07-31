@@ -202,8 +202,8 @@
                 // Change first address label to "Pickup Address"
                 addressLabel.innerHTML = '<i data-feather="arrow-down-circle" style="width: 16px; height: 16px;"></i> Pickup Address (Stop 1)';
                 
-                // Show reinstall address section
-                reinstallSection.style.display = 'block';
+                // Show reinstall address section (override !important)
+                reinstallSection.style.setProperty('display', 'block', 'important');
                 
                 // Update placeholders for pickup
                 document.getElementById('street_address').placeholder = 'Pickup Street Address';
@@ -228,8 +228,8 @@
                 // Change back to regular address
                 addressLabel.innerHTML = 'Address';
                 
-                // Hide reinstall address section
-                reinstallSection.style.display = 'none';
+                // Hide reinstall address section (override !important)
+                reinstallSection.style.setProperty('display', 'none', 'important');
                 
                 // Restore original placeholders
                 document.getElementById('street_address').placeholder = 'Street Address';
@@ -266,10 +266,27 @@
         document.addEventListener('DOMContentLoaded', function() {
             const checkbox = document.getElementById('is_pickup_reinstall');
             const reinstallSection = document.getElementById('reinstall_address_section');
+            const addressLabel = document.getElementById('address_label');
             
-            // Ensure reinstall section is hidden by default
-            if (!checkbox.checked) {
-                reinstallSection.style.display = 'none';
+            // Force hide reinstall section and reset label when page loads
+            if (checkbox && reinstallSection && addressLabel) {
+                if (!checkbox.checked) {
+                    reinstallSection.style.setProperty('display', 'none', 'important');
+                    addressLabel.innerHTML = 'Address';
+                    
+                    // Ensure reinstall fields are not required
+                    const reinstallFields = ['reinstall_street_address', 'reinstall_city', 'reinstall_state', 'reinstall_zip_code'];
+                    reinstallFields.forEach(fieldId => {
+                        const field = document.getElementById(fieldId);
+                        if (field) {
+                            field.required = false;
+                            field.value = '';
+                        }
+                    });
+                } else {
+                    // If checkbox is checked on load, trigger the toggle function
+                    togglePickupReinstall();
+                }
             }
         });
     </script>
