@@ -53,7 +53,7 @@ function createFreshMap(routeId) {
     // Completely clear and reset the container
     mapElement.innerHTML = '';
     mapElement.className = '';
-    mapElement.style.cssText = 'height: 400px; width: 100%; background: #f0f0f0; border: 2px solid #007bff; position: relative; overflow: hidden;';
+    mapElement.style.cssText = 'height: 400px; width: 100%; background: #ff0000; border: 4px solid #00ff00; position: relative; overflow: visible; z-index: 1000;';
     
     try {
         // Create map with very basic configuration
@@ -110,6 +110,10 @@ function createFreshMap(routeId) {
         }, 100);
         
         console.log(`Fresh map created successfully for route ${routeId}`);
+        
+        // Add diagnostic overlay to verify the map container is visible
+        mapElement.innerHTML += '<div style="position: absolute; top: 10px; left: 10px; background: rgba(255,0,0,0.8); color: white; padding: 5px; z-index: 10000; font-size: 12px;">MAP CONTAINER VISIBLE</div>';
+        
         return map;
         
     } catch (error) {
