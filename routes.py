@@ -70,6 +70,12 @@ def add_stop():
         # Check if this is a pickup/reinstall operation
         is_pickup_reinstall = request.form.get('is_pickup_reinstall') == 'on'
         
+        # Initialize variables to avoid unbound errors
+        pickup_street = pickup_apt = pickup_city = pickup_state = pickup_zip = ""
+        reinstall_street = reinstall_apt = reinstall_city = reinstall_state = reinstall_zip = ""
+        street_address = apt_unit = city = state = zip_code = ""
+        pickup_address = reinstall_address = ""
+        
         if is_pickup_reinstall:
             # Handle pickup/reinstall addresses - pickup uses the main form fields when checkbox is checked
             pickup_street = SecurityValidator.sanitize_input(request.form.get('pickup_street_address', '').strip())
@@ -281,7 +287,7 @@ def add_stop():
             stop = Stop()
             stop.post_type = post_type or "Unknown"
             stop.address = address
-            stop.service_type = service_type
+            stop.service_type = str(service_type) if service_type else 'install'
             stop.is_asap = is_asap
             stop.required_date = required_date
             stop.agent_sign_description = agent_sign_description if service_type == 'install' else None
@@ -580,7 +586,7 @@ def generate_routes():
                 
                 fuel_cost = fuel_data.get('total_fuel_cost', 0)
                 estimated_miles = fuel_data.get('total_distance_miles', 0)
-                cost_per_hour = fuel_cost / (total_time / 60) if total_time > 0 else 0
+                cost_per_hour = float(fuel_cost) / (float(total_time) / 60) if total_time > 0 else 0
                 
                 logging.info(f"Driver {driver_num} route breakdown ({traffic_description}): "
                            f"Service: {service_time}min, Drive: {drive_time_between_stops}min, "
@@ -609,12 +615,12 @@ def generate_routes():
             # Create route record
             stop_sequence = json.dumps([all_stops_data[i]['id'] for i in valid_indices])
             
-            # Store Google Maps drive time data for UI display
+            # Store Google Maps drive time data for UI display (ensure variables are defined)
             google_maps_data = {
-                'departure_to_first': departure_to_first,
-                'between_stops': drive_times_list,
-                'last_to_departure': last_to_departure,
-                'data_source': traffic_description
+                'departure_to_first': departure_to_first if 'departure_to_first' in locals() else 25,
+                'between_stops': drive_times_list if 'drive_times_list' in locals() else [],
+                'last_to_departure': last_to_departure if 'last_to_departure' in locals() else 25,
+                'data_source': traffic_description if 'traffic_description' in locals() else 'fast estimates'
             }
             
             # Calculate lead time in weeks from today to route date

@@ -15,7 +15,7 @@ class TSPSolver:
         """Convert address to coordinates with reliable fallback"""
         try:
             # Try online geocoding first with timeout
-            location = self.geolocator.geocode(address, timeout=3)
+            location = self.geolocator.geocode(address, timeout=3.0)
             if location:
                 return (location.latitude, location.longitude)
             else:
