@@ -50,8 +50,8 @@ function addHTMLRouteData(routeId, routeData) {
         return;
     }
     
-    // Remove existing markers and SVG (keep title and grid)
-    const existingMarkers = container.querySelectorAll('.route-marker, .route-line, svg');
+    // Remove existing markers and lines (keep title and grid)
+    const existingMarkers = container.querySelectorAll('.route-marker, .route-line');
     existingMarkers.forEach(marker => marker.remove());
     
     // Calculate all coordinates
@@ -103,31 +103,37 @@ function addHTMLRouteData(routeId, routeData) {
         return [Math.max(5, Math.min(95, x)), Math.max(5, Math.min(95, y))];
     }
     
-    // Draw connections between consecutive stops using SVG lines for better rendering
-    const svg = document.createElement('svg');
-    svg.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;';
-    svg.setAttribute('viewBox', '0 0 100 100');
-    svg.setAttribute('preserveAspectRatio', 'none');
-    
+    // Draw connections using simple div-based lines
     for (let i = 0; i < coords.length - 1; i++) {
         const [x1, y1] = latLngToPercent(coords[i].lat, coords[i].lng);
         const [x2, y2] = latLngToPercent(coords[i + 1].lat, coords[i + 1].lng);
         
-        // Create SVG line element
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', x1);
-        line.setAttribute('y1', y1);
-        line.setAttribute('x2', x2);
-        line.setAttribute('y2', y2);
-        line.setAttribute('stroke', '#1976d2');
-        line.setAttribute('stroke-width', '0.8');
-        line.setAttribute('stroke-dasharray', '2,1');
-        line.setAttribute('opacity', '0.8');
+        // Calculate distance and angle
+        const deltaX = x2 - x1;
+        const deltaY = y2 - y1;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
         
-        svg.appendChild(line);
+        // Create line as a div
+        const line = document.createElement('div');
+        line.className = 'route-line';
+        line.style.cssText = `
+            position: absolute;
+            left: ${x1}%;
+            top: ${y1}%;
+            width: ${distance}%;
+            height: 2px;
+            background: #1976d2;
+            transform-origin: 0 50%;
+            transform: rotate(${angle}deg);
+            z-index: 1;
+            opacity: 0.7;
+        `;
+        
+        container.appendChild(line);
+        
+        console.log(`Line ${i+1}: (${x1.toFixed(1)}, ${y1.toFixed(1)}) to (${x2.toFixed(1)}, ${y2.toFixed(1)}) - distance: ${distance.toFixed(1)}%, angle: ${angle.toFixed(1)}°`);
     }
-    
-    container.appendChild(svg);
     
     // Create markers for all points
     coords.forEach((point, index) => {
