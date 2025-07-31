@@ -38,48 +38,44 @@ function createSimpleMap(routeId) {
         // Try multiple tile servers for reliability
         console.log(`Adding map tiles for route ${routeId}`);
         
-        // Primary tile layer with updated URL format
-        const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            subdomains: ['a', 'b', 'c'],
-            maxZoom: 18,
-            crossOrigin: true
+        // Primary tile layer with CartoDB (more reliable)
+        const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+            attribution: '© CARTO © OpenStreetMap contributors',
+            subdomains: ['a', 'b', 'c', 'd'],
+            maxZoom: 19,
+            crossOrigin: true,
+            errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
         });
         
         let tilesLoaded = false;
         
-        tileLayer.on('tileload', function() {
+        tileLayer.on('tileload', function(e) {
             if (!tilesLoaded) {
                 tilesLoaded = true;
-                console.log(`OpenStreetMap tiles loaded successfully for route ${routeId}`);
+                console.log(`CARTO tiles loaded successfully for route ${routeId}`, e.tile.src);
             }
         });
         
+        tileLayer.on('tileloadstart', function(e) {
+            console.log(`Starting to load tile for route ${routeId}:`, e.url);
+        });
+        
         tileLayer.on('tileerror', function(error) {
-            console.error(`OpenStreetMap tile error for route ${routeId}:`, error);
+            console.error(`CARTO tile error for route ${routeId}:`, error);
             
-            // Try Stamen Toner tile server as fallback
-            console.log(`Trying Stadia Maps tiles for route ${routeId}...`);
-            const stadiaLayer = L.tileLayer('https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.png', {
-                attribution: '© Stadia Maps © OpenMapTiles © OpenStreetMap contributors',
-                maxZoom: 20
+            // Try OpenStreetMap as fallback
+            console.log(`Trying OpenStreetMap tiles for route ${routeId}...`);
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                subdomains: ['a', 'b', 'c'],
+                maxZoom: 18
             });
-            stadiaLayer.addTo(map);
+            osmLayer.addTo(map);
             
-            stadiaLayer.on('tileerror', function() {
-                console.log(`Trying CartoDB tiles for route ${routeId}...`);
-                const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-                    attribution: '© CARTO © OpenStreetMap contributors',
-                    subdomains: 'abcd',
-                    maxZoom: 19
-                });
-                cartoLayer.addTo(map);
-                
-                cartoLayer.on('tileerror', function() {
-                    console.error(`All tile servers failed for route ${routeId}, using basic background`);
-                    mapElement.style.backgroundColor = '#f0f0f0';
-                    mapElement.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">Map tiles unavailable<br>Route data still visible</div>';
-                });
+            osmLayer.on('tileerror', function() {
+                console.error(`All tile servers failed for route ${routeId}, using grid background`);
+                mapElement.style.backgroundColor = '#e6e6e6';
+                mapElement.style.backgroundImage = 'url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23cccccc\' fill-opacity=\'0.3\'%3E%3Cpath d=\'M0 0h20v20H0z\' stroke=\'%23cccccc\' stroke-width=\'0.5\' fill=\'none\'/%3E%3C/g%3E%3C/svg%3E")';
             });
         });
         
