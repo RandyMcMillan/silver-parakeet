@@ -38,10 +38,12 @@ function createSimpleMap(routeId) {
         // Try multiple tile servers for reliability
         console.log(`Adding map tiles for route ${routeId}`);
         
-        // Primary tile layer
-        const tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // Primary tile layer with updated URL format
+        const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
-            maxZoom: 18
+            subdomains: ['a', 'b', 'c'],
+            maxZoom: 18,
+            crossOrigin: true
         });
         
         let tilesLoaded = false;
@@ -56,23 +58,47 @@ function createSimpleMap(routeId) {
         tileLayer.on('tileerror', function(error) {
             console.error(`OpenStreetMap tile error for route ${routeId}:`, error);
             
-            // Try CartoDB tile server as fallback
-            console.log(`Trying CartoDB tiles for route ${routeId}...`);
-            const cartoTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '© CARTO',
-                subdomains: 'abcd',
-                maxZoom: 19
+            // Try Stamen Toner tile server as fallback
+            console.log(`Trying Stadia Maps tiles for route ${routeId}...`);
+            const stadiaLayer = L.tileLayer('https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.png', {
+                attribution: '© Stadia Maps © OpenMapTiles © OpenStreetMap contributors',
+                maxZoom: 20
             });
-            cartoTileLayer.addTo(map);
+            stadiaLayer.addTo(map);
             
-            cartoTileLayer.on('tileerror', function() {
-                console.error(`CartoDB tiles also failed for route ${routeId}, using basic background`);
-                mapElement.style.backgroundColor = '#e6e6e6';
+            stadiaLayer.on('tileerror', function() {
+                console.log(`Trying CartoDB tiles for route ${routeId}...`);
+                const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+                    attribution: '© CARTO © OpenStreetMap contributors',
+                    subdomains: 'abcd',
+                    maxZoom: 19
+                });
+                cartoLayer.addTo(map);
+                
+                cartoLayer.on('tileerror', function() {
+                    console.error(`All tile servers failed for route ${routeId}, using basic background`);
+                    mapElement.style.backgroundColor = '#f0f0f0';
+                    mapElement.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">Map tiles unavailable<br>Route data still visible</div>';
+                });
             });
         });
         
         try {
             tileLayer.addTo(map);
+            
+            // Force immediate tile loading check
+            setTimeout(() => {
+                console.log(`Checking tile loading status for route ${routeId}`);
+                const tileContainer = mapElement.querySelector('.leaflet-tile-container');
+                const tiles = mapElement.querySelectorAll('.leaflet-tile');
+                console.log(`Found ${tiles.length} tiles in container for route ${routeId}`);
+                
+                if (tiles.length === 0) {
+                    console.warn(`No tiles found, triggering manual load for route ${routeId}`);
+                    map.setView([33.7490, -84.3880], 10);
+                }
+            }, 500);
+            
         } catch (error) {
             console.error(`Failed to add tile layer for route ${routeId}:`, error);
             mapElement.style.backgroundColor = '#e6e6e6';
