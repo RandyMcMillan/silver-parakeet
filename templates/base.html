@@ -249,11 +249,29 @@
                 document.getElementById('city').name = 'city';
                 document.getElementById('state').name = 'state';
                 document.getElementById('zip_code').name = 'zip_code';
+                
+                // Clear reinstall fields when hiding
+                document.getElementById('reinstall_street_address').value = '';
+                document.getElementById('reinstall_apt_unit').value = '';
+                document.getElementById('reinstall_city').value = '';
+                document.getElementById('reinstall_state').value = '';
+                document.getElementById('reinstall_zip_code').value = '';
             }
             
             // Refresh feather icons
             feather.replace();
         }
+        
+        // Initialize pickup/reinstall state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkbox = document.getElementById('is_pickup_reinstall');
+            const reinstallSection = document.getElementById('reinstall_address_section');
+            
+            // Ensure reinstall section is hidden by default
+            if (!checkbox.checked) {
+                reinstallSection.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
