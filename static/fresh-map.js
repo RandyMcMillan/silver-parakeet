@@ -81,35 +81,68 @@ function createFreshMap(routeId) {
 
 function addFreshRouteData(routeId, routeData) {
     const map = freshMaps[routeId];
-    if (!map || !routeData) return;
+    if (!map) {
+        console.error(`No map found for route ${routeId}`);
+        return;
+    }
     
-    console.log(`Adding route data to fresh map ${routeId}`);
+    console.log(`Adding route data to fresh map ${routeId}`, routeData);
     
     try {
-        // Add departure marker
+        // Check if routeData is valid
+        if (!routeData || typeof routeData !== 'object') {
+            console.error(`Invalid route data for ${routeId}:`, routeData);
+            return;
+        }
+        
+        // Create a group for all route elements
+        const routeGroup = L.layerGroup().addTo(map);
+        const bounds = [];
+        
+        // Add departure marker if available
         if (routeData.departure_lat && routeData.departure_lng) {
-            L.marker([routeData.departure_lat, routeData.departure_lng])
-                .bindPopup('Departure: ' + routeData.departure_address)
-                .addTo(map);
+            const lat = parseFloat(routeData.departure_lat);
+            const lng = parseFloat(routeData.departure_lng);
+            
+            L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'departure-marker',
+                    html: '<div style="background: #28a745; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; border: 2px solid white;">🏠</div>',
+                    iconSize: [20, 20]
+                })
+            }).bindPopup(`Departure: ${routeData.departure_address || 'Start Location'}`)
+              .addTo(routeGroup);
+            
+            bounds.push([lat, lng]);
         }
         
         // Add stop markers
-        routeData.stops.forEach((stop, index) => {
-            if (stop.lat && stop.lng) {
-                const marker = L.circleMarker([stop.lat, stop.lng], {
-                    radius: 8,
-                    fillColor: '#007bff',
-                    color: '#fff',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).addTo(map);
-                
-                marker.bindPopup(`Stop ${index + 1}: ${stop.address}`);
-            }
-        });
+        if (routeData.stops && Array.isArray(routeData.stops)) {
+            routeData.stops.forEach((stop, index) => {
+                if (stop && stop.lat && stop.lng) {
+                    const lat = parseFloat(stop.lat);
+                    const lng = parseFloat(stop.lng);
+                    
+                    const marker = L.marker([lat, lng], {
+                        icon: L.divIcon({
+                            className: 'numbered-marker',
+                            html: `<div style="background: #007bff; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; border: 2px solid white;">${index + 1}</div>`,
+                            iconSize: [24, 24]
+                        })
+                    }).bindPopup(`Stop ${index + 1}: ${stop.address || 'Unknown Address'}`)
+                      .addTo(routeGroup);
+                    
+                    bounds.push([lat, lng]);
+                }
+            });
+        }
         
-        console.log(`Added ${routeData.stops.length} stops to fresh map ${routeId}`);
+        // Fit map to show all markers
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [20, 20] });
+        }
+        
+        console.log(`Added ${routeData.stops ? routeData.stops.length : 0} stops to fresh map ${routeId}`);
         
     } catch (error) {
         console.error(`Error adding route data to fresh map ${routeId}:`, error);
@@ -142,10 +175,18 @@ function toggleFreshMap(routeId) {
             if (routeDataScript) {
                 try {
                     const routeData = JSON.parse(routeDataScript.textContent);
-                    addFreshRouteData(routeId, routeData);
+                    console.log(`Parsed route data for ${routeId}:`, routeData);
+                    
+                    // Add a small delay to ensure map is fully initialized
+                    setTimeout(() => {
+                        addFreshRouteData(routeId, routeData);
+                    }, 200);
                 } catch (error) {
                     console.error(`Error parsing route data for ${routeId}:`, error);
+                    console.log(`Script content:`, routeDataScript.textContent);
                 }
+            } else {
+                console.log(`No route data script found for route ${routeId}`);
             }
         }
         
