@@ -50,8 +50,8 @@ function addHTMLRouteData(routeId, routeData) {
         return;
     }
     
-    // Remove existing markers (keep title and grid)
-    const existingMarkers = container.querySelectorAll('.route-marker, .route-line');
+    // Remove existing markers and SVG (keep title and grid)
+    const existingMarkers = container.querySelectorAll('.route-marker, .route-line, svg');
     existingMarkers.forEach(marker => marker.remove());
     
     // Calculate all coordinates
@@ -103,32 +103,31 @@ function addHTMLRouteData(routeId, routeData) {
         return [Math.max(5, Math.min(95, x)), Math.max(5, Math.min(95, y))];
     }
     
-    // Draw connections between consecutive stops
+    // Draw connections between consecutive stops using SVG lines for better rendering
+    const svg = document.createElement('svg');
+    svg.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;';
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    
     for (let i = 0; i < coords.length - 1; i++) {
         const [x1, y1] = latLngToPercent(coords[i].lat, coords[i].lng);
         const [x2, y2] = latLngToPercent(coords[i + 1].lat, coords[i + 1].lng);
         
-        // Create line element
-        const line = document.createElement('div');
-        const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-        const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+        // Create SVG line element
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.setAttribute('stroke', '#1976d2');
+        line.setAttribute('stroke-width', '0.8');
+        line.setAttribute('stroke-dasharray', '2,1');
+        line.setAttribute('opacity', '0.8');
         
-        line.className = 'route-line';
-        line.style.cssText = `
-            position: absolute;
-            left: ${x1}%;
-            top: ${y1}%;
-            width: ${length}%;
-            height: 3px;
-            background: linear-gradient(90deg, #1976d2, #42a5f5);
-            transform-origin: 0 50%;
-            transform: rotate(${angle}deg);
-            z-index: 1;
-            border-radius: 2px;
-        `;
-        
-        container.appendChild(line);
+        svg.appendChild(line);
     }
+    
+    container.appendChild(svg);
     
     // Create markers for all points
     coords.forEach((point, index) => {
@@ -138,49 +137,51 @@ function addHTMLRouteData(routeId, routeData) {
         marker.className = 'route-marker';
         
         if (point.type === 'start') {
-            // Departure marker
+            // Departure marker with enhanced visibility
             marker.style.cssText = `
                 position: absolute;
                 left: ${x}%;
                 top: ${y}%;
-                width: 40px;
-                height: 40px;
-                background: linear-gradient(135deg, #2e7d32, #4caf50);
+                width: 36px;
+                height: 36px;
+                background: #2e7d32;
                 border: 3px solid #fff;
                 border-radius: 50%;
                 transform: translate(-50%, -50%);
-                z-index: 10;
+                z-index: 20;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 color: white;
                 font-weight: bold;
-                font-size: 16px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                font-size: 14px;
+                box-shadow: 0 3px 12px rgba(46, 125, 50, 0.4);
                 cursor: pointer;
             `;
-            marker.textContent = 'S';
-            marker.title = point.address;
+            marker.textContent = 'START';
+            marker.style.fontSize = '8px';
+            marker.title = `START: ${point.address}`;
         } else {
-            // Stop marker
+            // Stop marker with better contrast
+            const isEvenStop = point.index % 2 === 0;
             marker.style.cssText = `
                 position: absolute;
                 left: ${x}%;
                 top: ${y}%;
-                width: 32px;
-                height: 32px;
-                background: linear-gradient(135deg, #1976d2, #42a5f5);
+                width: 28px;
+                height: 28px;
+                background: ${isEvenStop ? '#1976d2' : '#f57c00'};
                 border: 2px solid #fff;
                 border-radius: 50%;
                 transform: translate(-50%, -50%);
-                z-index: 10;
+                z-index: 20;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 color: white;
                 font-weight: bold;
-                font-size: 12px;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                font-size: 11px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
                 cursor: pointer;
             `;
             marker.textContent = point.index.toString();
