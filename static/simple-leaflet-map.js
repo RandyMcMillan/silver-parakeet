@@ -117,10 +117,15 @@ function createSimpleMap(routeId) {
                 if (!hasLoadedTiles) {
                     console.warn(`No tiles loaded for route ${routeId}, forcing refresh`);
                     map.eachLayer(function(layer) {
-                        if (layer._url && layer._url.includes('openstreetmap')) {
+                        if (layer._url) {
                             layer.redraw();
                         }
                     });
+                }
+                
+                // Run tile visibility test
+                if (typeof testTileVisibility === 'function') {
+                    testTileVisibility(routeId);
                 }
             }, 2000);
             
