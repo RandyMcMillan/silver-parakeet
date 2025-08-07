@@ -1,8 +1,8 @@
-# Shut Up and Drive - Route Optimization Application
+# Route Optimizer Application
 
 ## Overview
 
-"Shut Up and Drive" is a Flask-based web application that optimizes delivery routes for field service teams using Traveling Salesman Problem (TSP) algorithms. The application gets drivers on the road efficiently by managing stops, employees, and generating optimized routes while considering scheduling priorities and service types.
+This is a Flask-based web application that optimizes delivery routes for field service teams using Traveling Salesman Problem (TSP) algorithms. The application allows users to manage stops, employees, and generate optimized routes while considering scheduling priorities and service types.
 
 ## User Preferences
 
@@ -129,13 +129,13 @@ Interest in companion apps: Delivery driver mobile/web applications for field op
 
 ## Recent Changes (July 29, 2025)
 
-### 8-Hour Minimum Shift Optimization with Fuel Efficiency Analysis
+### 8-Hour Minimum Shift Optimization - Demand-Based Flexibility
 - **8-Hour Target Priority**: Algorithm ensures all drivers reach 8-hour minimum with minimal overage as workload demands
-- **Toyota Tundra Fuel Optimization**: Integrated 2004-2006 Toyota Tundra fuel efficiency (14-18 MPG) with current gas prices ($3.14/gal)
-- **Traffic-Aware Fuel Costs**: Calculates fuel consumption based on traffic conditions affecting MPG (heavy traffic reduces efficiency 25%)
-- **Cost-Per-Hour Analysis**: Routes evaluated for fuel cost efficiency relative to driver hours worked
-- **Real-Time Fuel Estimates**: UI displays estimated fuel costs per route based on distance and traffic patterns
-- **Capital Output Optimization**: Balances driver pay minimums with fuel efficiency for optimal operational costs
+- **Demand-Based Allocation**: Accepts reasonable overtime (8.5-9.5h ideal range) when workload requires it
+- **Balanced Approach**: Prioritizes 8h minimum while allowing flexibility for operational needs
+- **Realistic Expectations**: UI messaging reflects "minimum 8h, slightly over as demand allows" philosophy
+- **Workload-Driven**: Algorithm balances employee needs with business operational requirements
+- **Flexible Overtime**: Accepts moderate overtime when necessary to meet both minimum hours and service demands
 
 ### Traffic-Aware Routing System - Advanced Optimization
 - **High Traffic Zone Avoidance**: Intelligent routing that identifies and avoids Atlanta's high traffic areas during peak hours

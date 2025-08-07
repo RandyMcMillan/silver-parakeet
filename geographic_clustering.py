@@ -5,7 +5,6 @@ from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 import time
 from traffic_aware_routing import TrafficAwareRouter
-from fuel_efficiency import TundraFuelCalculator
 
 class GeographicClusterer:
     """Clusters stops by geographic proximity for efficient route assignment"""
@@ -14,7 +13,6 @@ class GeographicClusterer:
         self.geocoder = Nominatim(user_agent="route_optimizer")
         self.geocache = {}  # Cache coordinates to avoid repeated API calls
         self.traffic_router = TrafficAwareRouter()  # Traffic-aware routing system
-        self.fuel_calculator = TundraFuelCalculator()  # 2004-2006 Toyota Tundra fuel efficiency
         
     def get_coordinates(self, address: str) -> Tuple[float, float]:
         """Get latitude/longitude for an address with caching"""

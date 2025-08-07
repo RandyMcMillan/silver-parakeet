@@ -4,10 +4,10 @@
 <div class="row">
     <div class="col-12">
         <h1 class="mb-4">
-            <i data-feather="truck"></i>
-            Shut Up and Drive Dashboard
+            <i data-feather="navigation"></i>
+            Route Optimization Dashboard
         </h1>
-        <p class="lead">NO EXCUSES. NO DELAYS. JUST OPTIMIZED ROUTES AND MAXIMUM EFFICIENCY.</p>
+        <p class="lead">Optimize delivery routes using TSP algorithms with scheduling priorities</p>
         
         <!-- Stop Counters -->
         <div class="row mb-4">
@@ -41,16 +41,16 @@
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="flag"></i>
-                    COMMAND CENTER
+                    <i data-feather="home"></i>
+                    Driver Departure Address
                 </h5>
             </div>
             <div class="card-body">
                 <div class="alert alert-info mb-0">
                     <div class="d-flex align-items-center">
-                        <i data-feather="flag" class="me-2"></i>
+                        <i data-feather="map-pin" class="me-2"></i>
                         <div>
-                            <strong>MISSION HQ:</strong><br>
+                            <strong>Fixed Start Location:</strong><br>
                             183 DeKalb Industrial Way, Decatur, GA 30030
                         </div>
                     </div>
@@ -66,13 +66,12 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="target"></i>
-                    ADD MISSION TARGET
+                    <i data-feather="plus-circle"></i>
+                    Add New Stop
                 </h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('main.add_stop') }}" autocomplete="off" id="addStopForm">
-                    <div id="form-errors" class="alert alert-danger d-none" role="alert"></div>
+                <form method="POST" action="{{ url_for('main.add_stop') }}" autocomplete="off">
                     <div class="mb-3">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="is_asap" name="is_asap" 
@@ -131,7 +130,7 @@
                         <label for="agent_sign_description" class="form-label">Agent Sign Description</label>
                         <textarea class="form-control" id="agent_sign_description" name="agent_sign_description" rows="2" 
                                   placeholder="Enter agent sign description"></textarea>
-                        <div class="form-text">AGENT SIGN INTEL - STORED FOR REMOVAL OPERATIONS</div>
+                        <div class="form-text">This will be saved and displayed for future removes at this address</div>
                     </div>
                     
                     <div class="mb-3">
@@ -166,13 +165,13 @@
                                 Manual timestamp override
                             </label>
                         </div>
-                        <div class="form-text">OVERRIDE TIMESTAMP - MANUAL PRIORITY CONTROL</div>
+                        <div class="form-text">Check to manually set the entry timestamp for priority ordering</div>
                     </div>
                     
                     <div class="mb-3" id="manual_timestamp_group" style="display: none;">
                         <label for="manual_timestamp" class="form-label">Manual Entry Timestamp</label>
                         <input type="datetime-local" class="form-control" id="manual_timestamp" name="manual_timestamp">
-                        <div class="form-text">EARLIER TIMESTAMP = HIGHER MISSION PRIORITY</div>
+                        <div class="form-text">This timestamp determines priority order (earlier = higher priority)</div>
                     </div>
                     
                     <div class="mb-3">
@@ -204,10 +203,9 @@
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary" id="addStopBtn">
-                        <i data-feather="crosshair"></i>
-                        <span class="btn-text">LOCK TARGET</span>
-                        <span class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
+                    <button type="submit" class="btn btn-primary" id="add-stop-btn">
+                        <i data-feather="plus"></i>
+                        Add Stop
                     </button>
                 </form>
             </div>
@@ -219,14 +217,14 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="zap"></i>
-                    DEPLOY DRIVERS
+                    <i data-feather="users"></i>
+                    Route Generation
                 </h5>
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('main.generate_routes') }}" onsubmit="handleRouteGeneration(document.getElementById('generateRoutesBtn')); return true;">
                     <div class="mb-3">
-                        <label for="num_drivers" class="form-label">DRIVER UNITS</label>
+                        <label for="num_drivers" class="form-label">Number of Drivers</label>
                         <div class="input-group">
                             <input type="number" class="form-control" id="num_drivers" name="num_drivers" 
                                    min="1" max="20" value="{{ current_driver_count|default(1) }}" required>
@@ -235,23 +233,23 @@
                                 Update Routes
                             </button>
                         </div>
-                        <div class="form-text">DEPLOY DRIVER UNITS - NO DOWNTIME, MAXIMUM COVERAGE</div>
+                        <div class="form-text">Enter number of drivers and click "Update Routes" to redistribute stops</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="start_time" class="form-label">MISSION START</label>
+                        <label for="start_time" class="form-label">Route Start Time</label>
                         <input type="time" class="form-control" id="start_time" name="start_time" 
                                value="07:00" required>
-                        <div class="form-text">MISSION START TIME - BEAT THE TRAFFIC</div>
+                        <div class="form-text">Default start time for all routes (used for traffic calculations)</div>
                     </div>
                     
                     <div class="d-grid">
                         <button type="submit" class="btn btn-success" id="generateRoutesBtn">
-                            <i data-feather="zap"></i>
-                            EXECUTE MISSION
+                            <i data-feather="navigation"></i>
+                            Generate Optimized Routes
                         </button>
                         <div class="form-text mt-2 text-center">
-                            <small>PREVIOUS MISSIONS CLEARED - FRESH DEPLOYMENT</small>
+                            <small>Previous routes will be automatically cleared and replaced</small>
                         </div>
                     </div>
                 </form>
@@ -373,7 +371,7 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <i data-feather="map" class="text-muted" style="width: 48px; height: 48px;"></i>
+                    <i data-feather="route" class="text-muted" style="width: 48px; height: 48px;"></i>
                     <p class="text-muted mt-2">No routes generated yet. Add stops and generate routes above.</p>
                 </div>
                 {% endif %}
@@ -389,7 +387,7 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="navigation"></i>
+                    <i data-feather="route"></i>
                     Optimized Routes (TSP Algorithm)
                 </h5>
             </div>
@@ -435,13 +433,10 @@
                                                 <small class="text-danger"><strong>Under Target: Driver needs {{ (undertime_minutes // 60) }}h {{ (undertime_minutes % 60) }}m more for 8h minimum</strong></small>
                                             {% elif route.total_time_minutes <= 510 %}
                                                 <small class="text-success"><strong>✓ Ideal: 8h minimum + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m as demand allows</strong></small>
-                                                <br><small class="text-muted">🚛 Est. fuel cost: $35-45 (2004-2006 Tundra @ $3.14/gal)</small>
                                             {% elif route.total_time_minutes <= 570 %}
                                                 <small class="text-info">✓ Good: 8h minimum + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m based on workload</small>
-                                                <br><small class="text-muted">🚛 Est. fuel cost: $40-55 (2004-2006 Tundra @ $3.14/gal)</small>
                                             {% else %}
                                                 <small class="text-warning">High Overtime: 8h minimum + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m</small>
-                                                <br><small class="text-muted">🚛 Est. fuel cost: $55+ (2004-2006 Tundra @ $3.14/gal)</small>
                                             {% endif %}
                                         </h6>
                                         <i data-feather="chevron-down" class="ms-auto collapse-icon"></i>

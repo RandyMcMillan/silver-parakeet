@@ -3,7 +3,6 @@ from datetime import datetime, date, timedelta
 from models import Stop, Route, AgentSignHistory, DriverDepartureAddress, TrafficData, db
 from tsp_solver import TSPSolver
 from traffic_scraper import TrafficDataScraper
-from security_enhancements import SecurityValidator, require_rate_limit
 import json
 import logging
 import os
@@ -55,23 +54,15 @@ def index():
                          google_maps_api_key=os.environ.get('GOOGLE_MAPS_API_KEY', ''))
 
 @main.route('/add_stop', methods=['POST'])
-@require_rate_limit('add_stop')
 def add_stop():
     """Add a new stop"""
     try:
-        # Validate and sanitize form data
-        is_valid, errors = SecurityValidator.validate_form_data(request.form)
-        if not is_valid:
-            for error in errors:
-                flash(error, 'error')
-            return redirect(url_for('main.index'))
-        
         # Combine address fields into a single address string
-        street_address = SecurityValidator.sanitize_input(request.form.get('street_address', '').strip())
-        apt_unit = SecurityValidator.sanitize_input(request.form.get('apt_unit', '').strip())
-        city = SecurityValidator.sanitize_input(request.form.get('city', '').strip())
-        state = SecurityValidator.sanitize_input(request.form.get('state', '').strip())
-        zip_code = SecurityValidator.sanitize_input(request.form.get('zip_code', '').strip())
+        street_address = request.form.get('street_address', '').strip()
+        apt_unit = request.form.get('apt_unit', '').strip()
+        city = request.form.get('city', '').strip()
+        state = request.form.get('state', '').strip()
+        zip_code = request.form.get('zip_code', '').strip()
         
         # Build full address
         address_parts = [street_address]
@@ -125,21 +116,9 @@ def add_stop():
         elif service_type == 'remove':
             post_type = "Removal"
         
-        # Validate required fields with specific error messages
-        missing_fields = []
-        if not street_address:
-            missing_fields.append('Street Address')
-        if not city:
-            missing_fields.append('City')
-        if not state:
-            missing_fields.append('State')
-        if not zip_code:
-            missing_fields.append('ZIP Code')
-        if not service_type:
-            missing_fields.append('Service Type')
-        
-        if missing_fields:
-            flash(f'Please fill in the following required fields: {", ".join(missing_fields)}', 'error')
+        # Validate required fields
+        if not street_address or not city or not state or not zip_code or not service_type:
+            flash('Please fill in all required address fields and service type', 'error')
             return redirect(url_for('main.index'))
             
         if service_type == 'install' and not post_type:
@@ -165,7 +144,7 @@ def add_stop():
         
         # Create new stop
         stop = Stop()
-        stop.post_type = post_type or "Unknown"  # Ensure non-null value
+        stop.post_type = post_type
         stop.address = address
         stop.service_type = service_type
         stop.is_asap = is_asap
@@ -240,7 +219,6 @@ def get_fixed_departure_address():
     return "183 DeKalb Industrial Way, Decatur, GA 30030"
 
 @main.route('/generate_routes', methods=['POST'])
-@require_rate_limit('generate_routes')
 def generate_routes():
     """Generate optimized routes for specified number of drivers with 8-hour workday goals"""
     import time
@@ -288,8 +266,8 @@ def generate_routes():
         # Sort scheduled stops by required date
         scheduled_stops.sort(key=lambda x: x.required_date or datetime.max)
         
-        # Use geographic clustering for optimal route distribution with fuel efficiency
-        logging.info(f"Starting geographic route optimization for {len(stops)} stops (Toyota Tundra fuel analysis)")
+        # Use geographic clustering for optimal route distribution
+        logging.info(f"Starting geographic route optimization for {len(stops)} stops")
         
         # Convert all stops to format for geographic clustering
         all_stops_data = []
@@ -385,24 +363,11 @@ def generate_routes():
                 
                 total_time = service_time + drive_time_between_stops + departure_to_first + last_to_departure
                 
-                # Calculate fuel cost for this route using Toyota Tundra efficiency
-                from fuel_efficiency import TundraFuelCalculator
-                fuel_calc = TundraFuelCalculator()
-                
-                route_stops_for_fuel = [{'address': stop['address']} for stop in route_stops]
-                fuel_data = fuel_calc.calculate_route_fuel_efficiency(
-                    route_stops_for_fuel, departure_address, int(start_time.split(':')[0])
-                )
-                
-                fuel_cost = fuel_data.get('total_fuel_cost', 0)
-                estimated_miles = fuel_data.get('total_distance_miles', 0)
-                cost_per_hour = fuel_cost / (total_time / 60) if total_time > 0 else 0
-                
-                logging.info(f"Driver {driver_num} route breakdown ({traffic_description}): "
-                           f"Service: {service_time}min, Drive: {drive_time_between_stops}min, "
-                           f"Departure: {departure_to_first + last_to_departure}min, "
-                           f"Total: {total_time}min, Distance: {estimated_miles:.1f}mi, "
-                           f"Fuel: ${fuel_cost:.2f} (${cost_per_hour:.2f}/hr, 2004-2006 Tundra)")
+                logging.info(f"Driver {driver_num} route time breakdown ({traffic_description}): "
+                           f"Service: {service_time}min, "
+                           f"Between stops: {drive_time_between_stops}min, "
+                           f"Departure trips: {departure_to_first + last_to_departure}min, "
+                           f"Total: {total_time}min")
             else:
                 total_time = 0
             

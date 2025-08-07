@@ -6,15 +6,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 class Stop(db.Model):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     post_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    address: Mapped[str] = mapped_column(Text, nullable=False, index=True)  # Index for frequent searches
-    service_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # Index for filtering
-    is_asap: Mapped[bool] = mapped_column(Boolean, default=False, index=True)  # Index for priority queries
-    required_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)  # Index for date filtering
-    agent_sign_description: Mapped[str | None] = mapped_column(Text, nullable=True)  # For installs
+    address: Mapped[str] = mapped_column(Text, nullable=False)
+    service_type: Mapped[str] = mapped_column(String(50), nullable=False)  # 'install' or 'pickup'
+    is_asap: Mapped[bool] = mapped_column(Boolean, default=False)
+    required_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    agent_sign_description: Mapped[str] = mapped_column(Text, nullable=True)  # For installs
     has_riders_toppers: Mapped[bool] = mapped_column(Boolean, default=False)
-    riders_toppers_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    riders_toppers_description: Mapped[str] = mapped_column(Text, nullable=True)
     has_shelter: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)  # Index for chronological queries
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     def __repr__(self):
         return f'<Stop {self.id}: {self.post_type} at {self.address}>'
