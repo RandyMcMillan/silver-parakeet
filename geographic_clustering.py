@@ -365,12 +365,22 @@ class GeographicClusterer:
         """
         try:
             # Add coordinates to stops for traffic analysis
+            logging.info(f"Starting coordinate lookup for {len(stops)} stops...")
             stops_with_coords = []
-            for stop in stops:
-                coords = self.get_coordinates(stop['address'])
-                stop_with_coords = stop.copy()
-                stop_with_coords['coordinates'] = coords
-                stops_with_coords.append(stop_with_coords)
+            for i, stop in enumerate(stops):
+                try:
+                    coords = self.get_coordinates(stop['address'])
+                    stop_with_coords = stop.copy()
+                    stop_with_coords['coordinates'] = coords
+                    stops_with_coords.append(stop_with_coords)
+                    if i % 20 == 0:  # Log progress every 20 stops
+                        logging.info(f"Processed {i+1}/{len(stops)} coordinate lookups...")
+                except Exception as coord_error:
+                    logging.error(f"Failed to get coordinates for {stop['address']}: {coord_error}")
+                    # Skip this stop or use default coordinates
+                    stop_with_coords = stop.copy()
+                    stop_with_coords['coordinates'] = (33.7490, -84.3880)  # Default Atlanta coords
+                    stops_with_coords.append(stop_with_coords)
             
             # Get traffic-aware routing analysis
             traffic_analysis = self.traffic_router.get_geographic_route_optimization(stops_with_coords, num_drivers)

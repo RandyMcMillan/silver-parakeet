@@ -353,7 +353,10 @@ def generate_routes():
             optimized_routes = clusterer.get_optimized_stop_distribution(all_stops_data, num_drivers)
             logging.info(f"Generated {len([r for r in optimized_routes if r])} geographically optimized routes")
         except Exception as e:
-            logging.error(f"Geographic clustering failed: {e}, using simple distribution with 8-hour balancing")
+            import traceback
+            logging.error(f"Geographic clustering failed: {e}")
+            logging.error(f"Full traceback: {traceback.format_exc()}")
+            logging.error("Using simple distribution with 8-hour balancing")
             # Fallback to simple distribution
             stops_per_driver = len(all_stops_data) // num_drivers
             remainder = len(all_stops_data) % num_drivers
