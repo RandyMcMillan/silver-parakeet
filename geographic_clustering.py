@@ -205,7 +205,8 @@ class GeographicClusterer:
         if not stop_distribution:
             return stop_distribution
         
-        max_minutes = 600  # 10 hours maximum (allow more overtime to ensure 8-hour minimums)
+        preferred_max = 540  # 9 hours preferred maximum  
+        absolute_max = 600   # 10 hours absolute maximum
         
         # Calculate current workloads
         workloads = []
@@ -244,14 +245,21 @@ class GeographicClusterer:
                             new_under_workload = under_driver['workload_minutes'] + stop_time
                             new_donor_workload = donor_driver['workload_minutes'] - stop_time
                             
-                            # Target exactly 8 hours as ideal, allow minimal overage if needed
+                            # Target 8-9 hour range, prioritize balance over perfection
                             gets_to_minimum = new_under_workload >= target_minutes  # Must reach 8h minimum
-                            reasonable_overage = new_under_workload <= target_minutes + 90  # Minimal overage allowed
-                            donor_keeps_viable = new_donor_workload >= target_minutes - 90  # Donor doesn't go too low
-                            stays_within_max = new_under_workload <= max_minutes
+                            stays_in_preferred = new_under_workload <= preferred_max  # Prefer under 9h
+                            donor_keeps_viable = new_donor_workload >= target_minutes - 60  # Donor stays reasonable
+                            stays_within_absolute = new_under_workload <= absolute_max  # Absolute 10h limit
                             
-                            # Move stop if it gets driver to 8h+ with minimal overage
-                            if gets_to_minimum and reasonable_overage and donor_keeps_viable and stays_within_max:
+                            # Prioritize moves that keep everyone in 8-9h range
+                            if gets_to_minimum and stays_in_preferred and donor_keeps_viable:
+                                priority_move = True
+                            elif gets_to_minimum and stays_within_absolute and donor_keeps_viable:
+                                priority_move = True  # Allow up to 10h if needed for 8h minimum
+                            else:
+                                priority_move = False
+                            
+                            if priority_move:
                                 # Perform the move
                                 stop_to_move = donor_driver['route_indices'].pop()
                                 under_driver['route_indices'].append(stop_to_move)

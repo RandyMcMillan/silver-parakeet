@@ -314,6 +314,41 @@ def generate_routes():
         from geographic_clustering import GeographicClusterer
         clusterer = GeographicClusterer()
         
+        # Filter stops to prevent routes over 9 hours and defer ASAP stops if needed
+        asap_stops = [stop for stop in all_stops_data if stop.get('is_asap', False)]
+        scheduled_stops = [stop for stop in all_stops_data if not stop.get('is_asap', False)]
+        
+        logging.info(f"Stop breakdown: {len(scheduled_stops)} scheduled, {len(asap_stops)} ASAP")
+        
+        # Estimate if adding all stops would create excessive overtime
+        estimated_total_minutes = len(all_stops_data) * 25  # Rough per-stop estimate
+        minutes_per_driver = estimated_total_minutes / num_drivers
+        
+        if minutes_per_driver > 540:  # Over 9 hours average
+            # Calculate how many stops we can fit within 9-hour limits
+            max_stops_for_9h = int((num_drivers * 540) / 25)  # 9 hours * drivers / 25min per stop
+            
+            # Always include ALL scheduled stops (they have priority)
+            stops_to_process = scheduled_stops.copy()
+            
+            # Add ASAP stops only if they fit within 9-hour limits
+            remaining_capacity = max_stops_for_9h - len(scheduled_stops)
+            if remaining_capacity > 0 and asap_stops:
+                stops_to_add = asap_stops[:remaining_capacity]
+                stops_deferred = asap_stops[remaining_capacity:]
+                stops_to_process.extend(stops_to_add)
+                
+                if stops_deferred:
+                    flash(f'Route optimization: {len(stops_deferred)} ASAP stops deferred to next day to keep all drivers within 9-hour limit', 'info')
+                    logging.info(f"Deferred {len(stops_deferred)} ASAP stops to prevent excessive overtime")
+            elif remaining_capacity <= 0:
+                flash(f'Warning: {len(asap_stops)} ASAP stops deferred - all scheduled stops already fill 9-hour capacity', 'warning')
+                stops_deferred = asap_stops
+            else:
+                stops_to_process.extend(asap_stops)
+                
+            all_stops_data = stops_to_process
+            
         try:
             optimized_routes = clusterer.get_optimized_stop_distribution(all_stops_data, num_drivers)
             logging.info(f"Generated {len([r for r in optimized_routes if r])} geographically optimized routes")

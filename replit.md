@@ -8,7 +8,7 @@ This Flask-based web application optimizes delivery routes for field service tea
 
 Preferred communication style: Simple, everyday language.
 Interest in companion apps: Delivery driver mobile/web applications for field operations.
-Driver scheduling priority: Minimum 8 hours per driver as demand allows, can be minimally over but ideally minimum 8 hours.
+Driver scheduling priority: Minimum 8 hours per driver as demand allows, can be minimally over but ideally minimum 8 hours. Target 8-9 hour range with ASAP overflow protection - defer excess ASAP stops to next day if they would push drivers over 9 hours.
 
 ## System Architecture
 
