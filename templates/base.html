@@ -11,57 +11,8 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     
-    <!-- Leaflet CSS with inline backup -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        /* Essential Leaflet CSS backup for tile display */
-        .leaflet-container {
-            background: #ddd;
-            outline: 0;
-            font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
-        }
-        .leaflet-tile-pane {
-            position: absolute;
-            left: 0;
-            top: 0;
-        }
-        .leaflet-tile {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 256px;
-            height: 256px;
-            border: 0;
-            opacity: 1 !important;
-            display: block !important;
-            visibility: visible !important;
-        }
-        .leaflet-layer {
-            position: absolute;
-            left: 0;
-            top: 0;
-        }
-        .leaflet-map-pane {
-            position: absolute;
-            left: 0;
-            top: 0;
-        }
-        .leaflet-control-container {
-            position: relative;
-        }
-        .leaflet-zoom-box {
-            width: 0;
-            height: 0;
-            box-sizing: border-box;
-            z-index: 800;
-        }
-        .leaflet-tile-container {
-            position: absolute;
-        }
-    </style>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/leaflet-fix.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/leaflet-tile-fix.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/map-debug.css') }}">
     
     <!-- Feather Icons -->
     <script src="https://unpkg.com/feather-icons"></script>
@@ -71,7 +22,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/collapse-icons.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='cache-control.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='shut-up-and-drive-theme.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='form-emergency-fix.css') }}">
 </head>
 <body style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); min-height: 100vh;">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -120,10 +70,7 @@
     
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script src="{{ url_for('static', filename='fresh-map.js') }}"></script>
-    <script src="{{ url_for('static', filename='simple-leaflet-map.js') }}"></script>
-    <script src="{{ url_for('static', filename='tile-test.js') }}"></script>
-    <script src="{{ url_for('static', filename='fix-ui-refresh.js') }}"></script>
+    <script src="{{ url_for('static', filename='leaflet_route_map.js') }}"></script>
     <script src="{{ url_for('static', filename='form-validation.js') }}"></script>
     <script src="{{ url_for('static', filename='performance-optimizations.js') }}"></script>
     <script src="{{ url_for('static', filename='aggressive-animations.js') }}"></script>
@@ -240,104 +187,6 @@
                 timestampInput.value = '';
             }
         }
-        
-        // Toggle pickup/reinstall address fields
-        function togglePickupReinstall() {
-            const checkbox = document.getElementById('is_pickup_reinstall');
-            const addressLabel = document.getElementById('address_label');
-            const reinstallSection = document.getElementById('reinstall_address_section');
-            
-            if (checkbox.checked) {
-                // Change first address label to "Pickup Address"
-                addressLabel.innerHTML = '<i data-feather="arrow-down-circle" style="width: 16px; height: 16px;"></i> Pickup Address (Stop 1)';
-                
-                // Show reinstall address section (override !important)
-                reinstallSection.style.setProperty('display', 'block', 'important');
-                
-                // Update placeholders for pickup
-                document.getElementById('street_address').placeholder = 'Pickup Street Address';
-                document.getElementById('city').placeholder = 'Pickup City';
-                document.getElementById('state').placeholder = 'Pickup State';
-                document.getElementById('zip_code').placeholder = 'Pickup ZIP Code';
-                
-                // Make reinstall fields required
-                document.getElementById('reinstall_street_address').required = true;
-                document.getElementById('reinstall_city').required = true;
-                document.getElementById('reinstall_state').required = true;
-                document.getElementById('reinstall_zip_code').required = true;
-                
-                // Use pickup fields for form data
-                document.getElementById('street_address').name = 'pickup_street_address';
-                document.getElementById('apt_unit').name = 'pickup_apt_unit';
-                document.getElementById('city').name = 'pickup_city';
-                document.getElementById('state').name = 'pickup_state';
-                document.getElementById('zip_code').name = 'pickup_zip_code';
-                
-            } else {
-                // Change back to regular address
-                addressLabel.innerHTML = 'Address';
-                
-                // Hide reinstall address section (override !important)
-                reinstallSection.style.setProperty('display', 'none', 'important');
-                
-                // Restore original placeholders
-                document.getElementById('street_address').placeholder = 'Street Address';
-                document.getElementById('city').placeholder = 'City';
-                document.getElementById('state').placeholder = 'State';
-                document.getElementById('zip_code').placeholder = 'ZIP Code';
-                
-                // Remove required from reinstall fields
-                document.getElementById('reinstall_street_address').required = false;
-                document.getElementById('reinstall_city').required = false;
-                document.getElementById('reinstall_state').required = false;
-                document.getElementById('reinstall_zip_code').required = false;
-                
-                // Restore original field names
-                document.getElementById('street_address').name = 'street_address';
-                document.getElementById('apt_unit').name = 'apt_unit';
-                document.getElementById('city').name = 'city';
-                document.getElementById('state').name = 'state';
-                document.getElementById('zip_code').name = 'zip_code';
-                
-                // Clear reinstall fields when hiding
-                document.getElementById('reinstall_street_address').value = '';
-                document.getElementById('reinstall_apt_unit').value = '';
-                document.getElementById('reinstall_city').value = '';
-                document.getElementById('reinstall_state').value = '';
-                document.getElementById('reinstall_zip_code').value = '';
-            }
-            
-            // Refresh feather icons
-            feather.replace();
-        }
-        
-        // Initialize pickup/reinstall state on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const checkbox = document.getElementById('is_pickup_reinstall');
-            const reinstallSection = document.getElementById('reinstall_address_section');
-            const addressLabel = document.getElementById('address_label');
-            
-            // Force hide reinstall section and reset label when page loads
-            if (checkbox && reinstallSection && addressLabel) {
-                if (!checkbox.checked) {
-                    reinstallSection.style.setProperty('display', 'none', 'important');
-                    addressLabel.innerHTML = 'Address';
-                    
-                    // Ensure reinstall fields are not required
-                    const reinstallFields = ['reinstall_street_address', 'reinstall_city', 'reinstall_state', 'reinstall_zip_code'];
-                    reinstallFields.forEach(fieldId => {
-                        const field = document.getElementById(fieldId);
-                        if (field) {
-                            field.required = false;
-                            field.value = '';
-                        }
-                    });
-                } else {
-                    // If checkbox is checked on load, trigger the toggle function
-                    togglePickupReinstall();
-                }
-            }
-        });
     </script>
 </body>
 </html>

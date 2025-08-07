@@ -1,9 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from datetime import datetime, date, timedelta
-from models import Stop, Route, AgentSignHistory, DriverDepartureAddress, TrafficData, TrafficSnapshot, db
+from models import Stop, Route, AgentSignHistory, DriverDepartureAddress, TrafficData, db
 from tsp_solver import TSPSolver
 from traffic_scraper import TrafficDataScraper
-from traffic_scheduler import traffic_scheduler
 from security_enhancements import SecurityValidator, require_rate_limit
 import json
 import logging
@@ -67,59 +66,19 @@ def add_stop():
                 flash(error, 'error')
             return redirect(url_for('main.index'))
         
-        # Check if this is a pickup/reinstall operation
-        is_pickup_reinstall = request.form.get('is_pickup_reinstall') == 'on'
+        # Combine address fields into a single address string
+        street_address = SecurityValidator.sanitize_input(request.form.get('street_address', '').strip())
+        apt_unit = SecurityValidator.sanitize_input(request.form.get('apt_unit', '').strip())
+        city = SecurityValidator.sanitize_input(request.form.get('city', '').strip())
+        state = SecurityValidator.sanitize_input(request.form.get('state', '').strip())
+        zip_code = SecurityValidator.sanitize_input(request.form.get('zip_code', '').strip())
         
-        # Initialize variables to avoid unbound errors
-        pickup_street = pickup_apt = pickup_city = pickup_state = pickup_zip = ""
-        reinstall_street = reinstall_apt = reinstall_city = reinstall_state = reinstall_zip = ""
-        street_address = apt_unit = city = state = zip_code = ""
-        pickup_address = reinstall_address = ""
-        
-        if is_pickup_reinstall:
-            # Handle pickup/reinstall addresses - pickup uses the main form fields when checkbox is checked
-            pickup_street = SecurityValidator.sanitize_input(request.form.get('pickup_street_address', '').strip())
-            pickup_apt = SecurityValidator.sanitize_input(request.form.get('pickup_apt_unit', '').strip())
-            pickup_city = SecurityValidator.sanitize_input(request.form.get('pickup_city', '').strip())
-            pickup_state = SecurityValidator.sanitize_input(request.form.get('pickup_state', '').strip())
-            pickup_zip = SecurityValidator.sanitize_input(request.form.get('pickup_zip_code', '').strip())
-            
-            reinstall_street = SecurityValidator.sanitize_input(request.form.get('reinstall_street_address', '').strip())
-            reinstall_apt = SecurityValidator.sanitize_input(request.form.get('reinstall_apt_unit', '').strip())
-            reinstall_city = SecurityValidator.sanitize_input(request.form.get('reinstall_city', '').strip())
-            reinstall_state = SecurityValidator.sanitize_input(request.form.get('reinstall_state', '').strip())
-            reinstall_zip = SecurityValidator.sanitize_input(request.form.get('reinstall_zip_code', '').strip())
-            
-            # Build pickup address
-            pickup_parts = [pickup_street]
-            if pickup_apt:
-                pickup_parts.append(pickup_apt)
-            pickup_parts.extend([pickup_city, pickup_state, pickup_zip])
-            pickup_address = ', '.join(part for part in pickup_parts if part)
-            
-            # Build reinstall address
-            reinstall_parts = [reinstall_street]
-            if reinstall_apt:
-                reinstall_parts.append(reinstall_apt)
-            reinstall_parts.extend([reinstall_city, reinstall_state, reinstall_zip])
-            reinstall_address = ', '.join(part for part in reinstall_parts if part)
-            
-            # Use pickup address as primary address for compatibility
-            address = pickup_address
-        else:
-            # Handle single address as before
-            street_address = SecurityValidator.sanitize_input(request.form.get('street_address', '').strip())
-            apt_unit = SecurityValidator.sanitize_input(request.form.get('apt_unit', '').strip())
-            city = SecurityValidator.sanitize_input(request.form.get('city', '').strip())
-            state = SecurityValidator.sanitize_input(request.form.get('state', '').strip())
-            zip_code = SecurityValidator.sanitize_input(request.form.get('zip_code', '').strip())
-            
-            # Build full address
-            address_parts = [street_address]
-            if apt_unit:
-                address_parts.append(apt_unit)
-            address_parts.extend([city, state, zip_code])
-            address = ', '.join(part for part in address_parts if part)
+        # Build full address
+        address_parts = [street_address]
+        if apt_unit:
+            address_parts.append(apt_unit)
+        address_parts.extend([city, state, zip_code])
+        address = ', '.join(part for part in address_parts if part)
         
         service_type = request.form.get('service_type')
         is_asap = request.form.get('is_asap') == 'on'
@@ -168,35 +127,14 @@ def add_stop():
         
         # Validate required fields with specific error messages
         missing_fields = []
-        if is_pickup_reinstall:
-            # Validate pickup/reinstall addresses
-            if not pickup_street:
-                missing_fields.append('Pickup Street Address')
-            if not pickup_city:
-                missing_fields.append('Pickup City')
-            if not pickup_state:
-                missing_fields.append('Pickup State')
-            if not pickup_zip:
-                missing_fields.append('Pickup ZIP Code')
-            if not reinstall_street:
-                missing_fields.append('Reinstall Street Address')
-            if not reinstall_city:
-                missing_fields.append('Reinstall City')
-            if not reinstall_state:
-                missing_fields.append('Reinstall State')
-            if not reinstall_zip:
-                missing_fields.append('Reinstall ZIP Code')
-        else:
-            # Validate single address
-            if not street_address:
-                missing_fields.append('Street Address')
-            if not city:
-                missing_fields.append('City')
-            if not state:
-                missing_fields.append('State')
-            if not zip_code:
-                missing_fields.append('ZIP Code')
-        
+        if not street_address:
+            missing_fields.append('Street Address')
+        if not city:
+            missing_fields.append('City')
+        if not state:
+            missing_fields.append('State')
+        if not zip_code:
+            missing_fields.append('ZIP Code')
         if not service_type:
             missing_fields.append('Service Type')
         
@@ -225,104 +163,42 @@ def add_stop():
                 flash('Invalid date format', 'error')
                 return redirect(url_for('main.index'))
         
-        if is_pickup_reinstall:
-            # Create paired stops for pickup/reinstall
-            import uuid
-            pair_group_id = str(uuid.uuid4())[:8]  # Short unique ID for the pair
-            
-            # Create pickup stop (first stop)
-            pickup_stop = Stop()
-            pickup_stop.post_type = post_type or "Unknown"
-            pickup_stop.address = pickup_address
-            pickup_stop.service_type = "pickup"  # Modified service type
-            pickup_stop.is_asap = is_asap
-            pickup_stop.required_date = required_date
-            pickup_stop.agent_sign_description = agent_sign_description if service_type == 'install' else None
-            pickup_stop.has_riders_toppers = has_riders_toppers
-            pickup_stop.riders_toppers_description = riders_toppers_description if has_riders_toppers else None
-            pickup_stop.has_shelter = has_shelter
-            pickup_stop.is_pickup_reinstall = True
-            pickup_stop.pickup_address = pickup_address
-            pickup_stop.reinstall_address = reinstall_address
-            pickup_stop.pair_group_id = pair_group_id
-            
-            # Create reinstall stop (second stop)
-            reinstall_stop = Stop()
-            reinstall_stop.post_type = post_type or "Unknown"
-            reinstall_stop.address = reinstall_address
-            reinstall_stop.service_type = "reinstall"  # Modified service type
-            reinstall_stop.is_asap = is_asap
-            reinstall_stop.required_date = required_date
-            reinstall_stop.agent_sign_description = agent_sign_description if service_type == 'install' else None
-            reinstall_stop.has_riders_toppers = has_riders_toppers
-            reinstall_stop.riders_toppers_description = riders_toppers_description if has_riders_toppers else None
-            reinstall_stop.has_shelter = has_shelter
-            reinstall_stop.is_pickup_reinstall = True
-            reinstall_stop.pickup_address = pickup_address
-            reinstall_stop.reinstall_address = reinstall_address
-            reinstall_stop.pair_group_id = pair_group_id
-            
-            # Set manual timestamp if provided
-            if manual_timestamp:
-                pickup_stop.created_at = manual_timestamp
-                reinstall_stop.created_at = manual_timestamp
-            
-            db.session.add(pickup_stop)
-            db.session.add(reinstall_stop)
-            
-            # Save agent sign description to history for both addresses
-            if service_type == 'install' and agent_sign_description:
-                for addr in [pickup_address, reinstall_address]:
-                    existing_sign = AgentSignHistory.query.filter_by(address=addr).first()
-                    if existing_sign:
-                        existing_sign.sign_description = agent_sign_description
-                        existing_sign.updated_at = datetime.utcnow()
-                    else:
-                        agent_sign_history = AgentSignHistory()
-                        agent_sign_history.address = addr
-                        agent_sign_history.sign_description = agent_sign_description
-                        db.session.add(agent_sign_history)
-        else:
-            # Create single stop as before
-            stop = Stop()
-            stop.post_type = post_type or "Unknown"
-            stop.address = address
-            stop.service_type = str(service_type) if service_type else 'install'
-            stop.is_asap = is_asap
-            stop.required_date = required_date
-            stop.agent_sign_description = agent_sign_description if service_type == 'install' else None
-            stop.has_riders_toppers = has_riders_toppers
-            stop.riders_toppers_description = riders_toppers_description if has_riders_toppers else None
-            stop.has_shelter = has_shelter
-            stop.is_pickup_reinstall = False
-            
-            # Set manual timestamp if provided, otherwise use default (current time)
-            if manual_timestamp:
-                stop.created_at = manual_timestamp
-            
-            db.session.add(stop)
-            
-            # Save agent sign description to history if this is an install with a sign description
-            if service_type == 'install' and agent_sign_description:
-                # Check if there's already a sign history for this address
-                existing_sign = AgentSignHistory.query.filter_by(address=address).first()
-                if existing_sign:
-                    # Update existing record
-                    existing_sign.sign_description = agent_sign_description
-                    existing_sign.updated_at = datetime.utcnow()
-                else:
-                    # Create new record
-                    agent_sign_history = AgentSignHistory()
-                    agent_sign_history.address = address
-                    agent_sign_history.sign_description = agent_sign_description
-                    db.session.add(agent_sign_history)
+        # Create new stop
+        stop = Stop()
+        stop.post_type = post_type or "Unknown"  # Ensure non-null value
+        stop.address = address
+        stop.service_type = service_type
+        stop.is_asap = is_asap
+        stop.required_date = required_date
+        stop.agent_sign_description = agent_sign_description if service_type == 'install' else None
+        stop.has_riders_toppers = has_riders_toppers
+        stop.riders_toppers_description = riders_toppers_description if has_riders_toppers else None
+        stop.has_shelter = has_shelter
+        
+        # Set manual timestamp if provided, otherwise use default (current time)
+        if manual_timestamp:
+            stop.created_at = manual_timestamp
+        
+        db.session.add(stop)
+        
+        # Save agent sign description to history if this is an install with a sign description
+        if service_type == 'install' and agent_sign_description:
+            # Check if there's already a sign history for this address
+            existing_sign = AgentSignHistory.query.filter_by(address=address).first()
+            if existing_sign:
+                # Update existing record
+                existing_sign.sign_description = agent_sign_description
+                existing_sign.updated_at = datetime.utcnow()
+            else:
+                # Create new record
+                agent_sign_history = AgentSignHistory()
+                agent_sign_history.address = address
+                agent_sign_history.sign_description = agent_sign_description
+                db.session.add(agent_sign_history)
         
         db.session.commit()
         
-        if is_pickup_reinstall:
-            flash('Pickup/Reinstall pair added successfully', 'success')
-        else:
-            flash('Stop added successfully', 'success')
+        flash('Stop added successfully', 'success')
         # Return redirect with both URL parameter and localStorage trigger
         return redirect(url_for('main.index', reset_form='true', form_reset_trigger='true'))
         
@@ -394,24 +270,6 @@ def generate_routes():
             flash('No stops available to route', 'error')
             return redirect(url_for('main.index'))
         
-        # Update traffic data for route segments (monthly snapshots with variance detection)
-        stop_addresses = [stop.address for stop in stops]
-        traffic_updates = traffic_scheduler.update_route_traffic_data(stop_addresses)
-        
-        # Log traffic data update results
-        if traffic_updates['updates_performed'] > 0:
-            logging.info(f"Updated traffic data for {traffic_updates['updates_performed']} route segments")
-        
-        if traffic_updates['construction_detected']:
-            logging.warning(f"Construction detected on {len(traffic_updates['construction_detected'])} route segments")
-            for alert in traffic_updates['construction_detected']:
-                flash(f"Construction detected: {alert['origin']} to {alert['destination']} (+{alert['variance_minutes']:.1f} min)", 'warning')
-        
-        if traffic_updates['variance_alerts']:
-            logging.info(f"Traffic variance detected on {len(traffic_updates['variance_alerts'])} route segments")
-            for alert in traffic_updates['variance_alerts']:
-                flash(f"Traffic change: {alert['origin']} to {alert['destination']} (+{alert['variance_minutes']:.1f} min)", 'info')
-        
         if num_drivers < 1:
             flash('Number of drivers must be at least 1', 'error')
             return redirect(url_for('main.index'))
@@ -430,13 +288,11 @@ def generate_routes():
         # Sort scheduled stops by required date
         scheduled_stops.sort(key=lambda x: x.required_date or datetime.max)
         
-        # Use improved geographic clustering for optimal route distribution with fuel efficiency
-        logging.info(f"Starting enhanced route optimization for {len(stops)} stops (Toyota Tundra fuel analysis)")
+        # Use geographic clustering for optimal route distribution with fuel efficiency
+        logging.info(f"Starting geographic route optimization for {len(stops)} stops (Toyota Tundra fuel analysis)")
         
-        # Prioritize ASAP stops by submission timestamp, then scheduled stops
-        asap_stops = []
-        scheduled_stops = []
-        
+        # Convert all stops to format for geographic clustering
+        all_stops_data = []
         for stop in stops:
             stop_data = {
                 'id': stop.id,
@@ -444,96 +300,24 @@ def generate_routes():
                 'post_type': stop.post_type,
                 'service_type': stop.service_type,
                 'is_asap': stop.is_asap,
-                'required_date': stop.required_date,
-                'created_at': stop.created_at  # Used for ASAP timestamp priority
+                'required_date': stop.required_date
             }
-            
-            if stop.is_asap:
-                asap_stops.append(stop_data)
-            else:
-                scheduled_stops.append(stop_data)
-        
-        # Sort ASAP stops by submission timestamp (oldest first gets priority)
-        asap_stops.sort(key=lambda x: x['created_at'] or datetime.min)
-        
-        # Sort scheduled stops by required date
-        scheduled_stops.sort(key=lambda x: x['required_date'] or datetime.max)
-        
-        # Combine: ASAP stops first (by timestamp priority), then scheduled stops
-        all_stops_data = asap_stops + scheduled_stops
-        
-        logging.info(f"Stop prioritization: {len(asap_stops)} ASAP stops (by timestamp), {len(scheduled_stops)} scheduled stops")
+            all_stops_data.append(stop_data)
         
         if len(all_stops_data) == 0:
             flash('No active stops found to generate routes.', 'warning')
             return redirect(url_for('main.index'))
         
-        # Calculate realistic workload limits
-        # Service: 10min per stop, Drive: 6min average (max 120min total), Departure+Return: 50min
-        # Target: 8.5 hours (510 min), Max: 9 hours (540 min)
-        
-        service_per_stop = 10      # Service time per stop
-        max_drive_per_route = 120  # Maximum drive time per route (2 hours)
-        base_time_per_driver = 50  # Departure + return
-        max_minutes_per_driver = 540  # 9 hours
-        target_minutes_per_driver = 510  # 8.5 hours
-        
-        # Calculate maximum stops per driver (conservative estimate)
-        # Max time budget = 540 - 50 - 120 = 370 minutes for service
-        max_service_time = max_minutes_per_driver - base_time_per_driver - max_drive_per_route
-        stops_per_driver_max = max_service_time // service_per_stop  # About 37 stops max
-        
-        # Calculate optimal stops per driver for 8.5-hour target
-        target_service_time = target_minutes_per_driver - base_time_per_driver - max_drive_per_route
-        stops_per_driver_target = target_service_time // service_per_stop  # About 34 stops optimal
-        
-        # Cap at reasonable limits for safety
-        stops_per_driver_max = min(30, stops_per_driver_max)
-        stops_per_driver_target = min(25, stops_per_driver_target)
-        
-        # Calculate drivers needed
-        optimal_drivers = max(1, (len(all_stops_data) + stops_per_driver_target - 1) // stops_per_driver_target)
-        min_drivers_needed = max(1, (len(all_stops_data) + stops_per_driver_max - 1) // stops_per_driver_max)
-        
-        # Calculate maximum stops that can be handled within 9-hour limit with available drivers
-        max_stops_possible = num_drivers * stops_per_driver_max
-        
-        # If we have too many stops for available drivers, limit stops to fit within 9-hour shifts
-        if len(all_stops_data) > max_stops_possible:
-            excess_stops = len(all_stops_data) - max_stops_possible
-            logging.warning(f"Too many stops for {num_drivers} drivers: {len(all_stops_data)} stops, max capacity {max_stops_possible}. {excess_stops} ASAP stops will be ignored (can be scheduled next day).")
-            
-            # Limit stops to what drivers can handle within 9-hour limit
-            # ASAP stops are already sorted by timestamp (oldest first), so we take the first max_stops_possible
-            all_stops_data = all_stops_data[:max_stops_possible]
-            
-            flash(f"Info: {excess_stops} excess ASAP stops ignored (9-hour limit). {num_drivers} drivers handling {max_stops_possible} stops. Excess stops can be scheduled next day.", 'info')
-        
-        if len(all_stops_data) > 0 and num_drivers < optimal_drivers:
-            logging.warning(f"SUBOPTIMAL: {num_drivers} drivers will exceed 8.5h target. Optimal: {optimal_drivers} drivers")
-            flash(f"Warning: {num_drivers} drivers will exceed 8.5-hour target. Recommend {optimal_drivers} drivers for optimal workload.", 'warning')
-        
-        logging.info(f"Workload analysis: {len(all_stops_data)} stops, {num_drivers} drivers requested, {min_drivers_needed} minimum needed, {optimal_drivers} optimal")
-        
-        # Use improved K-means++ clustering to group nearby stops
-        from improved_clustering import ImprovedGeographicClusterer
-        clusterer = ImprovedGeographicClusterer()
+        # Use geographic clustering to group nearby stops
+        from geographic_clustering import GeographicClusterer
+        clusterer = GeographicClusterer()
         
         try:
-            # Get optimized clusters using K-means++ algorithm
-            optimized_clusters = clusterer.get_optimized_clusters(all_stops_data, num_drivers)
-            
-            # Calculate clustering quality metrics
-            quality_metrics = clusterer.calculate_cluster_quality(optimized_clusters)
-            logging.info(f"K-means++ clustering: {quality_metrics['cluster_count']} clusters, "
-                        f"avg intra-distance: {quality_metrics['avg_intra_cluster_distance']:.1f} miles")
-            
-            optimized_routes = optimized_clusters
-            logging.info(f"Generated {len([r for r in optimized_routes if r])} K-means++ optimized routes")
-            
+            optimized_routes = clusterer.get_optimized_stop_distribution(all_stops_data, num_drivers)
+            logging.info(f"Generated {len([r for r in optimized_routes if r])} geographically optimized routes")
         except Exception as e:
-            logging.error(f"Improved clustering failed: {e}, using simple distribution")
-            # Fallback to simple distribution with balanced workload
+            logging.error(f"Geographic clustering failed: {e}, using simple distribution")
+            # Fallback to simple distribution
             stops_per_driver = len(all_stops_data) // num_drivers
             remainder = len(all_stops_data) % num_drivers
             
@@ -543,31 +327,22 @@ def generate_routes():
             for driver in range(num_drivers):
                 driver_stops = stops_per_driver + (1 if driver < remainder else 0)
                 if driver_stops > 0:
-                    # Create list of stop dictionaries for fallback consistency
-                    route_stops = all_stops_data[current_index:current_index + driver_stops]
-                    optimized_routes.append(route_stops)
+                    route = list(range(current_index, current_index + driver_stops))
+                    optimized_routes.append(route)
                     current_index += driver_stops
                 else:
                     optimized_routes.append([])  # Empty route for excess drivers
         
         # Create route records for each driver (skip empty routes)
         routes_created = 0
-        for driver_num, route_data in enumerate(optimized_routes, 1):
-            if not route_data:
+        for driver_num, route_indices in enumerate(optimized_routes, 1):
+            if not route_indices:
                 logging.info(f"Skipping empty route for driver {driver_num}")
                 continue
             
-            # Handle both clustering output (list of dicts) and fallback output (list of indices)
-            if isinstance(route_data, list) and route_data:
-                if isinstance(route_data[0], dict):
-                    # Clustering output: list of stop dictionaries
-                    route_stops = route_data
-                else:
-                    # Fallback output: list of indices
-                    valid_indices = [i for i in route_data if i < len(all_stops_data)]
-                    route_stops = [all_stops_data[i] for i in valid_indices]
-            else:
-                continue
+            # Get stops for this route (ensure indices are valid)
+            valid_indices = [i for i in route_indices if i < len(all_stops_data)]
+            route_stops = [all_stops_data[i] for i in valid_indices]
             
             # Calculate estimated time with Google Maps API or fallback estimates
             if route_stops:
@@ -582,28 +357,31 @@ def generate_routes():
                 stop_addresses = [stop['address'] for stop in route_stops]
                 departure_address = get_fixed_departure_address()
                 
-                # Initialize default values
-                drive_times_list = []
-                departure_to_first = 25
-                last_to_departure = 25
-                traffic_description = "fallback estimates"
-                
-                # Use fast estimated times to prevent API timeouts
-                logging.info(f"Using fast route estimation for route {driver_num} (prevents API timeouts)")
-                
-                # Calculate realistic drive times - much more conservative estimates
-                if len(stop_addresses) > 1:
-                    # More realistic estimate: ~5-8 minutes average between stops
-                    estimated_total_drive_time = min(len(stop_addresses) * 6, 120)  # Max 2 hours drive time
-                    drive_times_list = [6] * max(1, len(stop_addresses) - 1)  # 6 minutes between stops
-                else:
-                    drive_times_list = []
-                    estimated_total_drive_time = 0
-                
-                departure_to_first = 25  # Fixed departure time
-                last_to_departure = 25   # Fixed return time
-                drive_time_between_stops = estimated_total_drive_time
-                traffic_description = "fast estimates"
+                # Get drive times from Google Maps or fallback estimates
+                try:
+                    drive_times_list, departure_to_first, last_to_departure = maps_service.get_route_drive_times(
+                        departure_address, stop_addresses
+                    )
+                    
+                    # If Google Maps API failed, use fallback estimates
+                    if departure_to_first == 0 and last_to_departure == 0 and not drive_times_list:
+                        drive_times_list, departure_to_first, last_to_departure = maps_service.get_fallback_drive_times(
+                            departure_address, stop_addresses, start_time
+                        )
+                        traffic_description = "fallback estimates"
+                    else:
+                        traffic_description = "Google Maps real-time"
+                        
+                    drive_time_between_stops = sum(drive_times_list) if drive_times_list else 0
+                    
+                except Exception as e:
+                    logging.warning(f"Google Maps service error: {e}, using fallback estimates")
+                    # Use fallback estimates if Google Maps fails
+                    drive_times_list, departure_to_first, last_to_departure = maps_service.get_fallback_drive_times(
+                        departure_address, stop_addresses, start_time
+                    )
+                    drive_time_between_stops = sum(drive_times_list) if drive_times_list else 0
+                    traffic_description = "fallback estimates"
                 
                 total_time = service_time + drive_time_between_stops + departure_to_first + last_to_departure
                 
@@ -618,7 +396,7 @@ def generate_routes():
                 
                 fuel_cost = fuel_data.get('total_fuel_cost', 0)
                 estimated_miles = fuel_data.get('total_distance_miles', 0)
-                cost_per_hour = float(fuel_cost) / (float(total_time) / 60) if total_time > 0 else 0
+                cost_per_hour = fuel_cost / (total_time / 60) if total_time > 0 else 0
                 
                 logging.info(f"Driver {driver_num} route breakdown ({traffic_description}): "
                            f"Service: {service_time}min, Drive: {drive_time_between_stops}min, "
@@ -628,58 +406,20 @@ def generate_routes():
             else:
                 total_time = 0
             
-            # ABSOLUTE BLOCK: Do not create routes exceeding 9-hour limit
-            if total_time > 540:  # 9 hours = 540 minutes - hard limit
-                hours_actual = total_time / 60
-                hours_exceeded = (total_time - 540) / 60
-                
-                logging.error(f"ROUTE CREATION BLOCKED: Driver {driver_num} would work {hours_actual:.1f} hours (exceeds 9-hour limit by {hours_exceeded:.1f}h)")
-                
-                # Delete any routes already created and abort
-                Route.query.delete()
-                db.session.rollback()
-                
-                flash(f"ERROR: Route generation blocked! Driver {driver_num} would work {hours_actual:.1f} hours (exceeds 9-hour limit by {hours_exceeded:.1f}h). Need at least {min_drivers_needed} drivers for {len(all_stops_data)} stops.", 'error')
-                return redirect(url_for('main.index'))
-            elif total_time > 510:  # 8.5 hours = 510 minutes - target limit
-                flash(f'Warning: Driver {driver_num} route exceeds 8.5-hour target ({total_time//60}h {total_time%60}m)', 'warning')
+            # Check if route exceeds 8-hour limit and warn
+            if total_time > 480:  # 8 hours = 480 minutes
+                flash(f'Warning: Driver {driver_num} route exceeds 8 hours ({total_time//60}h {total_time%60}m)', 'warning')
             
-            # Create route record - handle dictionary format from clustering
-            if route_stops and isinstance(route_stops[0], dict):
-                stop_sequence = json.dumps([stop['id'] for stop in route_stops])
-            else:
-                stop_sequence = json.dumps([])
+            # Create route record
+            stop_sequence = json.dumps([all_stops_data[i]['id'] for i in valid_indices])
             
-            # Store Google Maps drive time data for UI display (ensure variables are defined)
+            # Store Google Maps drive time data for UI display
             google_maps_data = {
-                'departure_to_first': departure_to_first if 'departure_to_first' in locals() else 25,
-                'between_stops': drive_times_list if 'drive_times_list' in locals() else [],
-                'last_to_departure': last_to_departure if 'last_to_departure' in locals() else 25,
-                'data_source': traffic_description if 'traffic_description' in locals() else 'fast estimates'
+                'departure_to_first': departure_to_first,
+                'between_stops': drive_times_list,
+                'last_to_departure': last_to_departure,
+                'data_source': traffic_description
             }
-            
-            # Calculate lead time in weeks from today to route date
-            today = date.today()
-            days_ahead = (route_date - today).days
-            lead_time_weeks = max(0, days_ahead // 7)  # Convert days to weeks
-            
-            # Check overtime approval using TSP solver logic
-            from tsp_solver import TSPSolver
-            tsp_solver = TSPSolver()
-            overtime_approved, overtime_reason = tsp_solver.check_overtime_approval(
-                total_time, lead_time_weeks, allow_overtime=True
-            )
-            
-            # Log overtime information with new 8.5-hour targeting
-            if total_time > 540:  # Over 9 hours - critical
-                overtime_hours = (total_time - 480) / 60
-                logging.error(f"Driver {driver_num} CRITICAL: {overtime_hours:.1f} hours overtime, exceeds 9-hour limit! {overtime_reason}")
-            elif total_time > 510:  # Over 8.5 hours - warning
-                overtime_hours = (total_time - 480) / 60
-                logging.warning(f"Driver {driver_num} exceeds 8.5h target: {overtime_hours:.1f} hours overtime, {overtime_reason}")
-            elif total_time > 480:  # Over 8 hours but under 8.5 - acceptable
-                overtime_hours = (total_time - 480) / 60
-                logging.info(f"Driver {driver_num} acceptable: {overtime_hours:.1f} hours overtime (under 8.5h target), {overtime_reason}")
             
             route = Route()
             route.driver_number = driver_num
@@ -688,8 +428,6 @@ def generate_routes():
             route.start_time = start_time
             route.route_date = route_date
             route.google_maps_data = json.dumps(google_maps_data)
-            route.overtime_approved = overtime_approved
-            route.lead_time_weeks = lead_time_weeks
             
             db.session.add(route)
             routes_created += 1
@@ -705,11 +443,7 @@ def generate_routes():
         final_routes = Route.query.all()
         logging.info(f"Final route count after generation: {len(final_routes)}")
         for route in final_routes:
-            try:
-                stop_count = len(json.loads(route.stop_sequence)) if route.stop_sequence else 0
-            except:
-                stop_count = 0
-            logging.info(f"Route {route.driver_number}: {stop_count} stops, {route.total_time_minutes} minutes")
+            logging.info(f"Route {route.driver_number}: {len(route.stop_sequence) if route.stop_sequence else 0} stops, {route.total_time_minutes} minutes")
         
     except Exception as e:
         import traceback

@@ -66,10 +66,9 @@ def from_json(value):
 
 app.jinja_env.filters['from_json'] = from_json
 
-# Register routes after app initialization to avoid circular imports
-with app.app_context():
-    from routes import main
-    app.register_blueprint(main)
+# Register routes
+from routes import main
+app.register_blueprint(main)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

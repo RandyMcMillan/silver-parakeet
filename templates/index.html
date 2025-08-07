@@ -3,16 +3,11 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <div class="d-flex align-items-center mb-4">
-            <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Company Logo" class="me-3" style="height: 50px; width: auto; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <div>
-                <h1 class="mb-1">
-                    <i data-feather="truck"></i>
-                    Shut Up and Drive Dashboard
-                </h1>
-                <p class="lead mb-0">Route Optimization Platform</p>
-            </div>
-        </div>
+        <h1 class="mb-4">
+            <i data-feather="truck"></i>
+            Shut Up and Drive Dashboard
+        </h1>
+        <p class="lead">NO EXCUSES. NO DELAYS. JUST OPTIMIZED ROUTES AND MAXIMUM EFFICIENCY.</p>
         
         <!-- Stop Counters -->
         <div class="row mb-4">
@@ -47,7 +42,7 @@
             <div class="card-header">
                 <h5 class="card-title mb-0">
                     <i data-feather="flag"></i>
-                    Departure Address
+                    COMMAND CENTER
                 </h5>
             </div>
             <div class="card-body">
@@ -55,7 +50,7 @@
                     <div class="d-flex align-items-center">
                         <i data-feather="flag" class="me-2"></i>
                         <div>
-                            <strong>Base Location:</strong><br>
+                            <strong>MISSION HQ:</strong><br>
                             183 DeKalb Industrial Way, Decatur, GA 30030
                         </div>
                     </div>
@@ -71,8 +66,8 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="plus-circle"></i>
-                    Add New Stop
+                    <i data-feather="target"></i>
+                    ADD MISSION TARGET
                 </h5>
             </div>
             <div class="card-body">
@@ -136,7 +131,7 @@
                         <label for="agent_sign_description" class="form-label">Agent Sign Description</label>
                         <textarea class="form-control" id="agent_sign_description" name="agent_sign_description" rows="2" 
                                   placeholder="Enter agent sign description"></textarea>
-                        <div class="form-text">Agent sign details stored for removal operations</div>
+                        <div class="form-text">AGENT SIGN INTEL - STORED FOR REMOVAL OPERATIONS</div>
                     </div>
                     
                     <div class="mb-3">
@@ -166,99 +161,52 @@
                     
                     <div class="mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="is_pickup_reinstall" name="is_pickup_reinstall" 
-                                   onchange="togglePickupReinstall()">
-                            <label class="form-check-label" for="is_pickup_reinstall">
-                                Pickup/Reinstall
-                            </label>
-                        </div>
-                        <div class="form-text">Sign pickup and reinstall at different locations (paired stops)</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="manual_timestamp_override" name="manual_timestamp_override" onchange="toggleManualTimestamp()">
                             <label class="form-check-label" for="manual_timestamp_override">
                                 Manual timestamp override
                             </label>
                         </div>
-                        <div class="form-text">Override timestamp for manual priority control</div>
+                        <div class="form-text">OVERRIDE TIMESTAMP - MANUAL PRIORITY CONTROL</div>
                     </div>
                     
                     <div class="mb-3" id="manual_timestamp_group" style="display: none;">
                         <label for="manual_timestamp" class="form-label">Manual Entry Timestamp</label>
                         <input type="datetime-local" class="form-control" id="manual_timestamp" name="manual_timestamp">
-                        <div class="form-text">Earlier timestamp = higher priority</div>
+                        <div class="form-text">EARLIER TIMESTAMP = HIGHER MISSION PRIORITY</div>
                     </div>
                     
-                    <!-- Address Section (toggles between single and pickup/reinstall) -->
                     <div class="mb-3">
-                        <!-- Single Address Fields -->
-                        <div id="address_section">
-                            <label class="form-label" id="address_label">Address</label>
-                            <div class="row">
-                                <div class="col-md-8 mb-2">
-                                    <input type="text" class="form-control" id="street_address" name="street_address" 
-                                           placeholder="Street Address" required autocomplete="new-password">
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <input type="text" class="form-control" id="apt_unit" name="apt_unit" 
-                                           placeholder="Apt/Unit (optional)" autocomplete="new-password">
-                                </div>
+                        <label class="form-label">Address</label>
+                        <div class="row">
+                            <div class="col-md-8 mb-2">
+                                <input type="text" class="form-control" id="street_address" name="street_address" 
+                                       placeholder="Street Address" required autocomplete="new-password">
                             </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-2">
-                                    <input type="text" class="form-control" id="city" name="city" 
-                                           placeholder="City" required autocomplete="new-password">
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <input type="text" class="form-control" id="state" name="state" 
-                                           placeholder="State" required autocomplete="new-password">
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <input type="text" class="form-control" id="zip_code" name="zip_code" 
-                                           placeholder="ZIP Code" required autocomplete="new-password"
-                                           oninput="handleZipCodeInput(this)">
-                                </div>
+                            <div class="col-md-4 mb-2">
+                                <input type="text" class="form-control" id="apt_unit" name="apt_unit" 
+                                       placeholder="Apt/Unit (optional)" autocomplete="new-password">
                             </div>
                         </div>
-                        
-                        <!-- Reinstall Address (only shown when pickup/reinstall is checked) -->
-                        <div id="reinstall_address_section" style="display: none !important;">
-                            <label class="form-label">
-                                <i data-feather="arrow-up-circle" style="width: 16px; height: 16px;"></i>
-                                Reinstall Address (Stop 2)
-                            </label>
-                            <div class="row">
-                                <div class="col-md-8 mb-2">
-                                    <input type="text" class="form-control" id="reinstall_street_address" name="reinstall_street_address" 
-                                           placeholder="Reinstall Street Address" autocomplete="new-password">
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <input type="text" class="form-control" id="reinstall_apt_unit" name="reinstall_apt_unit" 
-                                           placeholder="Apt/Unit (optional)" autocomplete="new-password">
-                                </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <input type="text" class="form-control" id="city" name="city" 
+                                       placeholder="City" required autocomplete="new-password">
                             </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-2">
-                                    <input type="text" class="form-control" id="reinstall_city" name="reinstall_city" 
-                                           placeholder="City" autocomplete="new-password">
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <input type="text" class="form-control" id="reinstall_state" name="reinstall_state" 
-                                           placeholder="State" autocomplete="new-password">
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <input type="text" class="form-control" id="reinstall_zip_code" name="reinstall_zip_code" 
-                                           placeholder="ZIP Code" autocomplete="new-password">
-                                </div>
+                            <div class="col-md-3 mb-2">
+                                <input type="text" class="form-control" id="state" name="state" 
+                                       placeholder="State" required autocomplete="new-password">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <input type="text" class="form-control" id="zip_code" name="zip_code" 
+                                       placeholder="ZIP Code" required autocomplete="new-password"
+                                       oninput="handleZipCodeInput(this)">
                             </div>
                         </div>
                     </div>
                     
                     <button type="submit" class="btn btn-primary" id="addStopBtn">
-                        <i data-feather="plus"></i>
-                        <span class="btn-text">Add Stop</span>
+                        <i data-feather="crosshair"></i>
+                        <span class="btn-text">LOCK TARGET</span>
                         <span class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
                     </button>
                 </form>
@@ -271,14 +219,14 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i data-feather="users"></i>
-                    Generate Routes
+                    <i data-feather="zap"></i>
+                    DEPLOY DRIVERS
                 </h5>
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('main.generate_routes') }}" onsubmit="handleRouteGeneration(document.getElementById('generateRoutesBtn')); return true;">
                     <div class="mb-3">
-                        <label for="num_drivers" class="form-label">Number of Drivers</label>
+                        <label for="num_drivers" class="form-label">DRIVER UNITS</label>
                         <div class="input-group">
                             <input type="number" class="form-control" id="num_drivers" name="num_drivers" 
                                    min="1" max="20" value="{{ current_driver_count|default(1) }}" required>
@@ -287,23 +235,23 @@
                                 Update Routes
                             </button>
                         </div>
-                        <div class="form-text">Assign stops to available drivers</div>
+                        <div class="form-text">DEPLOY DRIVER UNITS - NO DOWNTIME, MAXIMUM COVERAGE</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="start_time" class="form-label">Start Time</label>
+                        <label for="start_time" class="form-label">MISSION START</label>
                         <input type="time" class="form-control" id="start_time" name="start_time" 
                                value="07:00" required>
-                        <div class="form-text">Daily route start time</div>
+                        <div class="form-text">MISSION START TIME - BEAT THE TRAFFIC</div>
                     </div>
                     
                     <div class="d-grid">
                         <button type="submit" class="btn btn-success" id="generateRoutesBtn">
-                            <i data-feather="map"></i>
-                            Generate Routes
+                            <i data-feather="zap"></i>
+                            EXECUTE MISSION
                         </button>
                         <div class="form-text mt-2 text-center">
-                            <small>Previous routes will be cleared and regenerated</small>
+                            <small>PREVIOUS MISSIONS CLEARED - FRESH DEPLOYMENT</small>
                         </div>
                     </div>
                 </form>
@@ -443,7 +391,6 @@
                 <h5 class="card-title mb-0">
                     <i data-feather="navigation"></i>
                     Optimized Routes (TSP Algorithm)
-                    <small class="text-muted"> - Historical Traffic Analysis</small>
                 </h5>
             </div>
             <div class="card-body">
@@ -480,35 +427,34 @@
                                             {% set overtime_minutes = route.total_time_minutes - 480 if route.total_time_minutes > 480 else 0 %}
                                             {% set undertime_minutes = 480 - route.total_time_minutes if route.total_time_minutes < 480 else 0 %}
                                             
-                                            <span class="badge bg-{{ 'danger' if route.total_time_minutes < 480 else 'success' if route.total_time_minutes <= 510 else 'warning' if route.total_time_minutes <= 540 else 'danger' }} ms-2">
+                                            <span class="badge bg-{{ 'danger' if route.total_time_minutes < 480 else 'success' if route.total_time_minutes <= 510 else 'info' if route.total_time_minutes <= 570 else 'warning' }} ms-2">
                                                 {{ hours }}h {{ minutes }}m
                                             </span>
                                             
                                             {% if route.total_time_minutes < 480 %}
                                                 <small class="text-danger"><strong>Under Target: Driver needs {{ (undertime_minutes // 60) }}h {{ (undertime_minutes % 60) }}m more for 8h minimum</strong></small>
                                             {% elif route.total_time_minutes <= 510 %}
-                                                <small class="text-success"><strong>✓ Perfect: 8.5h target achieved ({{ hours }}h {{ minutes }}m)</strong></small>
+                                                <small class="text-success"><strong>✓ Ideal: 8h minimum + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m as demand allows</strong></small>
                                                 <br><small class="text-muted">🚛 Est. fuel cost: $35-45 (2004-2006 Tundra @ $3.14/gal)</small>
-                                            {% elif route.total_time_minutes <= 540 %}
-                                                <small class="text-warning"><strong>⚠ Over Target: {{ hours }}h {{ minutes }}m exceeds 8.5h goal</strong></small>
+                                            {% elif route.total_time_minutes <= 570 %}
+                                                <small class="text-info">✓ Good: 8h minimum + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m based on workload</small>
                                                 <br><small class="text-muted">🚛 Est. fuel cost: $40-55 (2004-2006 Tundra @ $3.14/gal)</small>
                                             {% else %}
-                                                <small class="text-danger"><strong>🚨 CRITICAL: {{ hours }}h {{ minutes }}m exceeds 9-hour limit - Need more drivers!</strong></small>
+                                                <small class="text-warning">High Overtime: 8h minimum + {{ (overtime_minutes // 60) }}h {{ (overtime_minutes % 60) }}m</small>
                                                 <br><small class="text-muted">🚛 Est. fuel cost: $55+ (2004-2006 Tundra @ $3.14/gal)</small>
                                             {% endif %}
                                         </h6>
                                         <i data-feather="chevron-down" class="ms-auto collapse-icon"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-primary ms-2" id="map-toggle-{{ route.driver_number }}" onclick="toggleHTMLMap({{ route.driver_number }})">
+                                    <button class="btn btn-sm btn-outline-primary ms-2" id="map-toggle-{{ route.driver_number }}" onclick="toggleRouteMap({{ route.driver_number }})">
                                         <i data-feather="map" style="width: 14px; height: 14px;"></i>
                                         Show Map
                                     </button>
                                 </div>
                             </div>
-                            
                             <!-- Map container (initially hidden) -->
-                            <div id="map-container-{{ route.driver_number }}" style="display: none; height: 420px;" class="card-body p-2">
-                                <div id="map-{{ route.driver_number }}" style="height: 400px; width: 100%; border: 1px solid #dee2e6; border-radius: 8px;"></div>
+                            <div id="map-container-{{ route.driver_number }}" style="display: none;" class="card-body p-0">
+                                <div id="map-{{ route.driver_number }}" style="height: 400px; width: 100%;"></div>
                                 <!-- Route data stored in script tag to avoid HTML attribute issues -->
                                 <script type="application/json" id="route-data-{{ route.driver_number }}">{{ route_stops|tojson }}</script>
                             </div>
@@ -644,15 +590,12 @@
 </div>
 {% endif %}
 
-<!-- Simple HTML Map Implementation -->
-<script src="{{ url_for('static', filename='simple-html-map.js') }}"></script>
-
 <script>
-// HTML element-based mapping solution (most compatible)
+// Hybrid mapping solution: Google Maps API for routing, Leaflet for visualization
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('HTML mapping ready: Pure HTML elements for visual display');
+    console.log('Hybrid mapping ready: Google Maps routing + Leaflet visualization');
     console.log('Route optimization uses Google Maps API for traffic-aware times');
-    console.log('Map display uses positioned HTML elements (maximum compatibility)');
+    console.log('Map display uses free OpenStreetMap tiles via Leaflet');
     console.log('Maps will initialize when "Show Map" is clicked');
 });
 </script>

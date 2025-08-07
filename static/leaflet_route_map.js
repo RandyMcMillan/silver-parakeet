@@ -131,25 +131,13 @@ class LeafletRouteMapper {
 
     async geocodeAddress(address) {
         try {
-            // Use Nominatim (OpenStreetMap) geocoding service - free with improved parameters
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ", Georgia, USA")}&limit=1&countrycodes=us`;
-            
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent': 'ShutUpAndDrive/1.0 (Route Optimization App)'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
+            // Use Nominatim (OpenStreetMap) geocoding service - free
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
             const data = await response.json();
             
             if (data && data.length > 0) {
                 const lat = parseFloat(data[0].lat);
                 const lon = parseFloat(data[0].lon);
-                console.log(`Geocoded ${address}: [${lat}, ${lon}]`);
                 return [lat, lon];
             }
             
@@ -215,57 +203,25 @@ class LeafletRouteMapper {
     }
 
     async getRouteGeometry(start, end) {
-        // Try multiple routing services for better reliability
-        const routingServices = [
-            {
-                name: 'OSRM Public',
-                url: `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?geometries=geojson&overview=full&continue_straight=true`
-            },
-            {
-                name: 'OSRM Germany',
-                url: `https://routing.openstreetmap.de/routed-car/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?geometries=geojson&overview=full&continue_straight=true`
+        try {
+            // Use OSRM (Open Source Routing Machine) - free routing service
+            const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?geometries=geojson&overview=full`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                const route = data.routes[0];
+                
+                // Convert GeoJSON coordinates to Leaflet format [lat, lng]
+                return route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
             }
-        ];
-
-        for (const service of routingServices) {
-            try {
-                const response = await Promise.race([
-                    fetch(service.url, {
-                        headers: {
-                            'User-Agent': 'ShutUpAndDrive/1.0 (Route Optimization App)',
-                            'Accept': 'application/json'
-                        }
-                    }),
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Timeout')), 8000)
-                    )
-                ]);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-                        const route = data.routes[0];
-                        
-                        if (route.geometry && route.geometry.coordinates && route.geometry.coordinates.length > 0) {
-                            console.log(`Successfully routed using ${service.name}`);
-                            // Convert GeoJSON coordinates to Leaflet format [lat, lng]
-                            return route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-                        }
-                    }
-                }
-                
-                console.warn(`${service.name}: No valid route found`);
-                
-            } catch (error) {
-                console.warn(`${service.name} routing failed:`, error.message);
-                continue; // Try next service
-            }
+            
+            return null;
+        } catch (error) {
+            console.error('OSRM routing error:', error);
+            return null;
         }
-
-        // If all routing services fail, return null for straight line fallback
-        console.log('All routing services failed, will use straight line');
-        return null;
     }
 
     resizeMap(routeId) {
@@ -278,15 +234,9 @@ class LeafletRouteMapper {
 // Global instance
 const leafletRouteMapper = new LeafletRouteMapper();
 
-// Function to initialize a specific route map with Leaflet (updated to use simple mapper)
+// Function to initialize a specific route map with Leaflet
 function initializeLeafletRouteMap(routeId, stops, departureAddress) {
-    // Use the simple route mapper for better reliability
-    if (typeof initializeSimpleRouteMap !== 'undefined') {
-        initializeSimpleRouteMap(routeId, stops, departureAddress);
-    } else {
-        // Fallback to original if simple mapper not loaded
-        leafletRouteMapper.initializeMap(routeId, stops, departureAddress);
-    }
+    leafletRouteMapper.initializeMap(routeId, stops, departureAddress);
 }
 
 // Function to handle map visibility toggle (updated for Leaflet)
@@ -295,14 +245,7 @@ function toggleRouteMap(routeId) {
     const toggleBtn = document.getElementById(`map-toggle-${routeId}`);
     
     if (mapContainer.style.display === 'none') {
-        // Show map with proper layout restoration
         mapContainer.style.display = 'block';
-        mapContainer.style.position = 'static';
-        mapContainer.style.visibility = 'visible';
-        mapContainer.style.height = 'auto';
-        mapContainer.style.width = '100%';
-        mapContainer.style.overflow = 'visible';
-        mapContainer.style.zIndex = 'auto';
         toggleBtn.innerHTML = '<i data-feather="eye-off" style="width: 14px; height: 14px;"></i> Hide Map';
         
         // Initialize the map if it hasn't been created yet
@@ -335,14 +278,7 @@ function toggleRouteMap(routeId) {
         // Update icons
         feather.replace();
     } else {
-        // Hide map completely from layout
         mapContainer.style.display = 'none';
-        mapContainer.style.position = 'absolute';
-        mapContainer.style.visibility = 'hidden';
-        mapContainer.style.height = '0';
-        mapContainer.style.width = '0';
-        mapContainer.style.overflow = 'hidden';
-        mapContainer.style.zIndex = '-1';
         toggleBtn.innerHTML = '<i data-feather="map" style="width: 14px; height: 14px;"></i> Show Map';
         feather.replace();
     }
