@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from datetime import datetime, date, timedelta
-from models import Stop, Route, AgentSignHistory, DriverDepartureAddress, TrafficData, db
+from models import Stop, Route, AgentSignHistory, DriverCount, DriverDepartureAddress, TrafficData, db
 from tsp_solver import TSPSolver
 from traffic_scraper import TrafficDataScraper
 import json
@@ -38,9 +38,9 @@ def index():
     # Use fixed departure address  
     departure_address_str = get_fixed_departure_address()
     
-    # Preserve driver count from session or calculate from current routes
-    current_driver_count = len(set(route.driver_number for route in routes)) if routes else 1
-    saved_driver_count = session.get('last_driver_count', current_driver_count)
+    # Get stored driver count from database
+    current_driver_count = get_stored_driver_count()
+    saved_driver_count = current_driver_count
     
     return render_template('index.html', 
                          stops=stops, 
@@ -218,6 +218,30 @@ def get_fixed_departure_address():
     """Get the fixed departure address"""
     return "183 DeKalb Industrial Way, Decatur, GA 30030"
 
+def get_stored_driver_count():
+    """Get the currently stored driver count from database"""
+    driver_count_record = DriverCount.query.first()
+    if driver_count_record:
+        return driver_count_record.count
+    else:
+        # Initialize with 1 driver if no record exists
+        new_record = DriverCount(count=1)
+        db.session.add(new_record)
+        db.session.commit()
+        return 1
+
+def update_stored_driver_count(count):
+    """Update the stored driver count in database"""
+    driver_count_record = DriverCount.query.first()
+    if driver_count_record:
+        driver_count_record.count = count
+        driver_count_record.updated_at = datetime.utcnow()
+    else:
+        driver_count_record = DriverCount(count=count)
+        db.session.add(driver_count_record)
+    db.session.commit()
+    logging.info(f"Updated stored driver count to: {count}")
+
 @main.route('/generate_routes', methods=['POST'])
 def generate_routes():
     """Generate optimized routes for specified number of drivers with 8-hour workday goals"""
@@ -225,10 +249,10 @@ def generate_routes():
     start_processing_time = time.time()
     
     try:
-        # Get form data and save driver count to session
+        # Get form data and update stored driver count
         num_drivers = int(request.form.get('num_drivers', 1))
         start_time = request.form.get('start_time', '07:00')
-        session['last_driver_count'] = num_drivers
+        update_stored_driver_count(num_drivers)
         
         # Determine route date - if current time is past start time, schedule for next day
         current_time = datetime.now().time()

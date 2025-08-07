@@ -63,3 +63,11 @@ class TrafficData(db.Model):
     
     def __repr__(self):
         return f'<TrafficData {self.id}: {self.from_address} to {self.to_address}>'
+
+class DriverCount(db.Model):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<DriverCount {self.id}: {self.count} drivers>'

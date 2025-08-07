@@ -37,8 +37,12 @@ class GeographicClusterer:
         try:
             coords1 = self.get_coordinates(addr1)
             coords2 = self.get_coordinates(addr2)
-            distance = geodesic(coords1, coords2).miles
-            return distance
+            # Simple distance calculation to avoid geopy library issues
+            lat_diff = coords1[0] - coords2[0]
+            lon_diff = coords1[1] - coords2[1]
+            # Approximate distance using simple formula (1 degree ≈ 69 miles)
+            distance = ((lat_diff ** 2 + lon_diff ** 2) ** 0.5) * 69
+            return max(distance, 0.1)  # Minimum distance
         except Exception as e:
             logging.error(f"Distance calculation error: {e}")
             return 10.0  # Fallback estimate
