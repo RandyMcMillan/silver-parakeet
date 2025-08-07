@@ -277,31 +277,46 @@ class GeographicClusterer:
             if not improved:
                 break
         
-        # Priority 2: Ensure ALL drivers reach 8-hour minimum before worrying about overtime
+        # Priority 2: CRITICAL - Ensure ALL drivers reach 8-hour minimum before worrying about overtime
         still_undertime_drivers = [w for w in workloads if w['workload_minutes'] < target_minutes]
         
-        # If any drivers are still under 8 hours, aggressively redistribute
-        if still_undertime_drivers:
-            logging.info(f"Priority redistribution: {len(still_undertime_drivers)} drivers still under 8h minimum")
+        # Multi-round redistribution to ensure 8-hour minimum for ALL drivers
+        for redistribution_round in range(3):  # Up to 3 rounds of aggressive redistribution
+            still_undertime_drivers = [w for w in workloads if w['workload_minutes'] < target_minutes]
+            
+            if not still_undertime_drivers:
+                break  # All drivers now meet minimum
+                
+            logging.info(f"Redistribution round {redistribution_round + 1}: {len(still_undertime_drivers)} drivers still under 8h minimum")
             
             for under_driver in still_undertime_drivers:
-                # Find ANY driver with multiple stops who can spare one
-                donor_candidates = [w for w in workloads if len(w['route_indices']) > 2 and w != under_driver]
+                needed_minutes = target_minutes - under_driver['workload_minutes']
+                logging.info(f"Driver {under_driver['driver_index']+1} needs {needed_minutes} more minutes to reach 8h minimum")
                 
+                # Find donors with multiple stops, prioritizing those with most overtime
+                donor_candidates = [w for w in workloads if len(w['route_indices']) > 1 and w != under_driver]
+                donor_candidates.sort(key=lambda x: x['workload_minutes'], reverse=True)  # Most overtime first
+                
+                stops_moved = 0
                 for donor_driver in donor_candidates:
-                    if donor_driver['route_indices']:
+                    if under_driver['workload_minutes'] >= target_minutes:
+                        break  # Driver reached minimum
+                        
+                    if donor_driver['route_indices'] and len(donor_driver['route_indices']) > 1:
                         # Move stop to get driver closer to 8h minimum
                         stop_to_move = donor_driver['route_indices'].pop()
                         under_driver['route_indices'].append(stop_to_move)
+                        stops_moved += 1
                         
                         # Recalculate workloads
                         donor_driver['workload_minutes'] = self.calculate_route_workload_time(donor_driver['route_indices'], stops)
                         under_driver['workload_minutes'] = self.calculate_route_workload_time(under_driver['route_indices'], stops)
                         
-                        logging.info(f"Moved stop from driver {donor_driver['driver_index']+1} ({donor_driver['workload_minutes']}min) to driver {under_driver['driver_index']+1} ({under_driver['workload_minutes']}min) for 8h minimum")
+                        logging.info(f"Moved stop #{stops_moved} from driver {donor_driver['driver_index']+1} ({donor_driver['workload_minutes']}min) to driver {under_driver['driver_index']+1} ({under_driver['workload_minutes']}min)")
                         
-                        # Check if under_driver reached minimum
+                        # Continue moving stops until driver reaches minimum
                         if under_driver['workload_minutes'] >= target_minutes:
+                            logging.info(f"✓ Driver {under_driver['driver_index']+1} now meets 8h minimum!")
                             break
         
         # Priority 3: Only reduce excessive overtime if all drivers have 8h minimum
