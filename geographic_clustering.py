@@ -225,6 +225,7 @@ class GeographicClusterer:
         workloads.sort(key=lambda x: (x['overtime_minutes'], -x['workload_minutes']))
         
         # AGGRESSIVE REDISTRIBUTION: Absolutely ensure ALL drivers reach 8h minimum
+        logging.info("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
         max_iterations = 50  # More iterations for thorough redistribution
         for iteration in range(max_iterations):
             improved = False
@@ -345,7 +346,7 @@ class GeographicClusterer:
                 over_hours = overtime / 60
                 status = f" (HIGH: 8h minimum + {over_hours:.1f}h overtime)"
             
-            logging.info(f"Driver {workload['driver_index']+1}: {final_workload} minutes ({hours:.1f} hours){status}")
+            logging.info(f"🚗 Driver {workload['driver_index']+1}: {final_workload} minutes ({hours:.1f} hours){status}")
         
         logging.info(f"Total overtime: {total_overtime/60:.1f} hours, Total undertime: {total_undertime/60:.1f} hours")
         
@@ -395,8 +396,19 @@ class GeographicClusterer:
                 stop_distribution.append(indices)
             
             # Balance workloads for 8-hour target
-            logging.info("Balancing workloads for 8-hour target with traffic considerations...")
+            logging.info("=== STARTING 8-HOUR BALANCING ALGORITHM ===")
+            logging.info(f"Initial distribution before balancing:")
+            for i, indices in enumerate(stop_distribution):
+                initial_time = self.calculate_route_workload_time(indices, stops)
+                logging.info(f"  Driver {i+1}: {len(indices)} stops, {initial_time} minutes ({initial_time/60:.1f} hours)")
+            
             balanced_distribution = self.balance_workload_for_8_hours(stop_distribution, stops)
+            
+            logging.info("=== BALANCING ALGORITHM COMPLETED ===")
+            logging.info(f"Final distribution after balancing:")
+            for i, indices in enumerate(balanced_distribution):
+                final_time = self.calculate_route_workload_time(indices, stops)
+                logging.info(f"  Driver {i+1}: {len(indices)} stops, {final_time} minutes ({final_time/60:.1f} hours)")
             
             # Log final cluster information with traffic insights
             for i, cluster_indices in enumerate(balanced_distribution):
