@@ -224,144 +224,94 @@ class GeographicClusterer:
         # Sort by priority: minimize overtime first, then maximize utilization
         workloads.sort(key=lambda x: (x['overtime_minutes'], -x['workload_minutes']))
         
-        # Rebalance to minimize overtime and meet 8-hour minimum
-        max_iterations = 30
+        # AGGRESSIVE REDISTRIBUTION: Absolutely ensure ALL drivers reach 8h minimum
+        max_iterations = 50  # More iterations for thorough redistribution
         for iteration in range(max_iterations):
             improved = False
             
-            # Find drivers with overtime and drivers with undertime
-            overtime_drivers = [w for w in workloads if w['workload_minutes'] > target_minutes]
+            # Find drivers under 8 hours (CRITICAL PRIORITY)
             undertime_drivers = [w for w in workloads if w['workload_minutes'] < target_minutes]
+            overtime_drivers = [w for w in workloads if w['workload_minutes'] > target_minutes]
             
-            # Priority 1: Move stops to drivers under 8 hours (even if it creates overtime)
+            # PHASE 1: MANDATORY 8-HOUR MINIMUM - Move stops to ANY driver under 8 hours
             for under_driver in undertime_drivers:
-                if under_driver['workload_minutes'] < target_minutes:
-                    # Find any driver with extra stops who can spare one
-                    for donor_driver in [w for w in workloads if len(w['route_indices']) > 1]:
-                        if donor_driver != under_driver and donor_driver['route_indices']:
-                            # Try moving one stop to get undertime driver closer to 8 hours
-                            stop_time = 75  # Service time + average drive time estimate
-                            
-                            new_under_workload = under_driver['workload_minutes'] + stop_time
-                            new_donor_workload = donor_driver['workload_minutes'] - stop_time
-                            
-                            # Target 8-9 hour range, prioritize balance over perfection
-                            gets_to_minimum = new_under_workload >= target_minutes  # Must reach 8h minimum
-                            stays_in_preferred = new_under_workload <= preferred_max  # Prefer under 9h
-                            donor_keeps_viable = new_donor_workload >= target_minutes - 60  # Donor stays reasonable
-                            stays_within_absolute = new_under_workload <= absolute_max  # Absolute 10h limit
-                            
-                            # Prioritize moves that keep everyone in 8-9h range
-                            if gets_to_minimum and stays_in_preferred and donor_keeps_viable:
-                                priority_move = True
-                            elif gets_to_minimum and stays_within_absolute and donor_keeps_viable:
-                                priority_move = True  # Allow up to 10h if needed for 8h minimum
-                            else:
-                                priority_move = False
-                            
-                            if priority_move:
-                                # Perform the move
-                                stop_to_move = donor_driver['route_indices'].pop()
-                                under_driver['route_indices'].append(stop_to_move)
-                                
-                                # Update workloads with actual calculations
-                                under_driver['workload_minutes'] = self.calculate_route_workload_time(under_driver['route_indices'], stops)
-                                donor_driver['workload_minutes'] = self.calculate_route_workload_time(donor_driver['route_indices'], stops)
-                                under_driver['overtime_minutes'] = max(0, under_driver['workload_minutes'] - target_minutes)
-                                donor_driver['overtime_minutes'] = max(0, donor_driver['workload_minutes'] - target_minutes)
-                                under_driver['undertime_minutes'] = max(0, target_minutes - under_driver['workload_minutes'])
-                                donor_driver['undertime_minutes'] = max(0, target_minutes - donor_driver['workload_minutes'])
-                                
-                                improved = True
-                                logging.info(f"Iteration {iteration+1}: Moved stop from driver {donor_driver['driver_index']+1} to driver {under_driver['driver_index']+1} (ensuring 8h minimum)")
-                                break
+                logging.info(f"CRITICAL: Driver {under_driver['driver_index']+1} only has {under_driver['workload_minutes']/60:.1f}h - MUST reach 8h minimum")
                 
-                if improved:
-                    break
+                # Find donors - prioritize those with most overtime first
+                potential_donors = sorted([w for w in workloads if len(w['route_indices']) > 1 and w != under_driver], 
+                                        key=lambda x: x['workload_minutes'], reverse=True)
                 
-                if improved:
-                    break
-            
-            if not improved:
-                break
-        
-        # Priority 2: CRITICAL - Ensure ALL drivers reach 8-hour minimum before worrying about overtime
-        still_undertime_drivers = [w for w in workloads if w['workload_minutes'] < target_minutes]
-        
-        # Multi-round redistribution to ensure 8-hour minimum for ALL drivers
-        for redistribution_round in range(3):  # Up to 3 rounds of aggressive redistribution
-            still_undertime_drivers = [w for w in workloads if w['workload_minutes'] < target_minutes]
-            
-            if not still_undertime_drivers:
-                break  # All drivers now meet minimum
-                
-            logging.info(f"Redistribution round {redistribution_round + 1}: {len(still_undertime_drivers)} drivers still under 8h minimum")
-            
-            for under_driver in still_undertime_drivers:
-                needed_minutes = target_minutes - under_driver['workload_minutes']
-                logging.info(f"Driver {under_driver['driver_index']+1} needs {needed_minutes} more minutes to reach 8h minimum")
-                
-                # Find donors with multiple stops, prioritizing those with most overtime
-                donor_candidates = [w for w in workloads if len(w['route_indices']) > 1 and w != under_driver]
-                donor_candidates.sort(key=lambda x: x['workload_minutes'], reverse=True)  # Most overtime first
-                
-                stops_moved = 0
-                for donor_driver in donor_candidates:
-                    if under_driver['workload_minutes'] >= target_minutes:
-                        break  # Driver reached minimum
-                        
-                    if donor_driver['route_indices'] and len(donor_driver['route_indices']) > 1:
-                        # Move stop to get driver closer to 8h minimum
+                for donor_driver in potential_donors:
+                    if donor_driver['route_indices'] and under_driver['workload_minutes'] < target_minutes:
+                        # Move stop to reach 8h minimum - this is MANDATORY
                         stop_to_move = donor_driver['route_indices'].pop()
                         under_driver['route_indices'].append(stop_to_move)
-                        stops_moved += 1
                         
-                        # Recalculate workloads
-                        donor_driver['workload_minutes'] = self.calculate_route_workload_time(donor_driver['route_indices'], stops)
+                        # Update workloads with actual calculations
                         under_driver['workload_minutes'] = self.calculate_route_workload_time(under_driver['route_indices'], stops)
+                        donor_driver['workload_minutes'] = self.calculate_route_workload_time(donor_driver['route_indices'], stops)
                         
-                        logging.info(f"Moved stop #{stops_moved} from driver {donor_driver['driver_index']+1} ({donor_driver['workload_minutes']}min) to driver {under_driver['driver_index']+1} ({under_driver['workload_minutes']}min)")
+                        logging.info(f"MANDATORY MOVE: Driver {donor_driver['driver_index']+1} ({donor_driver['workload_minutes']/60:.1f}h) → Driver {under_driver['driver_index']+1} ({under_driver['workload_minutes']/60:.1f}h)")
                         
-                        # Continue moving stops until driver reaches minimum
+                        improved = True
+                        
+                        # Keep moving until this driver reaches 8h minimum
                         if under_driver['workload_minutes'] >= target_minutes:
-                            logging.info(f"✓ Driver {under_driver['driver_index']+1} now meets 8h minimum!")
+                            logging.info(f"SUCCESS: Driver {under_driver['driver_index']+1} now has {under_driver['workload_minutes']/60:.1f}h (8h minimum achieved)")
                             break
-        
-        # Priority 3: Only reduce excessive overtime if all drivers have 8h minimum
-        all_drivers_meet_minimum = all(w['workload_minutes'] >= target_minutes for w in workloads)
-        
-        if all_drivers_meet_minimum:
-            excessive_overtime_drivers = [w for w in workloads if w['workload_minutes'] > target_minutes + 150]  # More than 2.5 hours overtime
-            very_undertime_drivers = []  # No one should be undertime at this point
-        else:
-            excessive_overtime_drivers = []
-            very_undertime_drivers = []
+                        
+                if improved:
+                    break
             
-        for excessive_driver in excessive_overtime_drivers:
-            # Only move stops if there are drivers who can take them without going under minimum
-            potential_receivers = [w for w in workloads if w['workload_minutes'] < target_minutes + 60]
+            # PHASE 2: Balance between drivers who all have 8h+ (only if all drivers have 8h minimum)
+            all_drivers_have_minimum = all(w['workload_minutes'] >= target_minutes for w in workloads)
             
-            for receiver_driver in potential_receivers:
-                if excessive_driver['route_indices'] and len(excessive_driver['route_indices']) > 1:
-                    # Move a stop from excessive overtime to receiver driver
-                    stop_to_move = excessive_driver['route_indices'].pop()
-                    receiver_driver['route_indices'].append(stop_to_move)
+            if all_drivers_have_minimum and not improved:
+                # Now we can work on balancing excessive overtime
+                excessive_drivers = [w for w in workloads if w['workload_minutes'] > preferred_max + 60]  # Over 10h
+                reasonable_drivers = [w for w in workloads if w['workload_minutes'] < preferred_max]  # Under 9h
+                
+                for excessive_driver in excessive_drivers:
+                    for reasonable_driver in reasonable_drivers:
+                        if (excessive_driver['route_indices'] and 
+                            reasonable_driver['workload_minutes'] < preferred_max and
+                            len(excessive_driver['route_indices']) > 1):
+                            
+                            # Move one stop to balance workload
+                            stop_to_move = excessive_driver['route_indices'].pop()
+                            reasonable_driver['route_indices'].append(stop_to_move)
+                            
+                            # Update workloads
+                            excessive_driver['workload_minutes'] = self.calculate_route_workload_time(excessive_driver['route_indices'], stops)
+                            reasonable_driver['workload_minutes'] = self.calculate_route_workload_time(reasonable_driver['route_indices'], stops)
+                            
+                            # Keep the move if it helps balance without going under 8h
+                            if excessive_driver['workload_minutes'] >= target_minutes:
+                                logging.info(f"BALANCE: Moved stop from driver {excessive_driver['driver_index']+1} ({excessive_driver['workload_minutes']/60:.1f}h) to driver {reasonable_driver['driver_index']+1} ({reasonable_driver['workload_minutes']/60:.1f}h)")
+                                improved = True
+                                break
+                            else:
+                                # Revert if it would put donor under 8h
+                                reasonable_driver['route_indices'].pop()
+                                excessive_driver['route_indices'].append(stop_to_move)
+                                excessive_driver['workload_minutes'] = self.calculate_route_workload_time(excessive_driver['route_indices'], stops)
+                                reasonable_driver['workload_minutes'] = self.calculate_route_workload_time(reasonable_driver['route_indices'], stops)
                     
-                    # Recalculate workloads
-                    excessive_driver['workload_minutes'] = self.calculate_route_workload_time(excessive_driver['route_indices'], stops)
-                    receiver_driver['workload_minutes'] = self.calculate_route_workload_time(receiver_driver['route_indices'], stops)
-                    
-                    # Keep the move if it helps reduce overtime without going under minimum
-                    if (excessive_driver['workload_minutes'] >= target_minutes and 
-                        receiver_driver['workload_minutes'] <= max_minutes):
-                        logging.info(f"Reduced excessive overtime for driver {excessive_driver['driver_index']+1}")
+                    if improved:
                         break
-                    else:
-                        # Revert if move doesn't help
-                        receiver_driver['route_indices'].pop()
-                        excessive_driver['route_indices'].append(stop_to_move)
-                        excessive_driver['workload_minutes'] = self.calculate_route_workload_time(excessive_driver['route_indices'], stops)
-                        receiver_driver['workload_minutes'] = self.calculate_route_workload_time(receiver_driver['route_indices'], stops)
+            
+            # Check if ALL drivers have reached 8h minimum
+            undertime_drivers = [w for w in workloads if w['workload_minutes'] < target_minutes]
+            if not undertime_drivers:
+                logging.info(f"✓ SUCCESS: All drivers have 8h+ minimum after {iteration+1} iterations")
+                break
+            
+            if not improved:
+                logging.info(f"No further improvements possible in iteration {iteration+1}")
+                # Log remaining undertime drivers for visibility
+                for driver in undertime_drivers:
+                    logging.error(f"🚨 CRITICAL: Driver {driver['driver_index']+1} still only has {driver['workload_minutes']/60:.1f}h - UNDER 8h minimum")
+                break
         
         # Extract balanced routes and calculate final totals
         balanced_distribution = []
