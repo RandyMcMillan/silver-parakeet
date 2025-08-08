@@ -314,9 +314,13 @@ def generate_routes():
             flash('No active stops found to generate routes.', 'warning')
             return redirect(url_for('main.index'))
         
+        print(f"✅ PASSED LENGTH CHECK - HAVE {len(all_stops_data)} STOPS")
+        
         # Use geographic clustering to group nearby stops
+        print("🔧 IMPORTING GEOGRAPHIC CLUSTERER")
         from geographic_clustering import GeographicClusterer
         clusterer = GeographicClusterer()
+        print("🔧 CLUSTERER CREATED SUCCESSFULLY")
         
         # Filter stops to prevent routes over 9 hours and defer ASAP stops if needed
         asap_stops = [stop for stop in all_stops_data if stop.get('is_asap', False)]
@@ -357,9 +361,11 @@ def generate_routes():
                 stops_to_process.extend(asap_stops)
                 
             all_stops_data = stops_to_process
+            print(f"🔧 OVERTIME BRANCH - USING {len(all_stops_data)} STOPS")
         else:
             # No overtime limiting needed - use all stops
             all_stops_data = all_stops_data
+            print(f"🔧 NO OVERTIME BRANCH - USING ALL {len(all_stops_data)} STOPS")
             
         # Skip clustering completely and go straight to simple distribution + balancing
         logging.info("🔧 BYPASSING CLUSTERING - USING SIMPLE DISTRIBUTION + 8-HOUR BALANCING")
