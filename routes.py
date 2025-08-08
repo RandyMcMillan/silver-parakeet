@@ -388,12 +388,22 @@ def generate_routes():
         
         print("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
         logging.info("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
+        
+        # Log the current route distribution before balancing
+        route_lengths_before = [len(route) for route in optimized_routes]
+        print(f"Routes BEFORE balancing: {route_lengths_before} stops")
+        
         try:
             optimized_routes = clusterer.balance_workload_for_8_hours(optimized_routes, all_stops_data)
+            route_lengths_after = [len(route) for route in optimized_routes]
+            print(f"Routes AFTER balancing: {route_lengths_after} stops")
+            print("✅ 8-HOUR BALANCING COMPLETED SUCCESSFULLY")
             logging.info("✅ 8-HOUR BALANCING COMPLETED SUCCESSFULLY")
         except Exception as balance_error:
+            print(f"❌ 8-HOUR BALANCING FAILED: {balance_error}")
             logging.error(f"❌ 8-HOUR BALANCING FAILED: {balance_error}")
             import traceback
+            traceback.print_exc()
             logging.error(f"Balancing traceback: {traceback.format_exc()}")
         
         # Create route records for each driver (skip empty routes)
