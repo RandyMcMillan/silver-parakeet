@@ -248,6 +248,22 @@ def generate_routes():
     import time
     start_processing_time = time.time()
     
+    # DEFINITIVE TEST: Create a debug record in database to prove this function is called
+    try:
+        from models import Stop
+        debug_stop = Stop(
+            address="DEBUG_ENDPOINT_HIT_CONFIRMATION",
+            post_type="TEST",
+            service_type="DEBUG_MARKER",
+            is_asap=True
+        )
+        db.session.add(debug_stop)
+        db.session.commit()
+        db.session.delete(debug_stop)  # Immediately delete it
+        db.session.commit()
+    except:
+        pass  # Ignore any errors
+    
     # Use logging instead of print - print may be buffered/redirected
     logging.error("🚀🚀🚀 ROUTE GENERATION ENDPOINT HIT 🚀🚀🚀")
     logging.warning("🚀🚀🚀 ROUTE GENERATION ENDPOINT HIT 🚀🚀🚀")
