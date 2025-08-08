@@ -370,7 +370,10 @@ def generate_routes():
         
         logging.info(f"Simple distribution complete: {[len(route) for route in optimized_routes]} stops per driver")
         
-        # MANDATORY: Apply 8-hour balancing
+        # MANDATORY: Apply 8-hour balancing - Import and create clusterer first
+        from geographic_clustering import GeographicClusterer
+        clusterer = GeographicClusterer()
+        
         logging.info("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
         try:
             optimized_routes = clusterer.balance_workload_for_8_hours(optimized_routes, all_stops_data)
