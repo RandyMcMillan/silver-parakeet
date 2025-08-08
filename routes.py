@@ -405,7 +405,8 @@ def generate_routes():
         clusterer = GeographicClusterer()
         
         print("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
-        logging.info("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
+        logging.error("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
+        flash('🔥 STARTING 8-HOUR BALANCING ALGORITHM 🔥', 'info')
         
         # Log the current route distribution before balancing
         route_lengths_before = [len(route) for route in optimized_routes]
@@ -424,6 +425,11 @@ def generate_routes():
             import traceback
             traceback.print_exc()
             logging.error(f"Balancing traceback: {traceback.format_exc()}")
+        
+        # CRITICAL DEBUG: Flash message to prove we reached route creation section
+        flash(f'🎯 ROUTE CREATION: Creating routes for {len(optimized_routes)} drivers', 'info')
+        print(f"🎯 ROUTE CREATION: Creating routes for {len(optimized_routes)} drivers")
+        logging.error(f"🎯 ROUTE CREATION: Creating routes for {len(optimized_routes)} drivers")
         
         # Create route records for each driver (skip empty routes)
         routes_created = 0
@@ -515,13 +521,15 @@ def generate_routes():
         db.session.commit()
         processing_time = time.time() - start_processing_time
         total_routes = routes_created
-        # Show route time distribution for verification
+        # Add logging to verify routes were created
+        final_routes = Route.query.all()
+        
+        # Show route time distribution for verification  
         route_times = [f"Driver {route.driver_number}: {route.total_time_minutes//60}h {route.total_time_minutes%60}m" for route in final_routes]
         flash(f'Routes generated successfully for {total_routes} driver(s) in {processing_time:.1f} seconds. Times: {", ".join(route_times)}', 'success')
         logging.info(f"Route generation completed in {processing_time:.2f} seconds")
         
-        # Add logging to verify routes were created
-        final_routes = Route.query.all()
+        # Log final route verification
         logging.info(f"Final route count after generation: {len(final_routes)}")
         for route in final_routes:
             logging.info(f"Route {route.driver_number}: {len(route.stop_sequence) if route.stop_sequence else 0} stops, {route.total_time_minutes} minutes")
