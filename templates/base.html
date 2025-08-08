@@ -113,32 +113,25 @@
             formData.append('num_drivers', numDrivers);
             formData.append('start_time', startTime);
             
-            fetch('/generate_routes', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Cache-Control': 'no-cache'
-                }
-            }).then(response => {
-                console.log('Route generation response:', response);
-                if (response.redirected) {
-                    // Force immediate page reload with cache bypass
-                    const timestamp = Date.now();
-                    console.log('Redirect detected, reloading with timestamp:', timestamp);
-                    window.location.href = window.location.pathname + '?update=' + timestamp;
-                } else {
-                    // If no redirect, force a manual reload anyway
-                    console.log('No redirect, forcing manual reload');
-                    setTimeout(() => {
-                        window.location.reload(true);
-                    }, 500);
-                }
-            }).catch(error => {
-                console.error('Route generation error:', error);
-                updateBtn.innerHTML = '<i data-feather="alert-circle"></i> Error - Try Again';
-                updateBtn.disabled = false;
-                feather.replace();
-            });
+            // Instead of using fetch, submit the form directly to avoid redirect handling issues
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/generate_routes';
+            
+            const driverInput = document.createElement('input');
+            driverInput.type = 'hidden';
+            driverInput.name = 'num_drivers';
+            driverInput.value = numDrivers;
+            form.appendChild(driverInput);
+            
+            const timeInput = document.createElement('input');
+            timeInput.type = 'hidden';
+            timeInput.name = 'start_time';
+            timeInput.value = startTime;
+            form.appendChild(timeInput);
+            
+            document.body.appendChild(form);
+            form.submit();
         }
         
         // Handle both form redirect and update button refresh
