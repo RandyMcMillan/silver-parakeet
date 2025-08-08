@@ -349,33 +349,36 @@ def generate_routes():
                 
             all_stops_data = stops_to_process
             
+        # Skip clustering completely and go straight to simple distribution + balancing
+        logging.info("🔧 BYPASSING CLUSTERING - USING SIMPLE DISTRIBUTION + 8-HOUR BALANCING")
+        
+        # Simple distribution
+        stops_per_driver = len(all_stops_data) // num_drivers
+        remainder = len(all_stops_data) % num_drivers
+        
+        optimized_routes = []
+        current_index = 0
+        
+        for driver in range(num_drivers):
+            driver_stops = stops_per_driver + (1 if driver < remainder else 0)
+            if driver_stops > 0:
+                route = list(range(current_index, current_index + driver_stops))
+                optimized_routes.append(route)
+                current_index += driver_stops
+            else:
+                optimized_routes.append([])  # Empty route for excess drivers
+        
+        logging.info(f"Simple distribution complete: {[len(route) for route in optimized_routes]} stops per driver")
+        
+        # MANDATORY: Apply 8-hour balancing
+        logging.info("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
         try:
-            optimized_routes = clusterer.get_optimized_stop_distribution(all_stops_data, num_drivers)
-            logging.info(f"Generated {len([r for r in optimized_routes if r])} geographically optimized routes")
-        except Exception as e:
-            import traceback
-            logging.error(f"Geographic clustering failed: {e}")
-            logging.error(f"Full traceback: {traceback.format_exc()}")
-            logging.error("Using simple distribution with 8-hour balancing")
-            # Fallback to simple distribution
-            stops_per_driver = len(all_stops_data) // num_drivers
-            remainder = len(all_stops_data) % num_drivers
-            
-            optimized_routes = []
-            current_index = 0
-            
-            for driver in range(num_drivers):
-                driver_stops = stops_per_driver + (1 if driver < remainder else 0)
-                if driver_stops > 0:
-                    route = list(range(current_index, current_index + driver_stops))
-                    optimized_routes.append(route)
-                    current_index += driver_stops
-                else:
-                    optimized_routes.append([])  # Empty route for excess drivers
-            
-            # CRITICAL: Apply 8-hour balancing even in fallback case
-            logging.info("=== APPLYING 8-HOUR BALANCING TO FALLBACK DISTRIBUTION ===")
             optimized_routes = clusterer.balance_workload_for_8_hours(optimized_routes, all_stops_data)
+            logging.info("✅ 8-HOUR BALANCING COMPLETED SUCCESSFULLY")
+        except Exception as balance_error:
+            logging.error(f"❌ 8-HOUR BALANCING FAILED: {balance_error}")
+            import traceback
+            logging.error(f"Balancing traceback: {traceback.format_exc()}")
         
         # Create route records for each driver (skip empty routes)
         routes_created = 0
