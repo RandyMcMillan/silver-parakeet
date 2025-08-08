@@ -248,8 +248,14 @@ def generate_routes():
     import time
     start_processing_time = time.time()
     
-    print("🚀 STARTING ROUTE GENERATION")
-    logging.info("🚀 STARTING ROUTE GENERATION")
+    # Use logging instead of print - print may be buffered/redirected
+    logging.error("🚀🚀🚀 ROUTE GENERATION ENDPOINT HIT 🚀🚀🚀")
+    logging.warning("🚀🚀🚀 ROUTE GENERATION ENDPOINT HIT 🚀🚀🚀")
+    
+    # Force stdout flush to ensure debug messages appear immediately
+    import sys
+    sys.stdout.flush()
+    sys.stderr.flush()
     
     try:
         # Get form data and update stored driver count
