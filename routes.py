@@ -331,6 +331,9 @@ def generate_routes():
         clusterer = GeographicClusterer()
         print("🔧 CLUSTERER CREATED SUCCESSFULLY")
         
+        # MANDATORY: Flash message to show we reached the balancing section
+        flash('Reached geographic clustering section - balancing should happen next', 'info')
+        
         # Filter stops to prevent routes over 9 hours and defer ASAP stops if needed
         asap_stops = [stop for stop in all_stops_data if stop.get('is_asap', False)]
         scheduled_stops = [stop for stop in all_stops_data if not stop.get('is_asap', False)]
@@ -414,6 +417,7 @@ def generate_routes():
             print(f"Routes AFTER balancing: {route_lengths_after} stops")
             print("✅ 8-HOUR BALANCING COMPLETED SUCCESSFULLY")
             logging.info("✅ 8-HOUR BALANCING COMPLETED SUCCESSFULLY")
+            flash('8-hour balancing algorithm executed successfully!', 'success')
         except Exception as balance_error:
             print(f"❌ 8-HOUR BALANCING FAILED: {balance_error}")
             logging.error(f"❌ 8-HOUR BALANCING FAILED: {balance_error}")
@@ -511,7 +515,9 @@ def generate_routes():
         db.session.commit()
         processing_time = time.time() - start_processing_time
         total_routes = routes_created
-        flash(f'Routes generated successfully for {total_routes} driver(s) in {processing_time:.1f} seconds. Previous routes cleared and replaced.', 'success')
+        # Show route time distribution for verification
+        route_times = [f"Driver {route.driver_number}: {route.total_time_minutes//60}h {route.total_time_minutes%60}m" for route in final_routes]
+        flash(f'Routes generated successfully for {total_routes} driver(s) in {processing_time:.1f} seconds. Times: {", ".join(route_times)}', 'success')
         logging.info(f"Route generation completed in {processing_time:.2f} seconds")
         
         # Add logging to verify routes were created
