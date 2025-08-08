@@ -320,9 +320,13 @@ def generate_routes():
         
         logging.info(f"Stop breakdown: {len(scheduled_stops)} scheduled, {len(asap_stops)} ASAP")
         
+        # Always apply 8-hour balancing regardless of overtime estimate
+        logging.info(f"🔧 ALWAYS BYPASSING CLUSTERING - USING SIMPLE DISTRIBUTION + 8-HOUR BALANCING")
+        
         # Estimate if adding all stops would create excessive overtime
         estimated_total_minutes = len(all_stops_data) * 25  # Rough per-stop estimate
         minutes_per_driver = estimated_total_minutes / num_drivers
+        logging.info(f"Estimated {minutes_per_driver:.1f} minutes per driver ({minutes_per_driver/60:.1f} hours)")
         
         if minutes_per_driver > 540:  # Over 9 hours average
             # Calculate how many stops we can fit within 9-hour limits

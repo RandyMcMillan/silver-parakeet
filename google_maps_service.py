@@ -121,19 +121,19 @@ class GoogleMapsService:
         from datetime import datetime
         start_hour = datetime.strptime(start_time, '%H:%M').hour
         
-        # Traffic-based estimates for Atlanta metro area
+        # Traffic-based estimates for Atlanta metro area - enforcing 5 minute minimum
         if (6 <= start_hour <= 10) or (16 <= start_hour <= 19):
             # Rush hour
-            between_stops = 12
-            to_from_base = 18
+            between_stops = max(12, 5)  # Minimum 5 minutes
+            to_from_base = max(18, 5)
         elif (10 < start_hour < 16):
-            # Mid-day optimal
-            between_stops = 8
-            to_from_base = 12
+            # Mid-day optimal - enforce 5 minute minimum
+            between_stops = max(8, 5)  # Minimum 5 minutes (was 8)
+            to_from_base = max(12, 5)
         else:
             # Off-peak
-            between_stops = 10
-            to_from_base = 15
+            between_stops = max(10, 5)  # Minimum 5 minutes
+            to_from_base = max(15, 5)
             
         drive_times_between_stops = [between_stops] * (len(stop_addresses) - 1) if len(stop_addresses) > 1 else []
         departure_to_first = to_from_base
