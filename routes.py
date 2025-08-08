@@ -248,6 +248,9 @@ def generate_routes():
     import time
     start_processing_time = time.time()
     
+    print("🚀 STARTING ROUTE GENERATION")
+    logging.info("🚀 STARTING ROUTE GENERATION")
+    
     try:
         # Get form data and update stored driver count
         num_drivers = int(request.form.get('num_drivers', 1))
@@ -291,6 +294,7 @@ def generate_routes():
         scheduled_stops.sort(key=lambda x: x.required_date or datetime.max)
         
         # Use geographic clustering for optimal route distribution
+        print(f"🌍 STARTING GEOGRAPHIC OPTIMIZATION FOR {len(stops)} STOPS")
         logging.info(f"Starting geographic route optimization for {len(stops)} stops")
         
         # Convert all stops to format for geographic clustering
