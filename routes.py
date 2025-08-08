@@ -348,6 +348,9 @@ def generate_routes():
                 stops_to_process.extend(asap_stops)
                 
             all_stops_data = stops_to_process
+        else:
+            # No overtime limiting needed - use all stops
+            all_stops_data = all_stops_data
             
         # Skip clustering completely and go straight to simple distribution + balancing
         logging.info("🔧 BYPASSING CLUSTERING - USING SIMPLE DISTRIBUTION + 8-HOUR BALANCING")
