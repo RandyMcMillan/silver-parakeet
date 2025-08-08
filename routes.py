@@ -320,8 +320,9 @@ def generate_routes():
         
         logging.info(f"Stop breakdown: {len(scheduled_stops)} scheduled, {len(asap_stops)} ASAP")
         
-        # Always apply 8-hour balancing regardless of overtime estimate
-        logging.info(f"🔧 ALWAYS BYPASSING CLUSTERING - USING SIMPLE DISTRIBUTION + 8-HOUR BALANCING")
+        # DEBUG: Always apply 8-hour balancing regardless of overtime estimate
+        print("🔧 ALWAYS BYPASSING CLUSTERING - USING SIMPLE DISTRIBUTION + 8-HOUR BALANCING")
+        logging.info("🔧 ALWAYS BYPASSING CLUSTERING - USING SIMPLE DISTRIBUTION + 8-HOUR BALANCING")
         
         # Estimate if adding all stops would create excessive overtime
         estimated_total_minutes = len(all_stops_data) * 25  # Rough per-stop estimate
@@ -381,6 +382,7 @@ def generate_routes():
         from geographic_clustering import GeographicClusterer
         clusterer = GeographicClusterer()
         
+        print("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
         logging.info("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
         try:
             optimized_routes = clusterer.balance_workload_for_8_hours(optimized_routes, all_stops_data)

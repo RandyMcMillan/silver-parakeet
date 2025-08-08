@@ -78,9 +78,9 @@ class GoogleMapsService:
             if data and data.get('rows'):
                 element = data['rows'][0]['elements'][0]
                 if element.get('status') == 'OK' and 'duration_in_traffic' in element:
-                    departure_to_first = element['duration_in_traffic']['value'] // 60  # Convert to minutes
+                    departure_to_first = max(element['duration_in_traffic']['value'] // 60, 5)  # 5-min minimum
                 elif element.get('status') == 'OK' and 'duration' in element:
-                    departure_to_first = element['duration']['value'] // 60  # Fallback to duration without traffic
+                    departure_to_first = max(element['duration']['value'] // 60, 5)  # 5-min minimum
         
         # Get drive times between consecutive stops
         if len(stop_addresses) > 1:
@@ -89,11 +89,11 @@ class GoogleMapsService:
                 if data and data.get('rows'):
                     element = data['rows'][0]['elements'][0]
                     if element.get('status') == 'OK' and 'duration_in_traffic' in element:
-                        drive_time = element['duration_in_traffic']['value'] // 60
+                        drive_time = max(element['duration_in_traffic']['value'] // 60, 5)  # Enforce 5-min minimum
                     elif element.get('status') == 'OK' and 'duration' in element:
-                        drive_time = element['duration']['value'] // 60
+                        drive_time = max(element['duration']['value'] // 60, 5)  # Enforce 5-min minimum
                     else:
-                        drive_time = 10  # Fallback estimate
+                        drive_time = max(10, 5)  # Fallback with 5-min minimum
                     drive_times_between_stops.append(drive_time)
                 else:
                     drive_times_between_stops.append(10)  # Fallback estimate
@@ -104,9 +104,9 @@ class GoogleMapsService:
             if data and data.get('rows'):
                 element = data['rows'][0]['elements'][0]
                 if element.get('status') == 'OK' and 'duration_in_traffic' in element:
-                    last_to_departure = element['duration_in_traffic']['value'] // 60
+                    last_to_departure = max(element['duration_in_traffic']['value'] // 60, 5)  # 5-min minimum
                 elif element.get('status') == 'OK' and 'duration' in element:
-                    last_to_departure = element['duration']['value'] // 60
+                    last_to_departure = max(element['duration']['value'] // 60, 5)  # 5-min minimum
         
         return drive_times_between_stops, departure_to_first, last_to_departure
     
