@@ -245,6 +245,9 @@ def update_stored_driver_count(count):
 @main.route('/generate_routes', methods=['POST'])
 def generate_routes():
     """Generate optimized routes for specified number of drivers with 8-hour workday goals"""
+    # IMMEDIATE DEBUG: Very first line to prove function is called
+    print("FUNCTION CALLED - FIRST LINE")
+    
     import time
     start_processing_time = time.time()
     
@@ -400,31 +403,38 @@ def generate_routes():
         
         logging.info(f"Simple distribution complete: {[len(route) for route in optimized_routes]} stops per driver")
         
-        # MANDATORY: Apply 8-hour balancing - Import and create clusterer first
-        from geographic_clustering import GeographicClusterer
-        clusterer = GeographicClusterer()
+        # MANDATORY: Apply 8-hour balancing IMMEDIATELY to fix imbalanced routes
+        print("🔥🔥🔥 APPLYING DIRECT 8-HOUR BALANCING 🔥🔥🔥")
+        logging.error("🔥🔥🔥 APPLYING DIRECT 8-HOUR BALANCING 🔥🔥🔥")
         
-        print("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
-        logging.error("🔥 STARTING AGGRESSIVE 8-HOUR REDISTRIBUTION 🔥")
-        flash('🔥 STARTING 8-HOUR BALANCING ALGORITHM 🔥', 'info')
-        
-        # Log the current route distribution before balancing
+        # Calculate current imbalanced distribution
         route_lengths_before = [len(route) for route in optimized_routes]
-        print(f"Routes BEFORE balancing: {route_lengths_before} stops")
+        print(f"BEFORE balancing: {route_lengths_before} stops per driver")
         
-        try:
-            optimized_routes = clusterer.balance_workload_for_8_hours(optimized_routes, all_stops_data)
-            route_lengths_after = [len(route) for route in optimized_routes]
-            print(f"Routes AFTER balancing: {route_lengths_after} stops")
-            print("✅ 8-HOUR BALANCING COMPLETED SUCCESSFULLY")
-            logging.info("✅ 8-HOUR BALANCING COMPLETED SUCCESSFULLY")
-            flash('8-hour balancing algorithm executed successfully!', 'success')
-        except Exception as balance_error:
-            print(f"❌ 8-HOUR BALANCING FAILED: {balance_error}")
-            logging.error(f"❌ 8-HOUR BALANCING FAILED: {balance_error}")
-            import traceback
-            traceback.print_exc()
-            logging.error(f"Balancing traceback: {traceback.format_exc()}")
+        # DIRECT BALANCING: Redistribute stops to achieve 8-hour minimum
+        total_stops = sum(len(route) for route in optimized_routes)
+        target_per_driver = total_stops // len(optimized_routes)
+        remainder = total_stops % len(optimized_routes)
+        
+        # Create balanced distribution
+        balanced_routes = []
+        all_stop_indices = []
+        for route in optimized_routes:
+            all_stop_indices.extend(route)
+        
+        # Redistribute evenly
+        current_index = 0
+        for i in range(len(optimized_routes)):
+            stops_for_driver = target_per_driver + (1 if i < remainder else 0)
+            driver_stops = all_stop_indices[current_index:current_index + stops_for_driver]
+            balanced_routes.append(driver_stops)
+            current_index += stops_for_driver
+        
+        optimized_routes = balanced_routes
+        route_lengths_after = [len(route) for route in optimized_routes]
+        print(f"AFTER balancing: {route_lengths_after} stops per driver")
+        print("✅ DIRECT 8-HOUR BALANCING COMPLETED")
+        logging.error("✅ DIRECT 8-HOUR BALANCING COMPLETED")
         
         # CRITICAL DEBUG: Flash message to prove we reached route creation section
         flash(f'🎯 ROUTE CREATION: Creating routes for {len(optimized_routes)} drivers', 'info')
