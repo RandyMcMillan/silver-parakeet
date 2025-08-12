@@ -247,6 +247,8 @@ def generate_routes():
     """Generate optimized routes for specified number of drivers with 8-hour workday goals"""
     # IMMEDIATE DEBUG: Very first line to prove function is called
     print("FUNCTION CALLED - FIRST LINE")
+    logging.error("FUNCTION CALLED - FIRST LINE")
+    flash('Route generation function called successfully!', 'info')
     
     import time
     start_processing_time = time.time()
