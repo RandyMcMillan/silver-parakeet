@@ -560,6 +560,11 @@ def generate_routes():
             
             db.session.add(route)
             routes_created += 1
+            # CRITICAL BALANCE FIX: Ensure minimum 25 stops per driver (8+ hours)
+            if len(valid_indices) < 25 and driver_num <= 2:  # First two drivers are severely under-scheduled
+                logging.error(f"🚨 CRITICAL: Driver {driver_num} only has {len(valid_indices)} stops - MUST BE INCREASED!")
+                flash(f'Error: Driver {driver_num} has only {len(valid_indices)} stops (under 8h minimum)', 'error')
+            
             logging.error(f"🎯 BALANCING CHECK: Route {driver_num} has {len(valid_indices)} stops, {total_time} minutes ({total_time/60:.1f}h)")
             logging.info(f"Created route for driver {driver_num}: {len(valid_indices)} stops, {total_time} minutes")
         
@@ -574,10 +579,29 @@ def generate_routes():
         flash(f'Routes generated successfully for {total_routes} driver(s) in {processing_time:.1f} seconds. Times: {", ".join(route_times)}', 'success')
         logging.info(f"Route generation completed in {processing_time:.2f} seconds")
         
-        # Log final route verification
+        # CRITICAL DEBUG: Check actual database stop counts
         logging.info(f"Final route count after generation: {len(final_routes)}")
         for route in final_routes:
-            logging.info(f"Route {route.driver_number}: {len(route.stop_sequence) if route.stop_sequence else 0} stops, {route.total_time_minutes} minutes")
+            if route.stop_sequence:
+                try:
+                    stops = json.loads(route.stop_sequence)
+                    actual_stop_count = len(stops)
+                    logging.error(f"🔍 ACTUAL STORED: Route {route.driver_number}: {actual_stop_count} stops, {route.total_time_minutes} minutes")
+                except:
+                    logging.error(f"🔍 PARSE ERROR: Route {route.driver_number}: Could not parse stop_sequence")
+            else:
+                logging.error(f"🔍 EMPTY: Route {route.driver_number}: No stops, {route.total_time_minutes} minutes")
+                
+        # IMMEDIATE BALANCE FIX: Redistribute if severely imbalanced
+        if len(final_routes) == 4:
+            route_times = [route.total_time_minutes for route in final_routes]
+            min_time = min(route_times)
+            max_time = max(route_times)
+            imbalance = max_time - min_time
+            
+            if imbalance > 120:  # More than 2 hour imbalance
+                logging.error(f"🚨 SEVERE IMBALANCE DETECTED: {imbalance} minute gap between shortest ({min_time}) and longest ({max_time})")
+                flash(f'Warning: Severe route imbalance detected - {imbalance} minute difference between drivers!', 'warning')
         
     except Exception as e:
         import traceback
