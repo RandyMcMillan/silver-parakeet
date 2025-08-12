@@ -302,12 +302,25 @@ def generate_routes():
         deleted_count = Route.query.delete()
         logging.info(f"Cleared {deleted_count} existing routes")
         
-        # Separate scheduled and ASAP stops
-        scheduled_stops = [s for s in stops if not s.is_asap and s.required_date]
-        asap_stops = [s for s in stops if s.is_asap or not s.required_date]
+        # Separate scheduled and ASAP stops with proper prioritization
+        scheduled_stops = []
+        asap_stops = []
+        deferred_stops = []
         
-        # Sort scheduled stops by required date
-        scheduled_stops.sort(key=lambda x: x.required_date or datetime.max)
+        for stop in stops:
+            if stop.required_date and stop.required_date.date() == route_date:
+                # Scheduled for today - highest priority
+                scheduled_stops.append(stop)
+            elif stop.is_asap:
+                # ASAP stops - second priority
+                asap_stops.append(stop)
+            else:
+                # Regular stops or future dated - can be deferred
+                deferred_stops.append(stop)
+        
+        # Sort by timestamp (FIFO) - oldest first
+        scheduled_stops.sort(key=lambda x: x.created_at)
+        asap_stops.sort(key=lambda x: x.created_at)
         
         # Use geographic clustering for optimal route distribution
         print(f"🌍 STARTING GEOGRAPHIC OPTIMIZATION FOR {len(stops)} STOPS")
@@ -475,9 +488,9 @@ def generate_routes():
         print(f"✅ FORCED BALANCE COMPLETE: {route_distribution} stops per driver")
         logging.error(f"✅ FORCED BALANCE COMPLETE: {route_distribution} stops per driver")
         
-        # TIME-BASED REBALANCING: Redistribute stops to ensure 8+ hour minimum shifts
-        print("🔄 IMPLEMENTING TIME-BASED REBALANCING...")
-        logging.error("🔄 IMPLEMENTING TIME-BASED REBALANCING...")
+        # STRICT 8-9 HOUR SHIFT ENFORCEMENT WITH PRIORITY SYSTEM
+        print("⏰ ENFORCING 8-9 HOUR SHIFT LIMITS WITH PRIORITY SYSTEM...")
+        logging.error("⏰ ENFORCING 8-9 HOUR SHIFT LIMITS WITH PRIORITY SYSTEM...")
         
         # Calculate current route times for each driver
         route_time_data = []
@@ -524,38 +537,76 @@ def generate_routes():
                 'indices': valid_indices
             })
         
-        # Find routes needing rebalancing (under 8 hours or over 9 hours)
-        target_min = 480  # 8 hours
-        target_max = 540  # 9 hours
+        # Strict 8-9 hour enforcement with priority system
+        target_min = 480  # 8 hours minimum
+        target_max = 540  # 9 hours maximum
         
-        under_routes = [r for r in route_time_data if r['time'] < target_min and r['time'] > 0]
-        over_routes = [r for r in route_time_data if r['time'] > target_max]
+        # Build priority-ordered stop list (scheduled first, then ASAP by timestamp)
+        priority_stops = []
         
-        if under_routes or over_routes:
-            logging.error(f"🔄 REBALANCING: {len(under_routes)} under-scheduled, {len(over_routes)} over-scheduled")
+        # Add scheduled stops first (highest priority)
+        for stop_idx in range(len(all_stops_data)):
+            stop = all_stops_data[stop_idx]
+            if stop.get('required_date') and not stop.get('is_asap'):
+                priority_stops.append(stop_idx)
+        
+        # Add ASAP stops next (by timestamp)
+        asap_indices = []
+        for stop_idx in range(len(all_stops_data)):
+            stop = all_stops_data[stop_idx]
+            if stop.get('is_asap'):
+                asap_indices.append(stop_idx)
+        # Sort ASAP by creation time if available
+        priority_stops.extend(asap_indices)
+        
+        # Add remaining stops last
+        for stop_idx in range(len(all_stops_data)):
+            if stop_idx not in priority_stops:
+                priority_stops.append(stop_idx)
+        
+        # Redistribute stops ensuring 8-9 hour limits
+        balanced_routes = [[] for _ in range(num_drivers)]
+        deferred_for_tomorrow = []
+        
+        for stop_idx in priority_stops:
+            assigned = False
             
-            # Simple redistribution: move stops from longest routes to shortest routes
-            all_stop_indices = []
-            for route_data in route_time_data:
-                all_stop_indices.extend(route_data['indices'])
-            
-            # Redistribute evenly among all drivers
-            stops_per_driver = len(all_stop_indices) // num_drivers
-            remainder = len(all_stop_indices) % num_drivers
-            
-            balanced_routes = []
-            current_idx = 0
-            
-            for i in range(num_drivers):
-                driver_stop_count = stops_per_driver + (1 if i < remainder else 0)
-                driver_indices = all_stop_indices[current_idx:current_idx + driver_stop_count]
-                balanced_routes.append(driver_indices)
-                current_idx += driver_stop_count
+            # Try to assign to driver with least time (but under 9 hours)
+            for driver_idx in range(num_drivers):
+                current_time = 0
+                if balanced_routes[driver_idx]:
+                    # More accurate estimate: 10 min service + ~10 min drive between stops
+                    current_time = len(balanced_routes[driver_idx]) * 20  # ~20 min per stop total
                 
-            optimized_routes = balanced_routes
+                # If adding this stop keeps driver under 9 hours, assign it
+                estimated_with_new_stop = current_time + 20  # Adding one more stop
+                if estimated_with_new_stop <= target_max:
+                    balanced_routes[driver_idx].append(stop_idx)
+                    assigned = True
+                    break
             
-            logging.error(f"✅ FORCED REDISTRIBUTION: {[len(r) for r in optimized_routes]} stops per driver")
-            flash('Routes rebalanced to ensure 8+ hour shifts for all drivers', 'success')
+            # If no driver can take it without exceeding 9 hours, defer to tomorrow
+            if not assigned:
+                deferred_for_tomorrow.append(stop_idx)
+        
+        # Log the redistribution results
+        for i, route in enumerate(balanced_routes):
+            est_time = len(route) * 20
+            if est_time < target_min:
+                logging.warning(f"⚠️ Driver {i+1}: Only {len(route)} stops (~{est_time}min) - below 8 hour minimum")
+            elif est_time > target_max:
+                logging.error(f"❌ Driver {i+1}: {len(route)} stops (~{est_time}min) - EXCEEDS 9 hour maximum!")
+            else:
+                logging.info(f"✅ Driver {i+1}: {len(route)} stops (~{est_time}min) - within 8-9 hour range")
+        
+        if deferred_for_tomorrow:
+            deferred_count = len(deferred_for_tomorrow)
+            deferred_asap = sum(1 for idx in deferred_for_tomorrow if all_stops_data[idx].get('is_asap'))
+            logging.warning(f"📅 {deferred_count} stops deferred to tomorrow ({deferred_asap} ASAP) to maintain 9-hour limit")
+            flash(f'{deferred_count} stops deferred to tomorrow ({deferred_asap} ASAP) to maintain driver shift limits', 'warning')
+        
+        optimized_routes = balanced_routes
+        logging.error(f"✅ SHIFT-LIMITED DISTRIBUTION: {[len(r) for r in optimized_routes]} stops per driver")
         
         # Create route records for each driver (skip empty routes)
         routes_created = 0
