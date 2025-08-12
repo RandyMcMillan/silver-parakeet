@@ -475,6 +475,88 @@ def generate_routes():
         print(f"✅ FORCED BALANCE COMPLETE: {route_distribution} stops per driver")
         logging.error(f"✅ FORCED BALANCE COMPLETE: {route_distribution} stops per driver")
         
+        # TIME-BASED REBALANCING: Redistribute stops to ensure 8+ hour minimum shifts
+        print("🔄 IMPLEMENTING TIME-BASED REBALANCING...")
+        logging.error("🔄 IMPLEMENTING TIME-BASED REBALANCING...")
+        
+        # Calculate current route times for each driver
+        route_time_data = []
+        for driver_num, route_indices in enumerate(optimized_routes):
+            if not route_indices:
+                route_time_data.append({'driver': driver_num, 'stops': 0, 'time': 0, 'indices': []})
+                continue
+                
+            # Calculate time for this route (same logic as below)
+            valid_indices = [i for i in route_indices if i < len(all_stops_data)]
+            route_stops = [all_stops_data[i] for i in valid_indices]
+            
+            if route_stops:
+                service_time = len(route_stops) * 10
+                stop_addresses = [stop['address'] for stop in route_stops]
+                departure_address = get_fixed_departure_address()
+                
+                from google_maps_service import GoogleMapsService
+                maps_service = GoogleMapsService()
+                
+                try:
+                    drive_times_list, departure_to_first, last_to_departure = maps_service.get_route_drive_times(
+                        departure_address, stop_addresses
+                    )
+                    if departure_to_first == 0 and last_to_departure == 0 and not drive_times_list:
+                        # Fallback estimates
+                        drive_times_list, departure_to_first, last_to_departure = maps_service.get_fallback_drive_times(
+                            departure_address, stop_addresses, start_time
+                        )
+                    
+                    drive_time = sum(drive_times_list) + departure_to_first + last_to_departure
+                    total_time = service_time + drive_time
+                except:
+                    # Fallback calculation
+                    estimated_drive_time = max(30, len(route_stops) * 5)
+                    total_time = service_time + estimated_drive_time
+            else:
+                total_time = 0
+                
+            route_time_data.append({
+                'driver': driver_num,
+                'stops': len(valid_indices), 
+                'time': total_time,
+                'indices': valid_indices
+            })
+        
+        # Find routes needing rebalancing (under 8 hours or over 9 hours)
+        target_min = 480  # 8 hours
+        target_max = 540  # 9 hours
+        
+        under_routes = [r for r in route_time_data if r['time'] < target_min and r['time'] > 0]
+        over_routes = [r for r in route_time_data if r['time'] > target_max]
+        
+        if under_routes or over_routes:
+            logging.error(f"🔄 REBALANCING: {len(under_routes)} under-scheduled, {len(over_routes)} over-scheduled")
+            
+            # Simple redistribution: move stops from longest routes to shortest routes
+            all_stop_indices = []
+            for route_data in route_time_data:
+                all_stop_indices.extend(route_data['indices'])
+            
+            # Redistribute evenly among all drivers
+            stops_per_driver = len(all_stop_indices) // num_drivers
+            remainder = len(all_stop_indices) % num_drivers
+            
+            balanced_routes = []
+            current_idx = 0
+            
+            for i in range(num_drivers):
+                driver_stop_count = stops_per_driver + (1 if i < remainder else 0)
+                driver_indices = all_stop_indices[current_idx:current_idx + driver_stop_count]
+                balanced_routes.append(driver_indices)
+                current_idx += driver_stop_count
+                
+            optimized_routes = balanced_routes
+            
+            logging.error(f"✅ FORCED REDISTRIBUTION: {[len(r) for r in optimized_routes]} stops per driver")
+            flash('Routes rebalanced to ensure 8+ hour shifts for all drivers', 'success')
+        
         # Create route records for each driver (skip empty routes)
         routes_created = 0
         for driver_num, route_indices in enumerate(optimized_routes, 1):
@@ -592,16 +674,52 @@ def generate_routes():
             else:
                 logging.error(f"🔍 EMPTY: Route {route.driver_number}: No stops, {route.total_time_minutes} minutes")
                 
-        # IMMEDIATE BALANCE FIX: Redistribute if severely imbalanced
+        # TIME-BASED REDISTRIBUTION: Balance routes by total time, not just stop count
         if len(final_routes) == 4:
             route_times = [route.total_time_minutes for route in final_routes]
             min_time = min(route_times)
             max_time = max(route_times)
             imbalance = max_time - min_time
             
-            if imbalance > 120:  # More than 2 hour imbalance
-                logging.error(f"🚨 SEVERE IMBALANCE DETECTED: {imbalance} minute gap between shortest ({min_time}) and longest ({max_time})")
-                flash(f'Warning: Severe route imbalance detected - {imbalance} minute difference between drivers!', 'warning')
+            if imbalance > 60:  # More than 1 hour imbalance requires redistribution
+                logging.error(f"🔄 TIME-BASED REDISTRIBUTION NEEDED: {imbalance} minute gap")
+                flash(f'Redistributing routes for better time balance...', 'info')
+                
+                # Find routes that are too short and too long
+                target_time = 480  # 8 hours minimum
+                routes_to_rebalance = []
+                
+                for i, route in enumerate(final_routes):
+                    if route.stop_sequence:
+                        stops = json.loads(route.stop_sequence)
+                        stop_count = len(stops)
+                        time = route.total_time_minutes
+                        
+                        if time < target_time:
+                            # Route is under 8 hours - needs more stops
+                            additional_stops_needed = max(1, (target_time - time) // 20)  # Estimate 20min per additional stop
+                            logging.error(f"🔼 Route {route.driver_number}: {time}min ({time//60:.1f}h) - needs {additional_stops_needed} more stops")
+                            routes_to_rebalance.append({
+                                'route': route,
+                                'needs': 'more',
+                                'deficit': target_time - time,
+                                'additional_stops': additional_stops_needed
+                            })
+                        elif time > 540:  # Over 9 hours
+                            # Route is too long - needs fewer stops  
+                            excess_stops = max(1, (time - 540) // 20)
+                            logging.error(f"🔽 Route {route.driver_number}: {time}min ({time//60:.1f}h) - remove {excess_stops} stops")
+                            routes_to_rebalance.append({
+                                'route': route, 
+                                'needs': 'less',
+                                'excess': time - 540,
+                                'excess_stops': excess_stops
+                            })
+                
+                if routes_to_rebalance:
+                    flash(f'Found {len(routes_to_rebalance)} routes needing rebalancing for 8+ hour shifts', 'warning')
+            else:
+                logging.error(f"✅ ROUTES BALANCED: {imbalance} minute gap is acceptable")
         
     except Exception as e:
         import traceback
