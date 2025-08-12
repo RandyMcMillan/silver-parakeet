@@ -445,6 +445,36 @@ def generate_routes():
         print(f"🎯 ROUTE CREATION: Creating routes for {len(optimized_routes)} drivers")
         logging.error(f"🎯 ROUTE CREATION: Creating routes for {len(optimized_routes)} drivers")
         
+        # FORCE BALANCED DISTRIBUTION: Override imbalanced routes directly
+        print("🔥 FORCING BALANCED REDISTRIBUTION BEFORE ROUTE CREATION 🔥")
+        logging.error("🔥 FORCING BALANCED REDISTRIBUTION BEFORE ROUTE CREATION 🔥")
+        
+        # Calculate total stops and create perfectly balanced distribution
+        total_stops = sum(len(route) for route in optimized_routes)
+        stops_per_driver = total_stops // num_drivers
+        remainder = total_stops % num_drivers
+        
+        # Flatten all stop indices from imbalanced routes
+        all_indices = []
+        for route in optimized_routes:
+            all_indices.extend(route)
+        
+        # Create new balanced distribution
+        balanced_routes = []
+        current_index = 0
+        
+        for i in range(num_drivers):
+            driver_stops = stops_per_driver + (1 if i < remainder else 0)
+            driver_indices = all_indices[current_index:current_index + driver_stops]
+            balanced_routes.append(driver_indices)
+            current_index += driver_stops
+            
+        # Replace imbalanced routes with balanced ones
+        optimized_routes = balanced_routes
+        route_distribution = [len(route) for route in optimized_routes]
+        print(f"✅ FORCED BALANCE COMPLETE: {route_distribution} stops per driver")
+        logging.error(f"✅ FORCED BALANCE COMPLETE: {route_distribution} stops per driver")
+        
         # Create route records for each driver (skip empty routes)
         routes_created = 0
         for driver_num, route_indices in enumerate(optimized_routes, 1):
