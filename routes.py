@@ -242,16 +242,18 @@ def update_stored_driver_count(count):
     db.session.commit()
     logging.info(f"Updated stored driver count to: {count}")
 
-@main.route('/generate_routes', methods=['POST'])
+@main.route('/generate_routes', methods=['POST'])  
 def generate_routes():
     """Generate optimized routes for specified number of drivers with 8-hour workday goals"""
     # IMMEDIATE DEBUG: Very first line to prove function is called
-    print("FUNCTION CALLED - FIRST LINE")
-    logging.error("FUNCTION CALLED - FIRST LINE")
-    flash('Route generation function called successfully!', 'info')
+    print("🚨 FUNCTION CALLED - FIRST LINE 🚨")
+    logging.error("🚨 FUNCTION CALLED - FIRST LINE 🚨") 
     
     import time
     start_processing_time = time.time()
+    
+    # FORCE FLASH MESSAGE IMMEDIATELY
+    flash('🚨 Route generation function called successfully! 🚨', 'info')
     
     # DEFINITIVE TEST: Force immediate flash message to prove endpoint is hit
     flash('🚀🚀🚀 ROUTE GENERATION ENDPOINT WAS HIT 🚀🚀🚀', 'success')
@@ -528,6 +530,7 @@ def generate_routes():
             
             db.session.add(route)
             routes_created += 1
+            logging.error(f"🎯 BALANCING CHECK: Route {driver_num} has {len(valid_indices)} stops, {total_time} minutes ({total_time/60:.1f}h)")
             logging.info(f"Created route for driver {driver_num}: {len(valid_indices)} stops, {total_time} minutes")
         
         db.session.commit()
