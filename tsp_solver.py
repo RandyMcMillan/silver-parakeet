@@ -179,7 +179,7 @@ class TSPSolver:
         return tour
     
     def solve_tsp_with_departure(self, stops: List[Dict], departure_address: str) -> List[int]:
-        """Solve TSP with improved geographic clustering and route optimization"""
+        """Solve TSP using sector-based clustering to minimize backtracking"""
         if len(stops) <= 1:
             return list(range(len(stops)))
         
@@ -187,49 +187,125 @@ class TSPSolver:
         departure_coord = self.geocode_address(departure_address)
         stop_coords = [self.geocode_address(stop['address']) for stop in stops]
         
-        # Find the nearest stop to departure to start
+        # Create sectors based on angle from departure point
+        sectors = self.create_angular_sectors(stop_coords, departure_coord)
+        
+        # Build route by visiting each sector in order
+        route = []
+        for sector_stops in sectors:
+            if sector_stops:
+                # Sort stops within sector by distance from departure
+                sector_stops.sort(key=lambda idx: self.calculate_distance(departure_coord, stop_coords[idx]))
+                
+                # Connect stops within sector using nearest neighbor
+                sector_route = self.optimize_sector(sector_stops, stop_coords)
+                route.extend(sector_route)
+        
+        # If no sectoring worked, fall back to simple nearest neighbor
+        if not route:
+            route = self.simple_nearest_neighbor(stop_coords, departure_coord)
+        
+        # Apply final 2-opt improvement
+        if len(route) > 3:
+            route = self.improve_route_2opt(route, stop_coords)
+        
+        return route
+    
+    def create_angular_sectors(self, coords: List[Tuple[float, float]], 
+                               center: Tuple[float, float], num_sectors: int = 4) -> List[List[int]]:
+        """Divide stops into angular sectors around the center point"""
+        import math
+        
+        sectors = [[] for _ in range(num_sectors)]
+        
+        for idx, coord in enumerate(coords):
+            # Calculate angle from center
+            dx = coord[1] - center[1]  # longitude difference
+            dy = coord[0] - center[0]  # latitude difference
+            angle = math.atan2(dy, dx)
+            
+            # Normalize to 0-2π
+            if angle < 0:
+                angle += 2 * math.pi
+            
+            # Assign to sector
+            sector_idx = int(angle / (2 * math.pi / num_sectors)) % num_sectors
+            sectors[sector_idx].append(idx)
+        
+        # Remove empty sectors and reorder starting from east (0 degrees)
+        non_empty_sectors = [s for s in sectors if s]
+        
+        return non_empty_sectors
+    
+    def optimize_sector(self, sector_stops: List[int], coords: List[Tuple[float, float]]) -> List[int]:
+        """Optimize the order of stops within a sector"""
+        if len(sector_stops) <= 1:
+            return sector_stops
+        
+        # Use nearest neighbor within the sector
+        route = []
+        unvisited = set(sector_stops)
+        
+        # Start with the first stop in the sector
+        current = sector_stops[0]
+        route.append(current)
+        unvisited.remove(current)
+        
+        while unvisited:
+            current_coord = coords[current]
+            nearest_dist = float('inf')
+            nearest = None
+            
+            for stop_idx in unvisited:
+                dist = self.calculate_distance(current_coord, coords[stop_idx])
+                if dist < nearest_dist:
+                    nearest_dist = dist
+                    nearest = stop_idx
+            
+            if nearest is not None:
+                route.append(nearest)
+                unvisited.remove(nearest)
+                current = nearest
+        
+        return route
+    
+    def simple_nearest_neighbor(self, coords: List[Tuple[float, float]], 
+                                departure_coord: Tuple[float, float]) -> List[int]:
+        """Simple nearest neighbor fallback"""
+        # Find nearest stop to departure
         min_dist = float('inf')
         start_idx = 0
-        for i, coord in enumerate(stop_coords):
+        for i, coord in enumerate(coords):
             dist = self.calculate_distance(departure_coord, coord)
             if dist < min_dist:
                 min_dist = dist
                 start_idx = i
         
-        # Build route using nearest neighbor from the starting point
-        unvisited = set(range(len(stops)))
+        # Build route
         route = []
-        current_idx = start_idx
+        unvisited = set(range(len(coords)))
+        current = start_idx
         
-        # Start with the nearest stop to departure
-        route.append(current_idx)
-        unvisited.remove(current_idx)
+        route.append(current)
+        unvisited.remove(current)
         
-        # Build the rest of the route
         while unvisited:
-            current_coord = stop_coords[current_idx]
+            current_coord = coords[current]
             nearest_dist = float('inf')
-            nearest_idx = None
+            nearest = None
             
-            # Find nearest unvisited stop
             for idx in unvisited:
-                dist = self.calculate_distance(current_coord, stop_coords[idx])
+                dist = self.calculate_distance(current_coord, coords[idx])
                 if dist < nearest_dist:
                     nearest_dist = dist
-                    nearest_idx = idx
+                    nearest = idx
             
-            if nearest_idx is not None:
-                route.append(nearest_idx)
-                unvisited.remove(nearest_idx)
-                current_idx = nearest_idx
+            if nearest is not None:
+                route.append(nearest)
+                unvisited.remove(nearest)
+                current = nearest
         
-        # Apply 2-opt improvement for better optimization
-        route = self.improve_route_2opt(route, stop_coords)
-        
-        # Find the best rotation to minimize total distance including return to depot
-        best_route = self.find_best_rotation(route, stop_coords, departure_coord)
-        
-        return best_route
+        return route
     
     def improve_route_2opt(self, route: List[int], coords: List[Tuple[float, float]]) -> List[int]:
         """Apply 2-opt improvement to optimize route"""
