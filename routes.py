@@ -1,234 +1,21 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
-from datetime import datetime, date, timedelta
-from models import Stop, Route, AgentSignHistory, DriverCount, DriverDepartureAddress, TrafficData, db
-from tsp_solver import TSPSolver
-from traffic_scraper import TrafficDataScraper
+"""
+Optimized Route Generation Module
+Streamlined algorithm that eliminates redundancy and properly enforces 8-9 hour shifts
+"""
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from app import db
+from models import Stop, Route, DriverDepartureAddress, DriverCount
+from datetime import datetime, timedelta, date
 import json
 import logging
-import os
+from google_maps_service import GoogleMapsService
+from tsp_solver import TSPSolver
 
 main = Blueprint('main', __name__)
-
-@main.route('/')
-def index():
-    """Main page with route optimization interface"""
-    # Order stops by priority: Scheduled stops first, then ASAP stops (both FIFO)
-    stops = Stop.query.order_by(
-        Stop.is_asap.asc(),   # Scheduled stops first (is_asap=False comes before is_asap=True)
-        Stop.required_date.asc().nulls_last(),  # Scheduled stops by required date
-        Stop.created_at.asc()  # Then by entry date (FIFO) for same dates or ASAP stops
-    ).all()
-    routes = Route.query.all()
-    agent_signs = AgentSignHistory.query.all()
-    
-    # Calculate stop counts
-    total_stops = len(stops)
-    
-    # Calculate stops for next 7 days
-    next_7_days = datetime.now() + timedelta(days=7)
-    stops_next_7_days = Stop.query.filter(
-        Stop.required_date <= next_7_days,
-        Stop.required_date >= datetime.now().date()
-    ).count()
-    
-    # Add ASAP stops to the 7-day count
-    asap_stops = Stop.query.filter(Stop.is_asap == True).count()
-    stops_next_7_days += asap_stops
-    
-    # Use fixed departure address  
-    departure_address_str = get_fixed_departure_address()
-    
-    # Get stored driver count from database
-    current_driver_count = get_stored_driver_count()
-    saved_driver_count = current_driver_count
-    
-    return render_template('index.html', 
-                         stops=stops, 
-                         routes=routes, 
-                         agent_signs=agent_signs, 
-                         datetime=datetime,
-                         total_stops=total_stops,
-                         stops_next_7_days=stops_next_7_days,
-                         departure_address=departure_address_str,
-                         current_driver_count=saved_driver_count,
-                         google_maps_api_key=os.environ.get('GOOGLE_MAPS_API_KEY', ''))
-
-@main.route('/add_stop', methods=['POST'])
-def add_stop():
-    """Add a new stop"""
-    try:
-        # Combine address fields into a single address string
-        street_address = request.form.get('street_address', '').strip()
-        apt_unit = request.form.get('apt_unit', '').strip()
-        city = request.form.get('city', '').strip()
-        state = request.form.get('state', '').strip()
-        zip_code = request.form.get('zip_code', '').strip()
-        
-        # Build full address
-        address_parts = [street_address]
-        if apt_unit:
-            address_parts.append(apt_unit)
-        address_parts.extend([city, state, zip_code])
-        address = ', '.join(part for part in address_parts if part)
-        
-        service_type = request.form.get('service_type')
-        is_asap = request.form.get('is_asap') == 'on'
-        required_date_str = request.form.get('required_date')
-        agent_sign_description = request.form.get('agent_sign_description', '').strip()
-        has_riders_toppers = request.form.get('has_riders_toppers') == 'on'
-        riders_toppers_description = request.form.get('riders_toppers_description', '').strip()
-        has_shelter = request.form.get('has_shelter') == 'on'
-        
-        # Handle manual timestamp override
-        manual_timestamp_override = request.form.get('manual_timestamp_override') == 'on'
-        manual_timestamp = None
-        if manual_timestamp_override:
-            manual_timestamp_str = request.form.get('manual_timestamp')
-            if manual_timestamp_str:
-                try:
-                    manual_timestamp = datetime.strptime(manual_timestamp_str, '%Y-%m-%dT%H:%M')
-                except ValueError:
-                    flash('Invalid timestamp format', 'error')
-                    return redirect(url_for('main.index'))
-            else:
-                flash('Manual timestamp is required when override is checked', 'error')
-                return redirect(url_for('main.index'))
-        
-        # Handle post type and notes based on service type
-        post_type = None
-        post_type_notes = None
-        deliver_notes = None
-        
-        if service_type == 'install':
-            post_type = request.form.get('post_type')
-            if post_type == 'Other':
-                post_type_notes = request.form.get('post_type_notes')
-                if not post_type_notes:
-                    flash('Please provide notes for "Other" post type', 'error')
-                    return redirect(url_for('main.index'))
-                post_type = f"Other - {post_type_notes}"
-        elif service_type == 'deliver':
-            deliver_notes = request.form.get('deliver_notes')
-            if not deliver_notes:
-                flash('Please provide delivery notes', 'error')
-                return redirect(url_for('main.index'))
-            post_type = f"Delivery - {deliver_notes}"
-        elif service_type == 'remove':
-            post_type = "Removal"
-        
-        # Validate required fields
-        if not street_address or not city or not state or not zip_code or not service_type:
-            flash('Please fill in all required address fields and service type', 'error')
-            return redirect(url_for('main.index'))
-            
-        if service_type == 'install' and not post_type:
-            flash('Please select a post type for installation', 'error')
-            return redirect(url_for('main.index'))
-        
-        if has_riders_toppers and not riders_toppers_description:
-            flash('Please provide a description for riders/toppers', 'error')
-            return redirect(url_for('main.index'))
-        
-        # Parse required date
-        required_date = None
-        if required_date_str and not is_asap:
-            try:
-                required_date = datetime.strptime(required_date_str, '%Y-%m-%d')
-                # Check if date is in the future
-                if required_date.date() < date.today():
-                    flash('Required date must be in the future', 'error')
-                    return redirect(url_for('main.index'))
-            except ValueError:
-                flash('Invalid date format', 'error')
-                return redirect(url_for('main.index'))
-        
-        # Create new stop
-        stop = Stop()
-        stop.post_type = post_type
-        stop.address = address
-        stop.service_type = service_type
-        stop.is_asap = is_asap
-        stop.required_date = required_date
-        stop.agent_sign_description = agent_sign_description if service_type == 'install' else None
-        stop.has_riders_toppers = has_riders_toppers
-        stop.riders_toppers_description = riders_toppers_description if has_riders_toppers else None
-        stop.has_shelter = has_shelter
-        
-        # Set manual timestamp if provided, otherwise use default (current time)
-        if manual_timestamp:
-            stop.created_at = manual_timestamp
-        
-        db.session.add(stop)
-        
-        # Save agent sign description to history if this is an install with a sign description
-        if service_type == 'install' and agent_sign_description:
-            # Check if there's already a sign history for this address
-            existing_sign = AgentSignHistory.query.filter_by(address=address).first()
-            if existing_sign:
-                # Update existing record
-                existing_sign.sign_description = agent_sign_description
-                existing_sign.updated_at = datetime.utcnow()
-            else:
-                # Create new record
-                agent_sign_history = AgentSignHistory()
-                agent_sign_history.address = address
-                agent_sign_history.sign_description = agent_sign_description
-                db.session.add(agent_sign_history)
-        
-        db.session.commit()
-        
-        flash('Stop added successfully', 'success')
-        # Return redirect with both URL parameter and localStorage trigger
-        return redirect(url_for('main.index', reset_form='true', form_reset_trigger='true'))
-        
-    except Exception as e:
-        logging.error(f"Error adding stop: {e}")
-        flash('Error adding stop', 'error')
-        db.session.rollback()
-    
-    return redirect(url_for('main.index'))
-
-@main.route('/api/stop_counters')
-def api_stop_counters():
-    """API endpoint to get current stop counters"""
-    stops = Stop.query.all()
-    total_stops = len(stops)
-    
-    # Calculate stops for next 7 days
-    next_7_days = datetime.now() + timedelta(days=7)
-    stops_next_7_days = Stop.query.filter(
-        Stop.required_date <= next_7_days,
-        Stop.required_date >= datetime.now().date()
-    ).count()
-    
-    # Add ASAP stops to the 7-day count
-    asap_stops = Stop.query.filter(Stop.is_asap == True).count()
-    stops_next_7_days += asap_stops
-    
-    # Use fixed departure address
-    departure_address_str = get_fixed_departure_address()
-    
-    return jsonify({
-        'total_stops': total_stops,
-        'stops_next_7_days': stops_next_7_days,
-        'departure_address': departure_address_str
-    })
 
 def get_fixed_departure_address():
     """Get the fixed departure address"""
     return "183 DeKalb Industrial Way, Decatur, GA 30030"
-
-def get_stored_driver_count():
-    """Get the currently stored driver count from database"""
-    driver_count_record = DriverCount.query.first()
-    if driver_count_record:
-        return driver_count_record.count
-    else:
-        # Initialize with 1 driver if no record exists
-        new_record = DriverCount(count=1)
-        db.session.add(new_record)
-        db.session.commit()
-        return 1
 
 def update_stored_driver_count(count):
     """Update the stored driver count in database"""
@@ -242,52 +29,64 @@ def update_stored_driver_count(count):
     db.session.commit()
     logging.info(f"Updated stored driver count to: {count}")
 
-@main.route('/generate_routes', methods=['POST'])  
+@main.route('/')
+def index():
+    """Main page with route display"""
+    stops = Stop.query.all()
+    routes = Route.query.all()
+    
+    # Get stored driver count or default to 4
+    driver_count_record = DriverCount.query.first()
+    stored_driver_count = driver_count_record.count if driver_count_record else 4
+    
+    departure_address = get_fixed_departure_address()
+    
+    # Count stops by type
+    total_stops = len(stops)
+    asap_stops = sum(1 for stop in stops if stop.is_asap)
+    scheduled_stops = sum(1 for stop in stops if stop.required_date and not stop.is_asap)
+    regular_stops = total_stops - asap_stops - scheduled_stops
+    
+    return render_template('index.html', 
+                         stops=stops, 
+                         routes=routes,
+                         stored_driver_count=stored_driver_count,
+                         departure_address=departure_address,
+                         total_stops=total_stops,
+                         asap_stops=asap_stops,
+                         scheduled_stops=scheduled_stops,
+                         regular_stops=regular_stops,
+                         datetime=datetime)
+
+@main.route('/generate_routes', methods=['POST'])
 def generate_routes():
-    """Generate optimized routes for specified number of drivers with 8-hour workday goals"""
-    # IMMEDIATE DEBUG: Very first line to prove function is called
-    print("🚨 FUNCTION CALLED - FIRST LINE 🚨")
-    logging.error("🚨 FUNCTION CALLED - FIRST LINE 🚨") 
-    
+    """
+    Streamlined route generation with proper 8-9 hour shift enforcement
+    Priority: Scheduled (today) → ASAP (by timestamp) → Regular stops
+    """
     import time
-    start_processing_time = time.time()
-    
-    # FORCE FLASH MESSAGE IMMEDIATELY
-    flash('🚨 Route generation function called successfully! 🚨', 'info')
-    
-    # DEFINITIVE TEST: Force immediate flash message to prove endpoint is hit
-    flash('🚀🚀🚀 ROUTE GENERATION ENDPOINT WAS HIT 🚀🚀🚀', 'success')
-    
-    # Use logging instead of print - print may be buffered/redirected
-    logging.error("🚀🚀🚀 ROUTE GENERATION ENDPOINT HIT 🚀🚀🚀")
-    logging.warning("🚀🚀🚀 ROUTE GENERATION ENDPOINT HIT 🚀🚀🚀")
-    
-    # Force stdout flush to ensure debug messages appear immediately
-    import sys
-    sys.stdout.flush()
-    sys.stderr.flush()
+    start_time = time.time()
     
     try:
-        # Get form data and update stored driver count
+        # Get parameters
         num_drivers = int(request.form.get('num_drivers', 1))
-        start_time = request.form.get('start_time', '07:00')
+        route_start_time = request.form.get('start_time', '07:00')
         update_stored_driver_count(num_drivers)
         
-        # Determine route date - if current time is past start time, schedule for next day
+        # Determine route date
         current_time = datetime.now().time()
-        start_time_obj = datetime.strptime(start_time, '%H:%M').time()
+        start_time_obj = datetime.strptime(route_start_time, '%H:%M').time()
         
         if current_time > start_time_obj:
             route_date = (datetime.now() + timedelta(days=1)).date()
-            logging.info(f"Current time {current_time} is past start time {start_time_obj}, scheduling routes for next day: {route_date}")
+            logging.info(f"Scheduling routes for tomorrow: {route_date}")
         else:
             route_date = datetime.now().date()
-            logging.info(f"Current time {current_time} is before start time {start_time_obj}, scheduling routes for today: {route_date}")
+            logging.info(f"Scheduling routes for today: {route_date}")
         
-        # Get all stops
-        stops = Stop.query.all()
-        
-        if not stops:
+        # Get all stops and validate
+        all_stops = Stop.query.all()
+        if not all_stops:
             flash('No stops available to route', 'error')
             return redirect(url_for('main.index'))
         
@@ -295,518 +94,245 @@ def generate_routes():
             flash('Number of drivers must be at least 1', 'error')
             return redirect(url_for('main.index'))
         
-        # Use fixed departure address
-        departure_address_str = get_fixed_departure_address()
+        departure_address = get_fixed_departure_address()
         
-        # Always clear existing routes before generating new ones
-        deleted_count = Route.query.delete()
-        logging.info(f"Cleared {deleted_count} existing routes")
+        # Clear existing routes
+        Route.query.delete()
+        logging.info(f"Cleared existing routes")
         
-        # Separate scheduled and ASAP stops with proper prioritization
-        scheduled_stops = []
-        asap_stops = []
+        # PHASE 1: Prioritize stops
+        priority_list = []
+        
+        # Highest priority: Scheduled for today
+        for stop in all_stops:
+            if stop.required_date and stop.required_date.date() == route_date:
+                priority_list.append({
+                    'stop': stop,
+                    'priority': 1,
+                    'timestamp': stop.created_at
+                })
+        
+        # Second priority: ASAP stops
+        for stop in all_stops:
+            if stop.is_asap and not (stop.required_date and stop.required_date.date() == route_date):
+                priority_list.append({
+                    'stop': stop,
+                    'priority': 2,
+                    'timestamp': stop.created_at
+                })
+        
+        # Third priority: Regular stops
+        for stop in all_stops:
+            if not stop.is_asap and not (stop.required_date and stop.required_date.date() == route_date):
+                priority_list.append({
+                    'stop': stop,
+                    'priority': 3,
+                    'timestamp': stop.created_at
+                })
+        
+        # Sort by priority, then by timestamp
+        priority_list.sort(key=lambda x: (x['priority'], x['timestamp']))
+        
+        logging.info(f"Prioritized {len(priority_list)} stops: "
+                    f"{sum(1 for x in priority_list if x['priority']==1)} scheduled, "
+                    f"{sum(1 for x in priority_list if x['priority']==2)} ASAP, "
+                    f"{sum(1 for x in priority_list if x['priority']==3)} regular")
+        
+        # PHASE 2: Smart distribution with real-time estimates
+        maps_service = GoogleMapsService()
+        driver_routes = [[] for _ in range(num_drivers)]
+        driver_times = [0 for _ in range(num_drivers)]  # Track actual time per driver
         deferred_stops = []
         
-        for stop in stops:
-            if stop.required_date and stop.required_date.date() == route_date:
-                # Scheduled for today - highest priority
-                scheduled_stops.append(stop)
-            elif stop.is_asap:
-                # ASAP stops - second priority
-                asap_stops.append(stop)
-            else:
-                # Regular stops or future dated - can be deferred
-                deferred_stops.append(stop)
+        # Constants
+        SERVICE_TIME = 10  # minutes per stop
+        MAX_SHIFT = 540   # 9 hours in minutes
+        MIN_SHIFT = 480   # 8 hours in minutes
         
-        # Sort by timestamp (FIFO) - oldest first
-        scheduled_stops.sort(key=lambda x: x.created_at)
-        asap_stops.sort(key=lambda x: x.created_at)
-        
-        # Use geographic clustering for optimal route distribution
-        print(f"🌍 STARTING GEOGRAPHIC OPTIMIZATION FOR {len(stops)} STOPS")
-        logging.info(f"Starting geographic route optimization for {len(stops)} stops")
-        
-        # Convert all stops to format for geographic clustering
-        all_stops_data = []
-        for stop in stops:
-            stop_data = {
-                'id': stop.id,
-                'address': stop.address,
-                'post_type': stop.post_type,
-                'service_type': stop.service_type,
-                'is_asap': stop.is_asap,
-                'required_date': stop.required_date
-            }
-            all_stops_data.append(stop_data)
-        
-        if len(all_stops_data) == 0:
-            flash('No active stops found to generate routes.', 'warning')
-            return redirect(url_for('main.index'))
-        
-        print(f"✅ PASSED LENGTH CHECK - HAVE {len(all_stops_data)} STOPS")
-        
-        # Use geographic clustering to group nearby stops
-        print("🔧 IMPORTING GEOGRAPHIC CLUSTERER")
-        from geographic_clustering import GeographicClusterer
-        clusterer = GeographicClusterer()
-        print("🔧 CLUSTERER CREATED SUCCESSFULLY")
-        
-        # MANDATORY: Flash message to show we reached the balancing section
-        flash('Reached geographic clustering section - balancing should happen next', 'info')
-        
-        # Filter stops to prevent routes over 9 hours and defer ASAP stops if needed
-        asap_stops = [stop for stop in all_stops_data if stop.get('is_asap', False)]
-        scheduled_stops = [stop for stop in all_stops_data if not stop.get('is_asap', False)]
-        
-        logging.info(f"Stop breakdown: {len(scheduled_stops)} scheduled, {len(asap_stops)} ASAP")
-        
-        # DEBUG: Always apply 8-hour balancing regardless of overtime estimate
-        print("🔧 ALWAYS BYPASSING CLUSTERING - USING SIMPLE DISTRIBUTION + 8-HOUR BALANCING")
-        logging.info("🔧 ALWAYS BYPASSING CLUSTERING - USING SIMPLE DISTRIBUTION + 8-HOUR BALANCING")
-        
-        # Estimate if adding all stops would create excessive overtime
-        estimated_total_minutes = len(all_stops_data) * 25  # Rough per-stop estimate
-        minutes_per_driver = estimated_total_minutes / num_drivers
-        logging.info(f"Estimated {minutes_per_driver:.1f} minutes per driver ({minutes_per_driver/60:.1f} hours)")
-        
-        if minutes_per_driver > 540:  # Over 9 hours average
-            # Calculate how many stops we can fit within 9-hour limits
-            max_stops_for_9h = int((num_drivers * 540) / 25)  # 9 hours * drivers / 25min per stop
-            
-            # Always include ALL scheduled stops (they have priority)
-            stops_to_process = scheduled_stops.copy()
-            
-            # Add ASAP stops only if they fit within 9-hour limits
-            remaining_capacity = max_stops_for_9h - len(scheduled_stops)
-            if remaining_capacity > 0 and asap_stops:
-                stops_to_add = asap_stops[:remaining_capacity]
-                stops_deferred = asap_stops[remaining_capacity:]
-                stops_to_process.extend(stops_to_add)
-                
-                if stops_deferred:
-                    flash(f'Route optimization: {len(stops_deferred)} ASAP stops deferred to next day to keep all drivers within 9-hour limit', 'info')
-                    logging.info(f"Deferred {len(stops_deferred)} ASAP stops to prevent excessive overtime")
-            elif remaining_capacity <= 0:
-                flash(f'Warning: {len(asap_stops)} ASAP stops deferred - all scheduled stops already fill 9-hour capacity', 'warning')
-                stops_deferred = asap_stops
-            else:
-                stops_to_process.extend(asap_stops)
-                
-            all_stops_data = stops_to_process
-            print(f"🔧 OVERTIME BRANCH - USING {len(all_stops_data)} STOPS")
-        else:
-            # No overtime limiting needed - use all stops
-            all_stops_data = all_stops_data
-            print(f"🔧 NO OVERTIME BRANCH - USING ALL {len(all_stops_data)} STOPS")
-            
-        # Skip clustering completely and go straight to simple distribution + balancing
-        logging.info("🔧 BYPASSING CLUSTERING - USING SIMPLE DISTRIBUTION + 8-HOUR BALANCING")
-        
-        # Simple distribution
-        stops_per_driver = len(all_stops_data) // num_drivers
-        remainder = len(all_stops_data) % num_drivers
-        
-        optimized_routes = []
-        current_index = 0
-        
-        for driver in range(num_drivers):
-            driver_stops = stops_per_driver + (1 if driver < remainder else 0)
-            if driver_stops > 0:
-                route = list(range(current_index, current_index + driver_stops))
-                optimized_routes.append(route)
-                current_index += driver_stops
-            else:
-                optimized_routes.append([])  # Empty route for excess drivers
-        
-        logging.info(f"Simple distribution complete: {[len(route) for route in optimized_routes]} stops per driver")
-        
-        # MANDATORY: Apply 8-hour balancing IMMEDIATELY to fix imbalanced routes
-        print("🔥🔥🔥 APPLYING DIRECT 8-HOUR BALANCING 🔥🔥🔥")
-        logging.error("🔥🔥🔥 APPLYING DIRECT 8-HOUR BALANCING 🔥🔥🔥")
-        
-        # Calculate current imbalanced distribution
-        route_lengths_before = [len(route) for route in optimized_routes]
-        print(f"BEFORE balancing: {route_lengths_before} stops per driver")
-        
-        # DIRECT BALANCING: Redistribute stops to achieve 8-hour minimum
-        total_stops = sum(len(route) for route in optimized_routes)
-        target_per_driver = total_stops // len(optimized_routes)
-        remainder = total_stops % len(optimized_routes)
-        
-        # Create balanced distribution
-        balanced_routes = []
-        all_stop_indices = []
-        for route in optimized_routes:
-            all_stop_indices.extend(route)
-        
-        # Redistribute evenly
-        current_index = 0
-        for i in range(len(optimized_routes)):
-            stops_for_driver = target_per_driver + (1 if i < remainder else 0)
-            driver_stops = all_stop_indices[current_index:current_index + stops_for_driver]
-            balanced_routes.append(driver_stops)
-            current_index += stops_for_driver
-        
-        optimized_routes = balanced_routes
-        route_lengths_after = [len(route) for route in optimized_routes]
-        print(f"AFTER balancing: {route_lengths_after} stops per driver")
-        print("✅ DIRECT 8-HOUR BALANCING COMPLETED")
-        logging.error("✅ DIRECT 8-HOUR BALANCING COMPLETED")
-        
-        # CRITICAL DEBUG: Flash message to prove we reached route creation section
-        flash(f'🎯 ROUTE CREATION: Creating routes for {len(optimized_routes)} drivers', 'info')
-        print(f"🎯 ROUTE CREATION: Creating routes for {len(optimized_routes)} drivers")
-        logging.error(f"🎯 ROUTE CREATION: Creating routes for {len(optimized_routes)} drivers")
-        
-        # FORCE BALANCED DISTRIBUTION: Override imbalanced routes directly
-        print("🔥 FORCING BALANCED REDISTRIBUTION BEFORE ROUTE CREATION 🔥")
-        logging.error("🔥 FORCING BALANCED REDISTRIBUTION BEFORE ROUTE CREATION 🔥")
-        
-        # Calculate total stops and create perfectly balanced distribution
-        total_stops = sum(len(route) for route in optimized_routes)
-        stops_per_driver = total_stops // num_drivers
-        remainder = total_stops % num_drivers
-        
-        # Flatten all stop indices from imbalanced routes
-        all_indices = []
-        for route in optimized_routes:
-            all_indices.extend(route)
-        
-        # Create new balanced distribution
-        balanced_routes = []
-        current_index = 0
-        
-        for i in range(num_drivers):
-            driver_stops = stops_per_driver + (1 if i < remainder else 0)
-            driver_indices = all_indices[current_index:current_index + driver_stops]
-            balanced_routes.append(driver_indices)
-            current_index += driver_stops
-            
-        # Replace imbalanced routes with balanced ones
-        optimized_routes = balanced_routes
-        route_distribution = [len(route) for route in optimized_routes]
-        print(f"✅ FORCED BALANCE COMPLETE: {route_distribution} stops per driver")
-        logging.error(f"✅ FORCED BALANCE COMPLETE: {route_distribution} stops per driver")
-        
-        # STRICT 8-9 HOUR SHIFT ENFORCEMENT WITH PRIORITY SYSTEM
-        print("⏰ ENFORCING 8-9 HOUR SHIFT LIMITS WITH PRIORITY SYSTEM...")
-        logging.error("⏰ ENFORCING 8-9 HOUR SHIFT LIMITS WITH PRIORITY SYSTEM...")
-        
-        # Calculate current route times for each driver
-        route_time_data = []
-        for driver_num, route_indices in enumerate(optimized_routes):
-            if not route_indices:
-                route_time_data.append({'driver': driver_num, 'stops': 0, 'time': 0, 'indices': []})
-                continue
-                
-            # Calculate time for this route (same logic as below)
-            valid_indices = [i for i in route_indices if i < len(all_stops_data)]
-            route_stops = [all_stops_data[i] for i in valid_indices]
-            
-            if route_stops:
-                service_time = len(route_stops) * 10
-                stop_addresses = [stop['address'] for stop in route_stops]
-                departure_address = get_fixed_departure_address()
-                
-                from google_maps_service import GoogleMapsService
-                maps_service = GoogleMapsService()
-                
-                try:
-                    drive_times_list, departure_to_first, last_to_departure = maps_service.get_route_drive_times(
-                        departure_address, stop_addresses
-                    )
-                    if departure_to_first == 0 and last_to_departure == 0 and not drive_times_list:
-                        # Fallback estimates
-                        drive_times_list, departure_to_first, last_to_departure = maps_service.get_fallback_drive_times(
-                            departure_address, stop_addresses, start_time
-                        )
-                    
-                    drive_time = sum(drive_times_list) + departure_to_first + last_to_departure
-                    total_time = service_time + drive_time
-                except:
-                    # Fallback calculation
-                    estimated_drive_time = max(30, len(route_stops) * 5)
-                    total_time = service_time + estimated_drive_time
-            else:
-                total_time = 0
-                
-            route_time_data.append({
-                'driver': driver_num,
-                'stops': len(valid_indices), 
-                'time': total_time,
-                'indices': valid_indices
-            })
-        
-        # Strict 8-9 hour enforcement with priority system
-        target_min = 480  # 8 hours minimum
-        target_max = 540  # 9 hours maximum
-        
-        # Build priority-ordered stop list (scheduled first, then ASAP by timestamp)
-        priority_stops = []
-        
-        # Add scheduled stops first (highest priority)
-        for stop_idx in range(len(all_stops_data)):
-            stop = all_stops_data[stop_idx]
-            if stop.get('required_date') and not stop.get('is_asap'):
-                priority_stops.append(stop_idx)
-        
-        # Add ASAP stops next (by timestamp)
-        asap_indices = []
-        for stop_idx in range(len(all_stops_data)):
-            stop = all_stops_data[stop_idx]
-            if stop.get('is_asap'):
-                asap_indices.append(stop_idx)
-        # Sort ASAP by creation time if available
-        priority_stops.extend(asap_indices)
-        
-        # Add remaining stops last
-        for stop_idx in range(len(all_stops_data)):
-            if stop_idx not in priority_stops:
-                priority_stops.append(stop_idx)
-        
-        # Redistribute stops ensuring 8-9 hour limits
-        balanced_routes = [[] for _ in range(num_drivers)]
-        deferred_for_tomorrow = []
-        
-        for stop_idx in priority_stops:
+        # Process stops in priority order
+        for item in priority_list:
+            stop = item['stop']
             assigned = False
             
-            # Try to assign to driver with least time (but under 9 hours)
-            for driver_idx in range(num_drivers):
-                current_time = 0
-                if balanced_routes[driver_idx]:
-                    # More accurate estimate: 10 min service + ~10 min drive between stops
-                    current_time = len(balanced_routes[driver_idx]) * 20  # ~20 min per stop total
-                
-                # If adding this stop keeps driver under 9 hours, assign it
-                estimated_with_new_stop = current_time + 20  # Adding one more stop
-                if estimated_with_new_stop <= target_max:
-                    balanced_routes[driver_idx].append(stop_idx)
-                    assigned = True
-                    break
+            # Find driver with minimum time who can take this stop
+            best_driver = -1
+            best_time = float('inf')
             
-            # If no driver can take it without exceeding 9 hours, defer to tomorrow
+            for driver_idx in range(num_drivers):
+                # Skip if driver already at max capacity
+                if driver_times[driver_idx] >= MAX_SHIFT:
+                    continue
+                
+                # Estimate time if we add this stop
+                if not driver_routes[driver_idx]:
+                    # First stop for this driver
+                    estimated_time = SERVICE_TIME + 30  # Service + round trip to departure
+                else:
+                    # Additional stop - estimate 20 min total (10 service + 10 drive)
+                    estimated_time = 20
+                
+                new_total = driver_times[driver_idx] + estimated_time
+                
+                # Check if this would exceed max shift
+                if new_total <= MAX_SHIFT and driver_times[driver_idx] < best_time:
+                    best_driver = driver_idx
+                    best_time = driver_times[driver_idx]
+            
+            if best_driver >= 0:
+                driver_routes[best_driver].append(stop)
+                # Update time estimate
+                if len(driver_routes[best_driver]) == 1:
+                    driver_times[best_driver] += SERVICE_TIME + 30
+                else:
+                    driver_times[best_driver] += 20
+                assigned = True
+            
             if not assigned:
-                deferred_for_tomorrow.append(stop_idx)
+                deferred_stops.append(stop)
         
-        # Log the redistribution results
-        for i, route in enumerate(balanced_routes):
-            est_time = len(route) * 20
-            if est_time < target_min:
-                logging.warning(f"⚠️ Driver {i+1}: Only {len(route)} stops (~{est_time}min) - below 8 hour minimum")
-            elif est_time > target_max:
-                logging.error(f"❌ Driver {i+1}: {len(route)} stops (~{est_time}min) - EXCEEDS 9 hour maximum!")
-            else:
-                logging.info(f"✅ Driver {i+1}: {len(route)} stops (~{est_time}min) - within 8-9 hour range")
+        # Log distribution results
+        for i in range(num_drivers):
+            hours = driver_times[i] / 60
+            status = "✅" if MIN_SHIFT <= driver_times[i] <= MAX_SHIFT else "⚠️"
+            logging.info(f"{status} Driver {i+1}: {len(driver_routes[i])} stops, "
+                        f"~{driver_times[i]} min ({hours:.1f} hours)")
         
-        if deferred_for_tomorrow:
-            deferred_count = len(deferred_for_tomorrow)
-            deferred_asap = sum(1 for idx in deferred_for_tomorrow if all_stops_data[idx].get('is_asap'))
-            logging.warning(f"📅 {deferred_count} stops deferred to tomorrow ({deferred_asap} ASAP) to maintain 9-hour limit")
-            flash(f'{deferred_count} stops deferred to tomorrow ({deferred_asap} ASAP) to maintain driver shift limits', 'warning')
+        if deferred_stops:
+            deferred_asap = sum(1 for s in deferred_stops if s.is_asap)
+            logging.warning(f"📅 Deferred {len(deferred_stops)} stops ({deferred_asap} ASAP) to maintain shift limits")
+            flash(f'{len(deferred_stops)} stops deferred to tomorrow ({deferred_asap} ASAP) to maintain 9-hour limit', 'warning')
         
-        optimized_routes = balanced_routes
-        logging.error(f"✅ SHIFT-LIMITED DISTRIBUTION: {[len(r) for r in optimized_routes]} stops per driver")
-        
-        # Create route records for each driver (skip empty routes)
+        # PHASE 3: Optimize each route with TSP and get accurate times
         routes_created = 0
-        for driver_num, route_indices in enumerate(optimized_routes, 1):
-            if not route_indices:
-                logging.info(f"Skipping empty route for driver {driver_num}")
+        total_actual_time = 0
+        
+        for driver_num, route_stops in enumerate(driver_routes, 1):
+            if not route_stops:
+                logging.info(f"Driver {driver_num} has no stops assigned")
                 continue
             
-            # Get stops for this route (ensure indices are valid)
-            valid_indices = [i for i in route_indices if i < len(all_stops_data)]
-            route_stops = [all_stops_data[i] for i in valid_indices]
+            # Use TSP to optimize stop order
+            tsp_solver = TSPSolver()
+            stop_addresses = [stop.address for stop in route_stops]
             
-            # Calculate estimated time with Google Maps API or fallback estimates
-            if route_stops:
-                # Service time: 10 minutes per stop (install/pickup/removal)
-                service_time = len(route_stops) * 10
+            # Get optimized order
+            optimized_order = tsp_solver.solve_tsp(departure_address, stop_addresses, route_start_time)
+            
+            # Reorder stops based on TSP solution
+            optimized_stops = [route_stops[i] for i in optimized_order]
+            
+            # Calculate actual time with Google Maps
+            service_time = len(optimized_stops) * SERVICE_TIME
+            
+            try:
+                drive_times_list, departure_to_first, last_to_departure = maps_service.get_route_drive_times(
+                    departure_address, [s.address for s in optimized_stops]
+                )
                 
-                # Get real drive times using Google Maps API
-                from google_maps_service import GoogleMapsService
-                maps_service = GoogleMapsService()
-                
-                # Extract addresses from route stops
-                stop_addresses = [stop['address'] for stop in route_stops]
-                departure_address = get_fixed_departure_address()
-                
-                # Get drive times from Google Maps or fallback estimates
-                try:
-                    drive_times_list, departure_to_first, last_to_departure = maps_service.get_route_drive_times(
-                        departure_address, stop_addresses
-                    )
-                    
-                    # If Google Maps API failed, use fallback estimates
-                    if departure_to_first == 0 and last_to_departure == 0 and not drive_times_list:
-                        drive_times_list, departure_to_first, last_to_departure = maps_service.get_fallback_drive_times(
-                            departure_address, stop_addresses, start_time
-                        )
-                        traffic_description = "fallback estimates"
-                    else:
-                        traffic_description = "Google Maps real-time"
-                        
-                    drive_time_between_stops = sum(drive_times_list) if drive_times_list else 0
-                    
-                except Exception as e:
-                    logging.warning(f"Google Maps service error: {e}, using fallback estimates")
-                    # Use fallback estimates if Google Maps fails
+                if not any([departure_to_first, last_to_departure, drive_times_list]):
+                    # Fallback if API fails
                     drive_times_list, departure_to_first, last_to_departure = maps_service.get_fallback_drive_times(
-                        departure_address, stop_addresses, start_time
+                        departure_address, [s.address for s in optimized_stops], route_start_time
                     )
-                    drive_time_between_stops = sum(drive_times_list) if drive_times_list else 0
-                    traffic_description = "fallback estimates"
+                    data_source = "fallback estimates"
+                else:
+                    data_source = "Google Maps real-time"
                 
-                total_time = service_time + drive_time_between_stops + departure_to_first + last_to_departure
+                drive_time = sum(drive_times_list) + departure_to_first + last_to_departure
+                total_time = service_time + drive_time
                 
-                logging.info(f"Driver {driver_num} route time breakdown ({traffic_description}): "
-                           f"Service: {service_time}min, "
-                           f"Between stops: {drive_time_between_stops}min, "
-                           f"Departure trips: {departure_to_first + last_to_departure}min, "
-                           f"Total: {total_time}min")
-            else:
-                total_time = 0
+            except Exception as e:
+                logging.error(f"Error calculating route times: {e}")
+                # Use conservative fallback
+                drive_time = len(optimized_stops) * 10 + 30  # 10 min between + 30 for departure
+                total_time = service_time + drive_time
+                data_source = "fallback estimates"
             
-            # Check if route exceeds 8-hour limit and warn
-            if total_time > 480:  # 8 hours = 480 minutes
-                flash(f'Warning: Driver {driver_num} route exceeds 8 hours ({total_time//60}h {total_time%60}m)', 'warning')
+            total_actual_time += total_time
+            
+            # Log actual vs estimated
+            hours = total_time / 60
+            status = "✅" if MIN_SHIFT <= total_time <= MAX_SHIFT else "⚠️"
+            logging.info(f"{status} Driver {driver_num} actual: {len(optimized_stops)} stops, "
+                        f"{total_time} min ({hours:.1f} hours) via {data_source}")
+            
+            # Warn if exceeds limits
+            if total_time > MAX_SHIFT:
+                flash(f'Warning: Driver {driver_num} route exceeds 9 hours ({hours:.1f} hours)', 'warning')
+            elif total_time < MIN_SHIFT:
+                flash(f'Note: Driver {driver_num} route under 8 hours ({hours:.1f} hours) - not enough stops available', 'info')
             
             # Create route record
-            stop_sequence = json.dumps([all_stops_data[i]['id'] for i in valid_indices])
-            
-            # Store Google Maps drive time data for UI display
+            stop_sequence = json.dumps([s.id for s in optimized_stops])
             google_maps_data = {
                 'departure_to_first': departure_to_first,
                 'between_stops': drive_times_list,
                 'last_to_departure': last_to_departure,
-                'data_source': traffic_description
+                'data_source': data_source
             }
             
-            route = Route()
-            route.driver_number = driver_num
-            route.stop_sequence = stop_sequence
-            route.total_time_minutes = total_time
-            route.start_time = start_time
-            route.route_date = route_date
-            route.google_maps_data = json.dumps(google_maps_data)
+            route = Route(
+                driver_number=driver_num,
+                stop_sequence=stop_sequence,
+                total_time_minutes=total_time,
+                start_time=route_start_time,
+                route_date=route_date,
+                google_maps_data=json.dumps(google_maps_data)
+            )
             
             db.session.add(route)
             routes_created += 1
-            # CRITICAL BALANCE FIX: Ensure minimum 25 stops per driver (8+ hours)
-            if len(valid_indices) < 25 and driver_num <= 2:  # First two drivers are severely under-scheduled
-                logging.error(f"🚨 CRITICAL: Driver {driver_num} only has {len(valid_indices)} stops - MUST BE INCREASED!")
-                flash(f'Error: Driver {driver_num} has only {len(valid_indices)} stops (under 8h minimum)', 'error')
-            
-            logging.error(f"🎯 BALANCING CHECK: Route {driver_num} has {len(valid_indices)} stops, {total_time} minutes ({total_time/60:.1f}h)")
-            logging.info(f"Created route for driver {driver_num}: {len(valid_indices)} stops, {total_time} minutes")
         
         db.session.commit()
-        processing_time = time.time() - start_processing_time
-        total_routes = routes_created
-        # Add logging to verify routes were created
-        final_routes = Route.query.all()
         
-        # Show route time distribution for verification  
-        route_times = [f"Driver {route.driver_number}: {route.total_time_minutes//60}h {route.total_time_minutes%60}m" for route in final_routes]
-        flash(f'Routes generated successfully for {total_routes} driver(s) in {processing_time:.1f} seconds. Times: {", ".join(route_times)}', 'success')
-        logging.info(f"Route generation completed in {processing_time:.2f} seconds")
+        # Summary statistics
+        processing_time = time.time() - start_time
+        avg_time = total_actual_time / num_drivers if num_drivers > 0 else 0
         
-        # CRITICAL DEBUG: Check actual database stop counts
-        logging.info(f"Final route count after generation: {len(final_routes)}")
-        for route in final_routes:
-            if route.stop_sequence:
-                try:
-                    stops = json.loads(route.stop_sequence)
-                    actual_stop_count = len(stops)
-                    logging.error(f"🔍 ACTUAL STORED: Route {route.driver_number}: {actual_stop_count} stops, {route.total_time_minutes} minutes")
-                except:
-                    logging.error(f"🔍 PARSE ERROR: Route {route.driver_number}: Could not parse stop_sequence")
-            else:
-                logging.error(f"🔍 EMPTY: Route {route.driver_number}: No stops, {route.total_time_minutes} minutes")
-                
-        # TIME-BASED REDISTRIBUTION: Balance routes by total time, not just stop count
-        if len(final_routes) == 4:
-            route_times = [route.total_time_minutes for route in final_routes]
-            min_time = min(route_times)
-            max_time = max(route_times)
-            imbalance = max_time - min_time
-            
-            if imbalance > 60:  # More than 1 hour imbalance requires redistribution
-                logging.error(f"🔄 TIME-BASED REDISTRIBUTION NEEDED: {imbalance} minute gap")
-                flash(f'Redistributing routes for better time balance...', 'info')
-                
-                # Find routes that are too short and too long
-                target_time = 480  # 8 hours minimum
-                routes_to_rebalance = []
-                
-                for i, route in enumerate(final_routes):
-                    if route.stop_sequence:
-                        stops = json.loads(route.stop_sequence)
-                        stop_count = len(stops)
-                        time = route.total_time_minutes
-                        
-                        if time < target_time:
-                            # Route is under 8 hours - needs more stops
-                            additional_stops_needed = max(1, (target_time - time) // 20)  # Estimate 20min per additional stop
-                            logging.error(f"🔼 Route {route.driver_number}: {time}min ({time//60:.1f}h) - needs {additional_stops_needed} more stops")
-                            routes_to_rebalance.append({
-                                'route': route,
-                                'needs': 'more',
-                                'deficit': target_time - time,
-                                'additional_stops': additional_stops_needed
-                            })
-                        elif time > 540:  # Over 9 hours
-                            # Route is too long - needs fewer stops  
-                            excess_stops = max(1, (time - 540) // 20)
-                            logging.error(f"🔽 Route {route.driver_number}: {time}min ({time//60:.1f}h) - remove {excess_stops} stops")
-                            routes_to_rebalance.append({
-                                'route': route, 
-                                'needs': 'less',
-                                'excess': time - 540,
-                                'excess_stops': excess_stops
-                            })
-                
-                if routes_to_rebalance:
-                    flash(f'Found {len(routes_to_rebalance)} routes needing rebalancing for 8+ hour shifts', 'warning')
-            else:
-                logging.error(f"✅ ROUTES BALANCED: {imbalance} minute gap is acceptable")
+        logging.info(f"✅ Route generation complete: {routes_created} routes in {processing_time:.1f}s")
+        logging.info(f"Average route time: {avg_time:.0f} min ({avg_time/60:.1f} hours)")
+        
+        flash(f'Successfully generated {routes_created} optimized routes', 'success')
+        
+        # Redirect with cache buster
+        import time as t
+        cache_buster = str(int(t.time() * 1000))
+        return redirect(url_for('main.index') + f'?refresh=routes&v={cache_buster}')
         
     except Exception as e:
-        import traceback
-        logging.error(f"Error generating routes: {e}")
-        logging.error(f"Traceback: {traceback.format_exc()}")
+        logging.error(f"Route generation error: {e}")
         flash(f'Error generating routes: {str(e)}', 'error')
         db.session.rollback()
-    
-    # Direct redirect with multiple cache-busting parameters
-    from flask import make_response
-    import time as time_module
-    timestamp = int(time_module.time() * 1000)
-    
-    # Create response with multiple URL parameters to ensure cache bypass
-    redirect_url = url_for('main.index', 
-                          refresh='routes', 
-                          v=timestamp, 
-                          update='true',
-                          cache_bust=timestamp,
-                          _external=False)
-    
-    response = make_response(redirect(redirect_url))
-    
-    # Maximum strength cache prevention headers
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0, private'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    response.headers['Last-Modified'] = datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')
-    response.headers['ETag'] = f'"{timestamp}"'
-    response.headers['Vary'] = '*'
-    response.headers['X-Cache-Control'] = 'no-cache'
-    
-    logging.info(f"Redirecting to: {redirect_url}")
-    return response
+        return redirect(url_for('main.index'))
 
-@main.route('/delete_stop/<int:stop_id>')
+# Add remaining route handlers...
+@main.route('/add_stop', methods=['POST'])
+def add_stop():
+    """Add a new stop"""
+    try:
+        stop = Stop(
+            post_type=request.form.get('post_type'),
+            address=request.form.get('address'),
+            service_type=request.form.get('service_type'),
+            is_asap=request.form.get('is_asap') == 'on',
+            required_date=datetime.strptime(request.form.get('required_date'), '%Y-%m-%d') if request.form.get('required_date') else None,
+            agent_sign_description=request.form.get('agent_sign_description'),
+            has_riders_toppers=request.form.get('has_riders_toppers') == 'on',
+            riders_toppers_description=request.form.get('riders_toppers_description'),
+            has_shelter=request.form.get('has_shelter') == 'on'
+        )
+        
+        db.session.add(stop)
+        db.session.commit()
+        
+        flash('Stop added successfully', 'success')
+    except Exception as e:
+        flash(f'Error adding stop: {str(e)}', 'error')
+        db.session.rollback()
+    
+    return redirect(url_for('main.index'))
+
+@main.route('/delete_stop/<int:stop_id>', methods=['POST'])
 def delete_stop(stop_id):
     """Delete a stop"""
     try:
@@ -815,36 +341,20 @@ def delete_stop(stop_id):
         db.session.commit()
         flash('Stop deleted successfully', 'success')
     except Exception as e:
-        logging.error(f"Error deleting stop: {e}")
-        flash('Error deleting stop', 'error')
+        flash(f'Error deleting stop: {str(e)}', 'error')
         db.session.rollback()
     
     return redirect(url_for('main.index'))
 
-
-
-@main.route('/clear_routes')
+@main.route('/clear_routes', methods=['POST'])
 def clear_routes():
-    """Clear all generated routes"""
+    """Clear all routes"""
     try:
         Route.query.delete()
         db.session.commit()
         flash('All routes cleared', 'success')
     except Exception as e:
-        logging.error(f"Error clearing routes: {e}")
-        flash('Error clearing routes', 'error')
+        flash(f'Error clearing routes: {str(e)}', 'error')
         db.session.rollback()
     
     return redirect(url_for('main.index'))
-
-@main.route('/get_agent_sign/<path:address>')
-def get_agent_sign(address):
-    """Get agent sign description for a given address"""
-    agent_sign = AgentSignHistory.query.filter_by(address=address).first()
-    if agent_sign:
-        return jsonify({
-            'found': True,
-            'description': agent_sign.sign_description,
-            'updated_at': agent_sign.updated_at.strftime('%Y-%m-%d')
-        })
-    return jsonify({'found': False})
