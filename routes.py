@@ -144,12 +144,13 @@ def generate_routes():
         driver_times = [0 for _ in range(num_drivers)]  # Track actual time per driver
         deferred_stops = []
         
-        # Constants - adjusted for realistic Google Maps times
+        # Constants - calibrated for 8-9 hour shifts with real Google Maps times
         SERVICE_TIME = 10  # minutes per stop
         MAX_SHIFT = 540   # 9 hours in minutes
         MIN_SHIFT = 480   # 8 hours in minutes
-        # More realistic time per stop based on actual data (service + drive)
-        REALISTIC_TIME_PER_STOP = 35  # ~35 min per stop average with real traffic
+        TARGET_SHIFT = 510  # 8.5 hours target for optimal balance
+        # Calibrated based on actual Google Maps data: ~26-27 min/stop average
+        REALISTIC_TIME_PER_STOP = 27  # Actual average from Google Maps data
         
         # Process stops in priority order
         for item in priority_list:
@@ -165,26 +166,33 @@ def generate_routes():
                 if driver_times[driver_idx] >= MAX_SHIFT:
                     continue
                 
-                # Estimate time if we add this stop using realistic times
+                # Estimate time if we add this stop using calibrated times
                 if not driver_routes[driver_idx]:
-                    # First stop for this driver
-                    estimated_time = REALISTIC_TIME_PER_STOP + 15  # First stop + return trip overhead
+                    # First stop includes round trip overhead
+                    estimated_time = REALISTIC_TIME_PER_STOP + 20  # First stop + return trip
                 else:
-                    # Additional stop - use realistic average
+                    # Additional stops use calibrated average
                     estimated_time = REALISTIC_TIME_PER_STOP
                 
                 new_total = driver_times[driver_idx] + estimated_time
                 
-                # Check if this would exceed max shift
-                if new_total <= MAX_SHIFT and driver_times[driver_idx] < best_time:
-                    best_driver = driver_idx
-                    best_time = driver_times[driver_idx]
+                # Prefer drivers under target shift, but allow up to max
+                if new_total <= MAX_SHIFT:
+                    # Prioritize filling drivers to target shift first
+                    if driver_times[driver_idx] < TARGET_SHIFT:
+                        if driver_times[driver_idx] < best_time or best_time >= TARGET_SHIFT:
+                            best_driver = driver_idx
+                            best_time = driver_times[driver_idx]
+                    # Then consider drivers between target and max if no better option
+                    elif best_driver == -1 and driver_times[driver_idx] < best_time:
+                        best_driver = driver_idx
+                        best_time = driver_times[driver_idx]
             
             if best_driver >= 0:
                 driver_routes[best_driver].append(stop)
-                # Update time estimate with realistic values
+                # Update time estimate with calibrated values
                 if len(driver_routes[best_driver]) == 1:
-                    driver_times[best_driver] += REALISTIC_TIME_PER_STOP + 15
+                    driver_times[best_driver] += REALISTIC_TIME_PER_STOP + 20
                 else:
                     driver_times[best_driver] += REALISTIC_TIME_PER_STOP
                 assigned = True
