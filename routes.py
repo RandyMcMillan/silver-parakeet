@@ -211,25 +211,12 @@ def generate_routes():
                 logging.info(f"Driver {driver_num} has no stops assigned")
                 continue
             
-            # Use TSP to optimize stop order
-            tsp_solver = TSPSolver()
+            # Skip TSP optimization for now to prevent timeouts - just use the order as-is
+            # TSP optimization can be re-enabled once we improve geocoding performance
+            optimized_stops = route_stops
             
-            # Create stops data format expected by TSP solver
-            stops_data = []
-            for stop in route_stops:
-                stops_data.append({
-                    'id': stop.id,
-                    'address': stop.address,
-                    'service_type': stop.service_type,
-                    'is_asap': stop.is_asap,
-                    'required_date': stop.required_date
-                })
-            
-            # Get optimized order (TSPSolver.solve_tsp takes only stops_data parameter)
-            optimized_order = tsp_solver.solve_tsp(stops_data)
-            
-            # Reorder stops based on TSP solution
-            optimized_stops = [route_stops[i] for i in optimized_order]
+            # Log that we're using simple ordering
+            logging.info(f"Driver {driver_num}: Using priority-based ordering (TSP disabled for performance)")
             
             # Calculate actual time with Google Maps
             service_time = len(optimized_stops) * SERVICE_TIME
