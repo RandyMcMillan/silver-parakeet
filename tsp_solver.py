@@ -179,39 +179,102 @@ class TSPSolver:
         return tour
     
     def solve_tsp_with_departure(self, stops: List[Dict], departure_address: str) -> List[int]:
-        """Solve TSP considering departure point for optimal route"""
+        """Solve TSP with improved geographic clustering and route optimization"""
         if len(stops) <= 1:
             return list(range(len(stops)))
         
-        # Include departure address as first stop for distance calculation
-        all_stops = [{'address': departure_address}] + stops
+        # Get coordinates for all stops and departure
+        departure_coord = self.geocode_address(departure_address)
+        stop_coords = [self.geocode_address(stop['address']) for stop in stops]
         
-        # Create distance matrix including departure
-        distance_matrix = self.create_distance_matrix(all_stops)
-        
-        # Find nearest stop to departure point
+        # Find the nearest stop to departure to start
         min_dist = float('inf')
-        nearest_to_departure = 1  # Start from index 1 (first actual stop)
+        start_idx = 0
+        for i, coord in enumerate(stop_coords):
+            dist = self.calculate_distance(departure_coord, coord)
+            if dist < min_dist:
+                min_dist = dist
+                start_idx = i
         
-        for i in range(1, len(all_stops)):
-            if distance_matrix[0][i] < min_dist:
-                min_dist = distance_matrix[0][i]
-                nearest_to_departure = i
+        # Build route using nearest neighbor from the starting point
+        unvisited = set(range(len(stops)))
+        route = []
+        current_idx = start_idx
         
-        # Create matrix for just the stops (excluding departure)
-        stops_matrix = [[0.0] * len(stops) for _ in range(len(stops))]
-        for i in range(len(stops)):
-            for j in range(len(stops)):
-                stops_matrix[i][j] = distance_matrix[i+1][j+1]
+        # Start with the nearest stop to departure
+        route.append(current_idx)
+        unvisited.remove(current_idx)
         
-        # Solve TSP starting from nearest stop to departure
-        tour = self.nearest_neighbor_tsp(stops_matrix, nearest_to_departure - 1)
+        # Build the rest of the route
+        while unvisited:
+            current_coord = stop_coords[current_idx]
+            nearest_dist = float('inf')
+            nearest_idx = None
+            
+            # Find nearest unvisited stop
+            for idx in unvisited:
+                dist = self.calculate_distance(current_coord, stop_coords[idx])
+                if dist < nearest_dist:
+                    nearest_dist = dist
+                    nearest_idx = idx
+            
+            if nearest_idx is not None:
+                route.append(nearest_idx)
+                unvisited.remove(nearest_idx)
+                current_idx = nearest_idx
         
-        # Improve with 2-opt
-        if len(stops) > 2:
-            tour = self.two_opt_improvement(tour, stops_matrix)
+        # Apply 2-opt improvement for better optimization
+        route = self.improve_route_2opt(route, stop_coords)
         
-        return tour
+        # Find the best rotation to minimize total distance including return to depot
+        best_route = self.find_best_rotation(route, stop_coords, departure_coord)
+        
+        return best_route
+    
+    def improve_route_2opt(self, route: List[int], coords: List[Tuple[float, float]]) -> List[int]:
+        """Apply 2-opt improvement to optimize route"""
+        improved = True
+        best_route = route[:]
+        
+        while improved:
+            improved = False
+            for i in range(1, len(route) - 2):
+                for j in range(i + 1, len(route)):
+                    # Calculate current segment distance
+                    current_dist = (self.calculate_distance(coords[best_route[i-1]], coords[best_route[i]]) +
+                                  self.calculate_distance(coords[best_route[j-1]], coords[best_route[j % len(route)]]))
+                    
+                    # Calculate swapped segment distance
+                    swap_dist = (self.calculate_distance(coords[best_route[i-1]], coords[best_route[j-1]]) +
+                                self.calculate_distance(coords[best_route[i]], coords[best_route[j % len(route)]]))
+                    
+                    if swap_dist < current_dist:
+                        # Reverse the segment
+                        best_route[i:j] = reversed(best_route[i:j])
+                        improved = True
+        
+        return best_route
+    
+    def find_best_rotation(self, route: List[int], coords: List[Tuple[float, float]], 
+                           departure_coord: Tuple[float, float]) -> List[int]:
+        """Find the best rotation of the route to minimize total distance"""
+        best_total = float('inf')
+        best_route = route[:]
+        
+        for rotation in range(len(route)):
+            rotated = route[rotation:] + route[:rotation]
+            
+            # Calculate total distance including departure and return
+            total = self.calculate_distance(departure_coord, coords[rotated[0]])
+            for i in range(len(rotated) - 1):
+                total += self.calculate_distance(coords[rotated[i]], coords[rotated[i+1]])
+            total += self.calculate_distance(coords[rotated[-1]], departure_coord)
+            
+            if total < best_total:
+                best_total = total
+                best_route = rotated[:]
+        
+        return best_route
     
     def get_traffic_multiplier(self, start_time: str, elapsed_minutes: int) -> float:
         """Get traffic multiplier based on time of day"""
