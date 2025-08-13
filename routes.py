@@ -213,10 +213,20 @@ def generate_routes():
             
             # Use TSP to optimize stop order
             tsp_solver = TSPSolver()
-            stop_addresses = [stop.address for stop in route_stops]
             
-            # Get optimized order
-            optimized_order = tsp_solver.solve_tsp(departure_address, stop_addresses, route_start_time)
+            # Create stops data format expected by TSP solver
+            stops_data = []
+            for stop in route_stops:
+                stops_data.append({
+                    'id': stop.id,
+                    'address': stop.address,
+                    'service_type': stop.service_type,
+                    'is_asap': stop.is_asap,
+                    'required_date': stop.required_date
+                })
+            
+            # Get optimized order (TSPSolver.solve_tsp takes only stops_data parameter)
+            optimized_order = tsp_solver.solve_tsp(stops_data)
             
             # Reorder stops based on TSP solution
             optimized_stops = [route_stops[i] for i in optimized_order]
