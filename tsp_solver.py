@@ -163,6 +163,41 @@ class TSPSolver:
         
         return tour
     
+    def solve_tsp_with_departure(self, stops: List[Dict], departure_address: str) -> List[int]:
+        """Solve TSP considering departure point for optimal route"""
+        if len(stops) <= 1:
+            return list(range(len(stops)))
+        
+        # Include departure address as first stop for distance calculation
+        all_stops = [{'address': departure_address}] + stops
+        
+        # Create distance matrix including departure
+        distance_matrix = self.create_distance_matrix(all_stops)
+        
+        # Find nearest stop to departure point
+        min_dist = float('inf')
+        nearest_to_departure = 1  # Start from index 1 (first actual stop)
+        
+        for i in range(1, len(all_stops)):
+            if distance_matrix[0][i] < min_dist:
+                min_dist = distance_matrix[0][i]
+                nearest_to_departure = i
+        
+        # Create matrix for just the stops (excluding departure)
+        stops_matrix = [[0.0] * len(stops) for _ in range(len(stops))]
+        for i in range(len(stops)):
+            for j in range(len(stops)):
+                stops_matrix[i][j] = distance_matrix[i+1][j+1]
+        
+        # Solve TSP starting from nearest stop to departure
+        tour = self.nearest_neighbor_tsp(stops_matrix, nearest_to_departure - 1)
+        
+        # Improve with 2-opt
+        if len(stops) > 2:
+            tour = self.two_opt_improvement(tour, stops_matrix)
+        
+        return tour
+    
     def get_traffic_multiplier(self, start_time: str, elapsed_minutes: int) -> float:
         """Get traffic multiplier based on time of day"""
         # Parse start time
