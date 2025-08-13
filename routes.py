@@ -144,10 +144,12 @@ def generate_routes():
         driver_times = [0 for _ in range(num_drivers)]  # Track actual time per driver
         deferred_stops = []
         
-        # Constants
+        # Constants - adjusted for realistic Google Maps times
         SERVICE_TIME = 10  # minutes per stop
         MAX_SHIFT = 540   # 9 hours in minutes
         MIN_SHIFT = 480   # 8 hours in minutes
+        # More realistic time per stop based on actual data (service + drive)
+        REALISTIC_TIME_PER_STOP = 35  # ~35 min per stop average with real traffic
         
         # Process stops in priority order
         for item in priority_list:
@@ -163,13 +165,13 @@ def generate_routes():
                 if driver_times[driver_idx] >= MAX_SHIFT:
                     continue
                 
-                # Estimate time if we add this stop
+                # Estimate time if we add this stop using realistic times
                 if not driver_routes[driver_idx]:
                     # First stop for this driver
-                    estimated_time = SERVICE_TIME + 30  # Service + round trip to departure
+                    estimated_time = REALISTIC_TIME_PER_STOP + 15  # First stop + return trip overhead
                 else:
-                    # Additional stop - estimate 20 min total (10 service + 10 drive)
-                    estimated_time = 20
+                    # Additional stop - use realistic average
+                    estimated_time = REALISTIC_TIME_PER_STOP
                 
                 new_total = driver_times[driver_idx] + estimated_time
                 
@@ -180,11 +182,11 @@ def generate_routes():
             
             if best_driver >= 0:
                 driver_routes[best_driver].append(stop)
-                # Update time estimate
+                # Update time estimate with realistic values
                 if len(driver_routes[best_driver]) == 1:
-                    driver_times[best_driver] += SERVICE_TIME + 30
+                    driver_times[best_driver] += REALISTIC_TIME_PER_STOP + 15
                 else:
-                    driver_times[best_driver] += 20
+                    driver_times[best_driver] += REALISTIC_TIME_PER_STOP
                 assigned = True
             
             if not assigned:
