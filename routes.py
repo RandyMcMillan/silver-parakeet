@@ -148,9 +148,10 @@ def generate_routes():
         SERVICE_TIME = 10  # minutes per stop
         MAX_SHIFT = 540   # 9 hours in minutes
         MIN_SHIFT = 480   # 8 hours in minutes
-        TARGET_SHIFT = 510  # 8.5 hours target for optimal balance
-        # Calibrated based on actual Google Maps data: ~26-27 min/stop average
-        REALISTIC_TIME_PER_STOP = 27  # Actual average from Google Maps data
+        TARGET_SHIFT = 480  # 8 hours target - conservative to account for TSP overhead
+        # Account for TSP reorganization adding distance
+        # TSP optimization can add 15-20% to drive times by optimizing for geography
+        REALISTIC_TIME_PER_STOP = 32  # Conservative estimate accounting for TSP overhead
         
         # Process stops in priority order
         for item in priority_list:
@@ -169,7 +170,7 @@ def generate_routes():
                 # Estimate time if we add this stop using calibrated times
                 if not driver_routes[driver_idx]:
                     # First stop includes round trip overhead
-                    estimated_time = REALISTIC_TIME_PER_STOP + 20  # First stop + return trip
+                    estimated_time = REALISTIC_TIME_PER_STOP + 25  # First stop + return trip
                 else:
                     # Additional stops use calibrated average
                     estimated_time = REALISTIC_TIME_PER_STOP
@@ -192,7 +193,7 @@ def generate_routes():
                 driver_routes[best_driver].append(stop)
                 # Update time estimate with calibrated values
                 if len(driver_routes[best_driver]) == 1:
-                    driver_times[best_driver] += REALISTIC_TIME_PER_STOP + 20
+                    driver_times[best_driver] += REALISTIC_TIME_PER_STOP + 25
                 else:
                     driver_times[best_driver] += REALISTIC_TIME_PER_STOP
                 assigned = True
