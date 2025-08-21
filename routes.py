@@ -451,7 +451,10 @@ def export_route(route_id):
             if stop:
                 # Determine priority
                 priority = "Regular"
-                if stop.required_date and stop.required_date.date() == route.route_date.date():
+                # Handle both date and datetime objects
+                route_date = route.route_date if isinstance(route.route_date, date) else route.route_date.date()
+                stop_date = stop.required_date.date() if hasattr(stop.required_date, 'date') else stop.required_date
+                if stop.required_date and stop_date == route_date:
                     priority = "Scheduled Today"
                 elif stop.is_asap:
                     priority = "ASAP"
