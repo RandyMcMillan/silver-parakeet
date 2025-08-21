@@ -445,6 +445,10 @@
                                         <i data-feather="map" style="width: 14px; height: 14px;"></i>
                                         Show Map
                                     </button>
+                                    <a href="{{ url_for('main.export_route', route_id=route.id) }}" class="btn btn-sm btn-outline-success ms-2" title="Download route as Excel">
+                                        <i data-feather="download" style="width: 14px; height: 14px;"></i>
+                                        Download
+                                    </a>
                                 </div>
                             </div>
                             <!-- Map container (initially hidden) -->

@@ -2,7 +2,7 @@
 Optimized Route Generation Module
 Streamlined algorithm that eliminates redundancy and properly enforces 8-9 hour shifts
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, send_file
 from app import db
 from models import Stop, Route, DriverDepartureAddress, DriverCount
 from datetime import datetime, timedelta, date
@@ -10,6 +10,11 @@ import json
 import logging
 from google_maps_service import GoogleMapsService
 from tsp_solver import TSPSolver
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+import io
+import base64
 
 main = Blueprint('main', __name__)
 
@@ -382,3 +387,232 @@ def clear_routes():
         db.session.rollback()
     
     return redirect(url_for('main.index'))
+
+@main.route('/export_route/<int:route_id>')
+def export_route(route_id):
+    """Export a route to Excel with stops in order and summary information"""
+    try:
+        route = Route.query.get_or_404(route_id)
+        
+        # Get stop IDs from the route
+        stop_ids = json.loads(route.stop_sequence)
+        
+        # Create a new workbook
+        wb = Workbook()
+        
+        # Sheet 1: Route Details with Stops in Order
+        ws1 = wb.active
+        ws1.title = f"Driver {route.driver_number} Route"
+        
+        # Header styling
+        header_font = Font(bold=True, size=12, color="FFFFFF")
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Add route summary at the top
+        ws1.merge_cells('A1:G1')
+        ws1['A1'] = f"Route for Driver {route.driver_number}"
+        ws1['A1'].font = Font(bold=True, size=14)
+        ws1['A1'].alignment = Alignment(horizontal="center")
+        
+        ws1.merge_cells('A2:G2')
+        departure_address = get_fixed_departure_address()
+        ws1['A2'] = f"Departure: {departure_address}"
+        ws1['A2'].alignment = Alignment(horizontal="center")
+        
+        ws1.merge_cells('A3:G3')
+        total_hours = route.total_time_minutes / 60
+        ws1['A3'] = f"Total Time: {route.total_time_minutes} minutes ({total_hours:.1f} hours)"
+        ws1['A3'].alignment = Alignment(horizontal="center")
+        
+        ws1.merge_cells('A4:G4')
+        ws1['A4'] = f"Start Time: {route.start_time} | Date: {route.route_date}"
+        ws1['A4'].alignment = Alignment(horizontal="center")
+        
+        # Headers for stop details
+        headers = ['Stop #', 'Address', 'Service Type', 'Post Type', 'Priority', 'Agent Sign', 'Notes']
+        for col, header in enumerate(headers, 1):
+            cell = ws1.cell(row=6, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = border
+        
+        # Add stop details in order
+        row = 7
+        for idx, stop_id in enumerate(stop_ids, 1):
+            stop = Stop.query.get(stop_id)
+            if stop:
+                # Determine priority
+                priority = "Regular"
+                if stop.required_date and stop.required_date.date() == route.route_date.date():
+                    priority = "Scheduled Today"
+                elif stop.is_asap:
+                    priority = "ASAP"
+                
+                # Build notes
+                notes = []
+                if stop.has_riders_toppers:
+                    notes.append(f"Riders/Toppers: {stop.riders_toppers_description or 'Yes'}")
+                if stop.has_shelter:
+                    notes.append("Has Shelter")
+                
+                # Add row data
+                row_data = [
+                    idx,
+                    stop.address,
+                    stop.service_type or '',
+                    stop.post_type or '',
+                    priority,
+                    stop.agent_sign_description or '',
+                    '; '.join(notes)
+                ]
+                
+                for col, value in enumerate(row_data, 1):
+                    cell = ws1.cell(row=row, column=col, value=value)
+                    cell.border = border
+                    if col == 1:  # Stop number
+                        cell.alignment = Alignment(horizontal="center")
+                
+                row += 1
+        
+        # Auto-size columns
+        for column in ws1.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws1.column_dimensions[column_letter].width = adjusted_width
+        
+        # Sheet 2: Route Summary
+        ws2 = wb.create_sheet(title="Route Summary")
+        
+        ws2.merge_cells('A1:D1')
+        ws2['A1'] = f"Route Summary - Driver {route.driver_number}"
+        ws2['A1'].font = Font(bold=True, size=14)
+        ws2['A1'].alignment = Alignment(horizontal="center")
+        
+        # Summary statistics
+        summary_data = [
+            ['', ''],
+            ['Metric', 'Value'],
+            ['Driver Number', route.driver_number],
+            ['Total Stops', len(stop_ids)],
+            ['Total Time (minutes)', route.total_time_minutes],
+            ['Total Time (hours)', f"{total_hours:.1f}"],
+            ['Start Time', route.start_time],
+            ['Route Date', str(route.route_date)],
+            ['Departure Address', departure_address],
+            ['', ''],
+            ['Stop Breakdown', ''],
+            ['ASAP Stops', sum(1 for sid in stop_ids if Stop.query.get(sid) and Stop.query.get(sid).is_asap)],
+            ['Scheduled Stops', sum(1 for sid in stop_ids if Stop.query.get(sid) and Stop.query.get(sid).required_date)],
+            ['Regular Stops', sum(1 for sid in stop_ids if Stop.query.get(sid) and not Stop.query.get(sid).is_asap and not Stop.query.get(sid).required_date)],
+            ['', ''],
+            ['Service Types', ''],
+        ]
+        
+        # Count service types
+        service_counts = {}
+        for stop_id in stop_ids:
+            stop = Stop.query.get(stop_id)
+            if stop and stop.service_type:
+                service_counts[stop.service_type] = service_counts.get(stop.service_type, 0) + 1
+        
+        for service_type, count in service_counts.items():
+            summary_data.append([service_type, count])
+        
+        # Add summary data to sheet
+        for row_idx, row_data in enumerate(summary_data, 1):
+            for col_idx, value in enumerate(row_data, 1):
+                cell = ws2.cell(row=row_idx, column=col_idx, value=value)
+                if row_idx == 2 or row_idx == 11 or row_idx == 16:  # Header rows
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+        
+        # Auto-size columns for summary sheet
+        for column in ws2.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws2.column_dimensions[column_letter].width = adjusted_width
+        
+        # Sheet 3: Instructions for viewing map
+        ws3 = wb.create_sheet(title="Map Instructions")
+        
+        ws3.merge_cells('A1:D1')
+        ws3['A1'] = "How to View the Route Map"
+        ws3['A1'].font = Font(bold=True, size=14)
+        ws3['A1'].alignment = Alignment(horizontal="center")
+        
+        instructions = [
+            ['', ''],
+            ['Step', 'Instructions'],
+            ['1', 'Return to the Route Optimizer web application'],
+            ['2', f'Find Driver {route.driver_number} route in the Generated Routes section'],
+            ['3', 'Click the "Show Map" button to view the interactive map'],
+            ['4', 'The map will display:'],
+            ['', '  • Numbered stops in optimized order'],
+            ['', '  • Blue lines showing the route path'],
+            ['', '  • Departure point marked with a special icon'],
+            ['', '  • Click on any marker for stop details'],
+            ['', ''],
+            ['Note', 'Maps require an active internet connection to display properly'],
+        ]
+        
+        for row_idx, row_data in enumerate(instructions, 1):
+            for col_idx, value in enumerate(row_data, 1):
+                cell = ws3.cell(row=row_idx, column=col_idx, value=value)
+                if row_idx == 2:  # Header row
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+        
+        # Auto-size columns for instructions sheet
+        for column in ws3.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws3.column_dimensions[column_letter].width = adjusted_width
+        
+        # Save to BytesIO object
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Create filename with date and driver number
+        filename = f"route_driver_{route.driver_number}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        logging.error(f"Error exporting route: {e}")
+        flash(f'Error exporting route: {str(e)}', 'error')
+        return redirect(url_for('main.index'))
