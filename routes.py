@@ -416,28 +416,43 @@ def export_route(route_id):
             bottom=Side(style='thin')
         )
         
-        # Add route summary at the top
+        # Add route summary at the top (merge across all 14 columns)
         ws1['A1'] = f"Route for Driver {route.driver_number}"
         ws1['A1'].font = Font(bold=True, size=14)
         ws1['A1'].alignment = Alignment(horizontal="center")
-        ws1.merge_cells('A1:G1')
+        ws1.merge_cells('A1:N1')  # N is the 14th column
         
         departure_address = get_fixed_departure_address()
         ws1['A2'] = f"Departure: {departure_address}"
         ws1['A2'].alignment = Alignment(horizontal="center")
-        ws1.merge_cells('A2:G2')
+        ws1.merge_cells('A2:N2')
         
         total_hours = route.total_time_minutes / 60
         ws1['A3'] = f"Total Time: {route.total_time_minutes} minutes ({total_hours:.1f} hours)"
         ws1['A3'].alignment = Alignment(horizontal="center")
-        ws1.merge_cells('A3:G3')
+        ws1.merge_cells('A3:N3')
         
         ws1['A4'] = f"Start Time: {route.start_time} | Date: {route.route_date}"
         ws1['A4'].alignment = Alignment(horizontal="center")
-        ws1.merge_cells('A4:G4')
+        ws1.merge_cells('A4:N4')
         
-        # Headers for stop details
-        headers = ['Stop #', 'Address', 'Service Type', 'Post Type', 'Priority', 'Agent Sign', 'Notes']
+        # Headers for stop details matching input form fields
+        headers = [
+            'Stop #', 
+            'Street Address', 
+            'Apt/Unit',
+            'City',
+            'State',
+            'ZIP Code',
+            'Service Type',
+            'Post Type', 
+            'Priority',
+            'Required Date',
+            'Delivery Notes',
+            'Agent Sign Description',
+            'Riders/Toppers',
+            'Shelter'
+        ]
         for col, header in enumerate(headers, 1):
             cell = ws1.cell(row=6, column=col, value=header)
             cell.font = header_font
@@ -460,22 +475,72 @@ def export_route(route_id):
                 elif stop.is_asap:
                     priority = "ASAP"
                 
-                # Build notes
-                notes = []
-                if stop.has_riders_toppers:
-                    notes.append(f"Riders/Toppers: {stop.riders_toppers_description or 'Yes'}")
-                if stop.has_shelter:
-                    notes.append("Has Shelter")
+                # Parse address components
+                address_parts = stop.address.split(', ') if stop.address else []
+                street_address = ''
+                apt_unit = ''
+                city = ''
+                state = ''
+                zip_code = ''
                 
-                # Add row data
+                if len(address_parts) >= 3:
+                    # First part is street (and maybe apt/unit)
+                    street_parts = address_parts[0]
+                    # Check for apartment/unit indicators
+                    if ' Apt ' in street_parts or ' Unit ' in street_parts or ' #' in street_parts:
+                        # Split on common apartment indicators
+                        for separator in [' Apt ', ' Unit ', ' #']:
+                            if separator in street_parts:
+                                street_address, apt_unit = street_parts.split(separator, 1)
+                                apt_unit = apt_unit.strip()
+                                break
+                    else:
+                        street_address = street_parts
+                    
+                    # Second part is city
+                    city = address_parts[1] if len(address_parts) > 1 else ''
+                    
+                    # Third part is state and ZIP
+                    if len(address_parts) > 2:
+                        state_zip = address_parts[2].strip()
+                        # Split state and ZIP
+                        state_zip_parts = state_zip.split()
+                        if len(state_zip_parts) >= 2:
+                            state = state_zip_parts[0]
+                            zip_code = ' '.join(state_zip_parts[1:])
+                        else:
+                            state = state_zip
+                elif address_parts:
+                    # Fallback - just use the whole address as street
+                    street_address = stop.address
+                
+                # Format Required Date
+                required_date_str = ''
+                if stop.required_date:
+                    try:
+                        if hasattr(stop.required_date, 'strftime'):
+                            required_date_str = stop.required_date.strftime('%m/%d/%Y')
+                        else:
+                            required_date_str = str(stop.required_date)
+                    except:
+                        required_date_str = str(stop.required_date)
+                
+                # Add row data matching the headers
                 row_data = [
-                    idx,
-                    stop.address,
-                    stop.service_type or '',
-                    stop.post_type or '',
-                    priority,
-                    stop.agent_sign_description or '',
-                    '; '.join(notes)
+                    idx,  # Stop #
+                    street_address,  # Street Address
+                    apt_unit,  # Apt/Unit
+                    city,  # City
+                    state,  # State
+                    zip_code,  # ZIP Code
+                    stop.service_type or '',  # Service Type
+                    stop.post_type or '',  # Post Type
+                    priority,  # Priority
+                    required_date_str,  # Required Date
+                    '',  # Delivery Notes (no field for this yet)
+                    stop.agent_sign_description or '',  # Agent Sign Description
+                    stop.riders_toppers_description if stop.has_riders_toppers else '',  # Riders/Toppers
+                    'Yes' if stop.has_shelter else ''  # Shelter
                 ]
                 
                 for col, value in enumerate(row_data, 1):
