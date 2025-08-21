@@ -13,6 +13,7 @@ from tsp_solver import TSPSolver
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.cell.cell import MergedCell
 import io
 import base64
 
@@ -416,24 +417,24 @@ def export_route(route_id):
         )
         
         # Add route summary at the top
-        ws1.merge_cells('A1:G1')
         ws1['A1'] = f"Route for Driver {route.driver_number}"
         ws1['A1'].font = Font(bold=True, size=14)
         ws1['A1'].alignment = Alignment(horizontal="center")
+        ws1.merge_cells('A1:G1')
         
-        ws1.merge_cells('A2:G2')
         departure_address = get_fixed_departure_address()
         ws1['A2'] = f"Departure: {departure_address}"
         ws1['A2'].alignment = Alignment(horizontal="center")
+        ws1.merge_cells('A2:G2')
         
-        ws1.merge_cells('A3:G3')
         total_hours = route.total_time_minutes / 60
         ws1['A3'] = f"Total Time: {route.total_time_minutes} minutes ({total_hours:.1f} hours)"
         ws1['A3'].alignment = Alignment(horizontal="center")
+        ws1.merge_cells('A3:G3')
         
-        ws1.merge_cells('A4:G4')
         ws1['A4'] = f"Start Time: {route.start_time} | Date: {route.route_date}"
         ws1['A4'].alignment = Alignment(horizontal="center")
+        ws1.merge_cells('A4:G4')
         
         # Headers for stop details
         headers = ['Stop #', 'Address', 'Service Type', 'Post Type', 'Priority', 'Agent Sign', 'Notes']
@@ -485,30 +486,27 @@ def export_route(route_id):
                 
                 row += 1
         
-        # Auto-size columns
+        # Auto-size columns (skip merged cells)
         for column in ws1.columns:
             max_length = 0
             column_letter = get_column_letter(column[0].column)
             for cell in column:
                 try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
+                    # Skip merged cells and None values
+                    if hasattr(cell, 'value') and cell.value is not None and not isinstance(cell, MergedCell):
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                except Exception as e:
+                    logging.debug(f"Skipping cell in auto-size: {e}")
                     pass
-            adjusted_width = min(max_length + 2, 50)
+            adjusted_width = min(max_length + 2, 50) if max_length > 0 else 15
             ws1.column_dimensions[column_letter].width = adjusted_width
         
         # Sheet 2: Route Summary
         ws2 = wb.create_sheet(title="Route Summary")
         
-        ws2.merge_cells('A1:D1')
-        ws2['A1'] = f"Route Summary - Driver {route.driver_number}"
-        ws2['A1'].font = Font(bold=True, size=14)
-        ws2['A1'].alignment = Alignment(horizontal="center")
-        
-        # Summary statistics
+        # Summary statistics (starting from row 3 to leave room for title)
         summary_data = [
-            ['', ''],
             ['Metric', 'Value'],
             ['Driver Number', route.driver_number],
             ['Total Stops', len(stop_ids)],
@@ -536,37 +534,41 @@ def export_route(route_id):
         for service_type, count in service_counts.items():
             summary_data.append([service_type, count])
         
-        # Add summary data to sheet
-        for row_idx, row_data in enumerate(summary_data, 1):
+        # Add title row
+        ws2['A1'] = f"Route Summary - Driver {route.driver_number}"
+        ws2['A1'].font = Font(bold=True, size=14)
+        ws2['A1'].alignment = Alignment(horizontal="center")
+        ws2.merge_cells('A1:D1')
+        
+        # Add summary data to sheet (starting from row 3)
+        for row_idx, row_data in enumerate(summary_data, 3):
             for col_idx, value in enumerate(row_data, 1):
                 cell = ws2.cell(row=row_idx, column=col_idx, value=value)
-                if row_idx == 2 or row_idx == 11 or row_idx == 16:  # Header rows
+                if row_idx == 3 or row_idx == 12 or row_idx == 17:  # Header rows
                     cell.font = Font(bold=True)
                     cell.fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
         
-        # Auto-size columns for summary sheet
+        # Auto-size columns for summary sheet (skip merged cells)
         for column in ws2.columns:
             max_length = 0
             column_letter = get_column_letter(column[0].column)
             for cell in column:
                 try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
+                    # Skip merged cells and None values
+                    if hasattr(cell, 'value') and cell.value is not None and not isinstance(cell, MergedCell):
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                except Exception as e:
+                    logging.debug(f"Skipping cell in auto-size: {e}")
                     pass
-            adjusted_width = min(max_length + 2, 50)
+            adjusted_width = min(max_length + 2, 50) if max_length > 0 else 15
             ws2.column_dimensions[column_letter].width = adjusted_width
         
         # Sheet 3: Instructions for viewing map
         ws3 = wb.create_sheet(title="Map Instructions")
         
-        ws3.merge_cells('A1:D1')
-        ws3['A1'] = "How to View the Route Map"
-        ws3['A1'].font = Font(bold=True, size=14)
-        ws3['A1'].alignment = Alignment(horizontal="center")
-        
+        # Instructions data (starting from row 3 to leave room for title)
         instructions = [
-            ['', ''],
             ['Step', 'Instructions'],
             ['1', 'Return to the Route Optimizer web application'],
             ['2', f'Find Driver {route.driver_number} route in the Generated Routes section'],
@@ -580,24 +582,34 @@ def export_route(route_id):
             ['Note', 'Maps require an active internet connection to display properly'],
         ]
         
-        for row_idx, row_data in enumerate(instructions, 1):
+        # Add title row
+        ws3['A1'] = "How to View the Route Map"
+        ws3['A1'].font = Font(bold=True, size=14)
+        ws3['A1'].alignment = Alignment(horizontal="center")
+        ws3.merge_cells('A1:D1')
+        
+        # Add instructions data (starting from row 3)
+        for row_idx, row_data in enumerate(instructions, 3):
             for col_idx, value in enumerate(row_data, 1):
                 cell = ws3.cell(row=row_idx, column=col_idx, value=value)
-                if row_idx == 2:  # Header row
+                if row_idx == 3:  # Header row
                     cell.font = Font(bold=True)
                     cell.fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
         
-        # Auto-size columns for instructions sheet
+        # Auto-size columns for instructions sheet (skip merged cells)
         for column in ws3.columns:
             max_length = 0
             column_letter = get_column_letter(column[0].column)
             for cell in column:
                 try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
+                    # Skip merged cells and None values
+                    if hasattr(cell, 'value') and cell.value is not None and not isinstance(cell, MergedCell):
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                except Exception as e:
+                    logging.debug(f"Skipping cell in auto-size: {e}")
                     pass
-            adjusted_width = min(max_length + 2, 50)
+            adjusted_width = min(max_length + 2, 50) if max_length > 0 else 15
             ws3.column_dimensions[column_letter].width = adjusted_width
         
         # Save to BytesIO object
@@ -616,6 +628,8 @@ def export_route(route_id):
         )
         
     except Exception as e:
+        import traceback
         logging.error(f"Error exporting route: {e}")
+        logging.error(f"Traceback: {traceback.format_exc()}")
         flash(f'Error exporting route: {str(e)}', 'error')
         return redirect(url_for('main.index'))
